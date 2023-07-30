@@ -1,0 +1,43 @@
+mode_setup;
+
+beginchar("A", 1000, 1000, 0);
+    pickup makepen ((-50,0)--(50,0)--(0,100)--cycle);
+    drawdot (100,100);
+endchar;
+
+beginchar("B", 1000, 1000, 0);
+    pickup makepen ((-50,0)--(50,0)--(0,100)--cycle);
+    draw (200,200)--(600,200);
+endchar;
+
+beginchar("C", 1000, 1000, 0);
+    pickup pencircle scaled 100;
+    draw (200,200)--(600,200);
+endchar;
+
+beginchar("D", 1000, 1000, 0);
+    pickup makepen ((-50,0)--(50,0)--(0,100)--cycle);
+    draw (300,300)--(650,350)--(500,650)--(300,500);
+endchar;
+
+beginchar("E", 1000, 1000, 0);
+    pickup makepen ((-50,0)--(50,0)--(0,100)--cycle);
+    draw (300,300)--(650,350)--(500,650)--(300,350);
+endchar;
+
+beginchar("F", 1000, 1000, 0);
+    pickup makepen ((-50,0)--(50,0)--(0,100)--cycle);
+    draw (300,300)--(650,350)--(500,650)--cycle;
+endchar;
+
+beginchar("G", 1000, 1000, 0);
+    pickup pencircle xscaled 100 yscaled 75 rotated 20;
+    draw (fullcircle scaled 200 shifted (400,400));
+endchar;
+
+beginchar("H", 1000, 1000, 0);
+    pickup pencircle scaled 100;
+    addto_currentpicture contour (100,100)--(200,100)--(200,200)--(100,200)--cycle withpen currentpen;
+endchar;
+
+end

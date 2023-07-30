@@ -1,0 +1,6 @@
+mode_setup;
+
+beginchar ("A", 1, 2, 3);
+endchar;
+
+end

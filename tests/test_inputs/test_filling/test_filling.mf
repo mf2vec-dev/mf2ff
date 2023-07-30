@@ -1,0 +1,57 @@
+mode_setup;
+
+beginchar("A", 1000, 1000, 0);
+    % empty char
+endchar;
+
+beginchar("B", 1000, 1000, 0);
+    % char with some specific coordinates to check
+    fill (1,2)--(3,4)--(6,5)--cycle;
+endchar;
+
+beginchar("C", 1000, 1000, 0);
+    % char with clockwise path
+    fill (100,100)--(200,100)--(200,200)--(100,200)--cycle;
+endchar;
+
+beginchar("D", 1000, 1000, 0);
+    % char with counter-clockwise path
+    fill (100,100)--(100,200)--(200,200)--(200,100)--cycle;
+endchar;
+
+beginchar("E", 1000, 1000, 0);
+    % char with two paths
+    fill (100,100)--(100,400)--(400,400)--(400,100)--cycle;
+    unfill (200,200)--(200,300)--(300,300)--(300,200)--cycle;
+endchar;
+
+beginchar("c", 10, 12, 0);
+    w1 := 2/16 w;
+    w2 := 1/16 w;
+
+    % initial angles
+    a := 30;
+
+    % define points
+    x1 = x5 = 7/8 w;
+    x2 = x4 = 4/8 w;
+    x3 = 1/8 w;
+
+    y2 = 15/16 h;
+    y3 = 8/16 h;
+    y4 = 1/16 h;
+    y5 = h-y1 = 2/16 h;
+
+    % define pen angles
+    penpos1(w2,90-a);
+    penpos2(w2,90);
+    penpos3(w1,180);
+    penpos4(w2,-90);
+    penpos5(w2,-90+a);
+
+    penstroke z1e{dir (180-a)}..z2e{dir 180}..z3e{dir -90}..z4e{dir 0}..z5e{dir a};
+
+    penlabels(1,2,3,4,5);
+endchar;
+
+end

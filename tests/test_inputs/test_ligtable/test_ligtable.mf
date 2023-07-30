@@ -1,0 +1,53 @@
+mode_setup;
+
+beginchar("A", 1000, 1000, 0);
+endchar;
+
+beginchar("B", 1000, 1000, 0);
+endchar;
+
+ligtable "A": "B" kern 100;
+
+
+beginchar("C", 1000, 1000, 0);
+endchar;
+
+beginchar("D", 1000, 1000, 0);
+endchar;
+
+beginchar("E", 1000, 1000, 0);
+endchar;
+
+beginchar("F", 1000, 1000, 0);
+endchar;
+
+beginchar("G", 1000, 1000, 0);
+endchar;
+
+ligtable "C": "D" =: "E", "F" =: "G";
+
+
+beginchar("H", 1000, 1000, 0);
+endchar;
+
+beginchar("I", 1000, 1000, 0);
+endchar;
+
+beginchar("J", 1000, 1000, 0);
+endchar;
+
+ligtable "H": "I" |=: "J";
+
+
+beginchar("K", 1000, 1000, 0);
+endchar;
+
+beginchar("L", 1000, 1000, 0);
+endchar;
+
+beginchar("M", 1000, 1000, 0);
+endchar;
+
+ligtable "K": "L" =:| "M";
+
+end
