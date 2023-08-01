@@ -135,6 +135,7 @@ This will make the following macros available:
 - `attachment_point_mark_mark(...)` to place the attachment point in a mark glyph to be attached to a base glyph
 - `attachment_point_mkmk_basemark(...)` to place the attachment point in a mark glyph to attach another mark glyph
 - `attachment_point_mkmk_mark(...)` to place the attachment point in a mark glyph to be attached to another mark glyph
+
 The arguments (`(...)`) should be comma separated list of:
 - `attachment_point_class_name`: The name of the attachment point class, e.g. `"Top"`. Corresponding attachment points need to have the same class name in the base glyph and the mark glyph to be linked.
 - `x`: The horizontal position of the attachment point.
