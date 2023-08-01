@@ -77,7 +77,7 @@ class TestLigtable(Mf2ffTest):
 
         # TODO how to check rule of subtable?
 
-        gsub_lookup_names = self.font.gsub_lookups
+
         gsub_lookup_name = 'gsub_single_after_H'
         self.assertIn(gsub_lookup_name, gsub_lookup_names)
 
@@ -110,7 +110,7 @@ class TestLigtable(Mf2ffTest):
 
         # TODO how to check rule of subtable?
 
-        gsub_lookup_names = self.font.gsub_lookups
+
         gsub_lookup_name = 'gsub_single_before_L'
         self.assertIn(gsub_lookup_name, gsub_lookup_names)
 

@@ -38,28 +38,6 @@ class Mf2ff():
 
     def __init__(self):
         self.MARKER = '@mf2vec@'
-        M = self.MARKER
-        # all command names which are written into the log file, g means >
-        # (greater), p means | (pipe) # TODO explain why replacement is needed
-        self.command_pattern = re.compile(M+
-            r'(addto|also|contour|doublepath|turningcheck|turningnumber|withpen|withweight'
-            r'|cull|keeping|dropping'
-            r'|picture|pic_eqn|pic|as|eq|mi|pl'
-            r'|shipout'
-            r'|ligtable|:|::|pp:|kern|=:|p=:|p=:g|=:p|=:pg|p=:p|p=:pg|p=:pgg|skipto'
-            r'|fontdimen|end)'
-            r'(?:>> (?:(?:Path|Pen polygon) at line (\d+):)?(.*?))?'+M, re.DOTALL)
-        # The begin of every message to the log file (also part of the above
-        # pattern), used to split up multiple pieces of information written to
-        # the log file by a single command.
-        self.split_pattern = re.compile(r'>> (?:(?:Path|Pen polygon) at line \d+:)?')
-        # patterns for pair and join, join always follows a pair of a join
-        self.pair_pattern = re.compile(r'\((.*?),(.*?)\)')
-        self.join_pattern = re.compile(r'\.\.controls \((.*?),(.*?)\) and \((.*?),(.*?)\) \.\.(?:\((.*?),(.*?)\)|(cycle))')
-        # all information given at the shipout of a character.
-        self.shipout_pattern = re.compile(r'(.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)$')
-        # all information in a metafont error
-        self.error_pattern = re.compile(r'^! (?:.|\n)*?^l.(?:.|\n)*?\n\n', re.MULTILINE)
 
         self.last_known_line = 0
 
@@ -101,6 +79,8 @@ class Mf2ff():
             'sfd': True,
             'stroke-simplify': True,
             'stroke-accuracy': None, # use fontforge's default (should be 0.25)
+            'extension-attachment-points': False,
+            'extension-attachment-points-macro-prefix': 'attachment_point', # TODO validation needed: only r'[A-Za-z_]'
             'time': False,
             'ttf': False,
         }
@@ -168,6 +148,8 @@ class Mf2ff():
             + self.mf_first_line
             + 'input ' + self.input_file
         )
+
+        self.define_patterns()
 
         self.run_mf()
 
@@ -282,6 +264,8 @@ class Mf2ff():
             start_time_ff (float): start time of fontforge from time.time()
             cmds (list[tuple[str]]): list of commands
         '''
+
+        attachment_points = []
 
         i = 0
         while i < len(cmds):
@@ -679,6 +663,10 @@ class Mf2ff():
                     glyph.transform((1.0, 0.0, 0.0, 1.0, xoffset, yoffset))
                     pass
 
+                for attachment_point_class_name, lookup_type, x, y in attachment_points:
+                    glyph.addAnchorPoint(attachment_point_class_name, lookup_type, x, y)
+                attachment_points = []
+
                 if self.ascent == 0 and charht > self.font.ascent:
                     self.font.ascent = charht
                 if self.descent == 0 and chardp > self.font.descent:
@@ -835,6 +823,26 @@ class Mf2ff():
                 if design_size != 0:
                     self.font.design_size = design_size
 
+            # extension
+            elif cmd_name[:16] == 'attachment_point':
+                lookup_feature, attachment_point_type = cmd_name[17:].split('_')
+                attachment_point = self.attachment_point_pattern.search(self.cmd_body)
+                attachment_point_class_name = attachment_point.group(1)[1:-1] # clip quotes
+                x = float(attachment_point.group(2))
+                y = float(attachment_point.group(3))
+                # TODO consider hppp?
+                if lookup_feature == 'mark':
+                    lookup_type = 'gpos_mark2base'
+                    # TODO What about 'abvm' and 'blwm' for mark2base?
+                if lookup_feature == 'mkmk':
+                    lookup_type = 'gpos_mark2mark'
+                if not lookup_type in self.font.gpos_lookups:
+                    self.font.addLookup(lookup_type, lookup_type, None, ((lookup_feature, self.scripts),))
+                    self.font.addLookupSubtable(lookup_type, lookup_type+'_subtable')
+                if attachment_point_class_name not in self.font.getLookupSubtableAnchorClasses(lookup_type+'_subtable'):
+                    self.font.addAnchorClass(lookup_type+'_subtable', attachment_point_class_name)
+                attachment_points.append((attachment_point_class_name, attachment_point_type, x, y))
+
             else:
                 print('! "' + cmd_name + '": ' + self.cmd_body + '?')
                 print('  This may be a syntax error. Run file with METAFONT to find it.')
@@ -882,6 +890,38 @@ class Mf2ff():
                 if not isinstance(element, str):
                     return False
 
+    def define_patterns(self):
+        M = self.MARKER
+        # all command names which are written into the log file, g means >
+        # (greater), p means | (pipe) # TODO explain why replacement is needed
+        self.command_pattern = re.compile(M+
+            r'('
+                r'addto|also|contour|doublepath|turningcheck|turningnumber|withpen|withweight'
+                r'|cull|keeping|dropping'
+                r'|picture|pic_eqn|pic|as|eq|mi|pl'
+                r'|shipout'
+                r'|ligtable|:|::|pp:|kern|=:|p=:|p=:g|=:p|=:pg|p=:p|p=:pg|p=:pgg|skipto'
+                r'|fontdimen|end'
+                +(
+                    r'|'+self.options['extension-attachment-points-macro-prefix']+r'_(?:mark_(?:base|mark)|mkmk_(?:basemark|mark))'
+                    if self.options['extension-attachment-points'] else r''
+                )+
+            r')'
+            r'(?:>> (?:(?:Path|Pen polygon) at line (\d+):)?(.*?))?'+M, re.DOTALL)
+        # The begin of every message to the log file (also part of the above
+        # pattern), used to split up multiple pieces of information written to
+        # the log file by a single command.
+        self.split_pattern = re.compile(r'>> (?:(?:Path|Pen polygon) at line \d+:)?')
+        # patterns for pair and join, join always follows a pair of a join
+        self.pair_pattern = re.compile(r'\((.*?),(.*?)\)')
+        self.join_pattern = re.compile(r'\.\.controls \((.*?),(.*?)\) and \((.*?),(.*?)\) \.\.(?:\((.*?),(.*?)\)|(cycle))')
+        # all information given at the shipout of a character.
+        self.shipout_pattern = re.compile(r'(.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)$')
+        # all information in a metafont error
+        self.error_pattern = re.compile(r'^! (?:.|\n)*?^l.(?:.|\n)*?\n\n', re.MULTILINE)
+        # extension: attachment_point
+        self.attachment_point_pattern = re.compile(r'(.*?)>> (.*?)>> (.*?)$')
+
     def get_redefinitions(self):
         '''return mf code containing redefinitions needed for mf2ff
 
@@ -894,6 +934,7 @@ class Mf2ff():
         m__ = m_+'";'      # end of redefined token, possibly preceded by an expression
         mm_ = m__+m_       # end of redefined token and begin of new redefined token
         return (
+            'if unknown __mfIIvec__:boolean __mfIIvec__;__mfIIvec__:=true;fi '
             # First, some mf primitives are saved, so they are accessible even
             # after redefining them.
             'let __mfIIvec__orig_colon__ = : ;'
@@ -1150,6 +1191,33 @@ class Mf2ff():
                 'o_correction:=1;' # no reduction in overshoot
             'enddef;'
             'mode:=mfIIff;'
+
+            # extension\
+            # attachment points\
+            +(
+                (
+                    'def ' + self.options['extension-attachment-points-macro-prefix'] + '_mark_base(text t)='
+                        +m_+'attachment_point_mark_base";'
+                        'show t;'
+                        +m__+
+                    'enddef;'
+                    'def ' + self.options['extension-attachment-points-macro-prefix'] + '_mark_mark(text t)='
+                        +m_+'attachment_point_mark_mark";'
+                        'show t;'
+                        +m__+
+                    'enddef;'
+                    'def ' + self.options['extension-attachment-points-macro-prefix'] + '_mkmk_basemark(text t)='
+                        +m_+'attachment_point_mkmk_basemark";'
+                        'show t;'
+                        +m__+
+                    'enddef;'
+                    'def ' + self.options['extension-attachment-points-macro-prefix'] + '_mkmk_mark(text t)='
+                        +m_+'attachment_point_mkmk_mark";'
+                        'show t;'
+                        +m__+
+                    'enddef;'
+                ) if self.options['extension-attachment-points'] else ''
+            )
         )
 
     def show_progress(self, start_time_ff, i, num_cmds):
@@ -1415,10 +1483,14 @@ def parse_arguments(mf2ff):
                         i += 1
                 # negatable mf2ff options
                 elif arg in ('cull-at-shipout', 'debug', 'extrema', 'hint', 'is_type',
-                        'otf', 'remove-artifacts', 'sfd', 'stroke-simplify', 'time', 'ttf'):
+                        'otf', 'remove-artifacts', 'sfd', 'stroke-simplify',
+                        'extension-attachment-points','time', 'ttf'
+                    ):
                     mf2ff.options[arg] = True
                 elif arg in ('no-cull-at-shipout', 'no-debug', 'no-extrema', 'no-hint', 'no-is_type',
-                        'no-otf', 'no-remove-artifacts', 'no-sfd', 'no-stroke-simplify', 'no-time', 'no-ttf'):
+                        'no-otf', 'no-remove-artifacts', 'no-sfd', 'no-stroke-simplify',
+                        'no-extension-attachment-points', 'no-time', 'no-ttf'
+                    ):
                     mf2ff.options[full_arg[4:]] = False
                 # name value option which don't need to be passed to mf (stored in options property)
                 elif arg.split('=', 1)[0] == 'stroke-accuracy':
@@ -1428,6 +1500,13 @@ def parse_arguments(mf2ff):
                         val = args[i+1]
                         i += 1
                     mf2ff.options['stroke-accuracy'] = float(val)
+                elif arg.split('=', 1)[0] == 'extension-attachment-points-macro-prefix':
+                    if '=' in arg:
+                        val = arg.split('=', 1)[1]
+                    else:
+                        val = args[i+1]
+                        i += 1
+                    mf2ff.options['extension-attachment-points-macro-prefix'] = val
                 # name value option which don't need to be passed to mf (stored as properties)
                 elif arg.split('=', 1)[0] in font_option_names_str + font_option_names_int + font_option_names_float:
                     name = arg.split('=', 1)[0]
@@ -1469,43 +1548,53 @@ def parse_arguments(mf2ff):
                         'Interactive usage with a prompt for input is not supported.\n'
                         '\n'
                         'Options:\n'
-                        '  -ascent=NUM            set font\'s ascent\n'
-                        '  -comment=STR           set font\'s comment\n'
-                        '  -copyright=STR         set font\'s copyright notice\n'
-                        '  -[no-]cull-at-shipout  disable/enable extra culling at shipout.\n'
-                        '                           MF ships out only positive pixels which is\n'
-                        '                           equivalent to cullit before shipout. (default: disabled)\n'
-                        '  -[no-]debug            disable/enable debugging mode of mf2ff\n'
-                        '  -descent=NUM           set font\'s descent\n'
-                        '  -designsize=NUM        set font\'s design size\n'
-                        '  -encoding=STR          set font\'s encoding\n'
-                        '  -[no-]extrema          disable/enable extrema adding (default: disabled)\n'
-                        '  -familyname=STR        set font\'s family name\n'
-                        '  -fontlog=STR           set font\'s log\n'
-                        '  -fontname=STR          set font\'s name\n'
-                        '  -font-version=STR      set font\'s version\n'
-                        '  -fullname=STR          set font\'s full name\n'
-                        '  -help                  display this help\n'
-                        '  -[no-]hint             disable/enable auto hinting and auto instructing (default: disabled)\n'
-                        '  -[no-]is_type          disable/enable definition of is_pen and is_picture (default: disabled)\n'
-                        '                           as pen and picture, respectively\n'
-                        '  -italicangle=NUM       set font\'s italic angle\n'
-                        '  -[no-]otf              disable/enable OpenType output generation (default: disabled)\n'
-                        '  -ppi=INT               set ppi to INT\n'
-                        '  -[no-]remove-artifacts disable/enable removing of artifacts (default: disabled)'
-                        '  -scripts=TUPLE         set scripts for tables,\n'
-                        '                           e.g. ((\'latn\',(\'dflt\',)),)\n'
-                        '  -[no-]sfd              disable/enable Spline Font Database (FontForge\n'
-                        '                           Project) output generation (default: enabled)\n'
-                        '  -stroke-accuracy=NUM   set stroke accuracy, i.e. target for the allowed error in em-units\n'
-                        '                           for layer.simplify() during layer.stoke(). Has no effect if\n'
-                        '                           stroke-simplify is disabled. (default: 0.25)\n'
-                        '  -[no-]stroke-simplify  disable/enable stroke simplification (default: enabled)\n'
-                        '  -[no-]time             disable/enable timing (default: disabled)\n'
-                        '  -[no-]ttf              disable/enable TrueType output generation (default: disabled)\n'
-                        '  -upos=NUM              set the font\'s underline position\n'
-                        '  -uwidth=NUM            set the font\'s underline width\n'
-                        '  -version               output version information of mf2ff and exit\n'
+                        '  -ascent=NUM       set font\'s ascent\n'
+                        '  -comment=STR      set font\'s comment\n'
+                        '  -copyright=STR    set font\'s copyright notice\n'
+                        '  -[no-]cull-at-shipout\n'
+                        '                    disable/enable extra culling at shipout.\n'
+                        '                      MF ships out only positive pixels which is\n'
+                        '                      equivalent to cullit before shipout. (default: disabled)\n'
+                        '  -[no-]debug       disable/enable debugging mode of mf2ff\n'
+                        '  -descent=NUM      set font\'s descent\n'
+                        '  -designsize=NUM   set font\'s design size\n'
+                        '  -encoding=STR     set font\'s encoding\n'
+                        '  -[no-]extrema     disable/enable extrema adding (default: disabled)\n'
+                        '  -familyname=STR   set font\'s family name\n'
+                        '  -fontlog=STR      set font\'s log\n'
+                        '  -fontname=STR     set font\'s name\n'
+                        '  -font-version=STR set font\'s version\n'
+                        '  -fullname=STR     set font\'s full name\n'
+                        '  -help             display this help\n'
+                        '  -[no-]hint        disable/enable auto hinting and auto instructing (default: disabled)\n'
+                        '  -[no-]is_type     disable/enable definition of is_pen and is_picture (default: disabled)\n'
+                        '                      as pen and picture, respectively\n'
+                        '  -italicangle=NUM  set font\'s italic angle\n'
+                        '  -[no-]otf         disable/enable OpenType output generation (default: disabled)\n'
+                        '  -ppi=INT          set ppi to INT\n'
+                        '  -[no-]remove-artifacts\n'
+                        '                    disable/enable removing of artifacts (default: disabled)'
+                        '  -scripts=TUPLE    set scripts for tables,\n'
+                        '                      e.g. ((\'latn\',(\'dflt\',)),)\n'
+                        '  -[no-]sfd         disable/enable Spline Font Database (FontForge\n'
+                        '                      Project) output generation (default: enabled)\n'
+                        '  -stroke-accuracy=NUM\n'
+                        '                    set stroke accuracy, i.e. target for the allowed error in em-units\n'
+                        '                      for layer.simplify() during layer.stoke(). Has no effect if\n'
+                        '                      stroke-simplify is disabled. (default: 0.25)\n'
+                        '  -[no-]stroke-simplify\n'
+                        '                    disable/enable stroke simplification (default: enabled)\n'
+                        '  -[no-]extension-attachment-points\n'
+                        '                    enable/disable attachment point extension (default: disabled)\n'
+                        '  -extension-attachment-points-macro-prefix=STR\n'
+                        '                    set macro name prefix (default: \'attachment_point\')\n'
+                        '                      choose so that in mf files there are none of:\n'
+                        '                      <macro-prefix>_mark_base, <macro-prefix>_mark_mark, <macro-prefix>_mkmk_basemark, <macro-prefix>_mkmk_mark\n'
+                        '  -[no-]time        disable/enable timing (default: disabled)\n'
+                        '  -[no-]ttf         disable/enable TrueType output generation (default: disabled)\n'
+                        '  -upos=NUM         set the font\'s underline position\n'
+                        '  -uwidth=NUM       set the font\'s underline width\n'
+                        '  -version          output version information of mf2ff and exit\n'
                         '\n'
                         'The following options are also available and are passed to METAFONT:\n'
                         '  -[no-]file-line-error\n'
@@ -1514,8 +1603,8 @@ def parse_arguments(mf2ff):
                         '  -[no-]parse-first-line\n'
                         '  -recorder\n'
                         '  -8bit\n'
-                        'METAFONT\'s -version option is not passed because it only produces output on\n'
-                        'the terminal.\n'
+                        'METAFONT\'s -version option is not available here because it only outputs text\n'
+                        'to the terminal.\n'
                         '\n'
                         'Please see METAFONT\'s help (run \'mf -help\') to get more information about\n'
                         'its options and for alternative usage patterns. Some of the METAFONT options\n'
@@ -1525,7 +1614,7 @@ def parse_arguments(mf2ff):
                         'It won\'t work!\n'
                         '===============\n'
                         '\n'
-                        'The problem might be a non-loadable fontforge module.\n'
+                        'The problem may be a unloadable fontforge module.\n'
                         'Try the following:\n'
                         '- Please make sure fontforge and mf are installed.\n'
                         '- On Windows, please run fontforge-console.bat once and make sure to use\n'

@@ -17,7 +17,7 @@ class Mf2ffTest(unittest.TestCase):
             pass
 
     @classmethod
-    def run_mf_file(cls, file_path, debug=False):
+    def run_mf_file(cls, file_path, debug=False, options=None):
         '''run mf2ff on the file file_path in the test_inputs directory
 
         Args:
@@ -29,5 +29,7 @@ class Mf2ffTest(unittest.TestCase):
         test_file_path = cls.test_dir / 'test_inputs' / file_path
         cls.mf2ff.input_file = str(test_file_path)
         cls.mf2ff.options['debug'] = bool(debug)
+        if options is not None:
+            cls.mf2ff.options.update(options)
         cls.mf2ff.run()
         cls.font = fontforge.open(str(test_file_path))

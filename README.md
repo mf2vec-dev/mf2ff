@@ -12,6 +12,7 @@ The tool has not yet been thoroughly tested, but most common METAFONT commands a
     - [Linux](#linux)
     - [macOS](#macos)
   - [Usage](#usage)
+    - [Extensions](#extensions)
   - [mf2vec concept](#mf2vec-concept)
     - [Details of the concept](#details-of-the-concept)
   - [Background](#background)
@@ -112,11 +113,49 @@ To easily access the `mf2ff` script from everywhere, add its location to the `PY
 - Now, you can always run `mf2ff` with `python3 -m mf2ff ...` in new shell sessions.
 
 ## Usage
-By default, `mf2ff` will generate a Spline Font Database (.sfd) file. You can use the options `-ttf` / `mf2ff.options['ttf'] = True` or `-otf` / `mf2ff.options['otf'] = True` to generate fonts directly.
+Examples:
+- `python -m mf2ff myfont.mf`
+- `python -m mf2ff -ppi=4000 -remove-artifacts -cull-at-shipout -no-sfd -otf path/to/myfont.mf`
+
+Depending on your OS, you need to use `ffpython` or `python3` instead of `python`. See above for [setup](#setup).
+
+By default, `mf2ff` will generate a Spline Font Database (.sfd) file. You can deactivate this using the option `-no-sfd` / `mf2ff.options['sfd'] = False` and `-ttf` / `mf2ff.options['ttf'] = True` or `-otf` / `mf2ff.options['otf'] = True` to generate font files directly.
 
 `mf2ff` doesn't do much cleanup by default, as you may want to manually rework the glyphs. You can use the options `-cull-at-shipout` / `mf2ff.options['cull-at-shipout'] = True` or `-remove-artifacts` / `mf2ff.options['remove-artifacts'] = True` to perform some automated cleanup. Note that cull commands that are part of a glyph definition may result in the `cull-at-shipout` option not making any further changes for some glyphs.
 
 Please take a look at the [limitations](#current-limitations-of-the-mf2ff) listed below.
+
+### Extensions
+Since METAFONT was designed to generate generic font files and TeX font metric files, it doesn't provide access to functionalities available in modern font file formats. `mf2ff` has implemented the following extension to overcome METAFONT's restrictions:
+
+**Attachment points**\
+Attachment points (in FontForge called anchors) are used to precisely place diacritic marks on base characters. `mf2ff` provides a `-extension-attachment-points` / `mf2ff.options['extension-attachment-points'] = True` option to activate the attachment point extension.
+This will make the following macros available:
+- `attachment_point_mark_base(...)` to place the attachment point in a base glyph to attach a mark glyph
+- `attachment_point_mark_mark(...)` to place the attachment point in a mark glyph to be attached to a base glyph
+- `attachment_point_mkmk_basemark(...)` to place the attachment point in a mark glyph to attach another mark glyph
+- `attachment_point_mkmk_mark(...)` to place the attachment point in a mark glyph to be attached to another mark glyph
+The arguments (`(...)`) should be comma separated list of:
+- `attachment_point_class_name`: The name of the attachment point class, e.g. `"Top"`. Corresponding attachment points need to have the same class name in the base glyph and the mark glyph to be linked.
+- `x`: The horizontal position of the attachment point.
+- `y`: The vertical position of the attachment point.
+
+Example: `attachment_point_mark_base("Top", w/2, h);`
+
+If the name of one of the macros listed above is already used by the .mf file and you don't want to rename this existing variable or macro, you can use the option `-extension-attachment-points-macro-prefix=STR` / `mf2ff.options['extension-attachment-points-macro-prefix'] = '...'` to replace `attachment_point` in the macro names.
+
+To be able to run the .mf files also in METAFONT without using `mf2ff`, you need to define those tokens so METAFONT won't throw an error. Since `mf2ff` definition of those macros should not be overwritten by a definitions in the .mf file, you can use the following code to only define them when you don't run `mf2ff`:
+```
+if unknown __mfIIvec__:
+  def attachment_point_mark_base(text t) = enddef;
+  def attachment_point_mark_mark(text t) = enddef;
+  def attachment_point_mkmk_basemark(text t) = enddef;
+  def attachment_point_mkmk_mark(text t) = enddef;
+fi
+```
+The boolean variable `__mfIIvec__` is defined by `mf2ff` to determine if `mf2ff` is used.\
+If you use `-extension-attachment-points-macro-prefix=STR`, change the macro name in the code above accordingly.
+
 
 ## mf2vec concept
 The main idea of the mf2vec concept is to make METAFONT to redirect the glyphs' geometries to another program (in case of `mf2ff` this program is FontForge) instead of using them to generate a bitmap font. This is possible due to the fact that METAFONT internally uses the same geometrical description which is subsequently needed in the vector font files—the Bézier curves.\
@@ -237,7 +276,7 @@ If a specific limitation is holding your project back, open an issue so that fut
 - Pen commands\
   Only round, elliptical and polygonal pens are supported. It is assumed that a path of length 8 (8 points) is an ellipse. Four of these points are used to calculate the axis lengths and the angle. All paths with other lengths are interpreted as polygons. Thereby only points on the Bézier curve are processed.
   - `penrazor` is not supported (see dangerous_bend_symbol example), FontForge: "Stroke width cannot be zero"
-  - The use of `penspeck` raises a warning but the output seems to be ok in some cases. 
+  - The use of `penspeck` raises a warning but the output seems to be ok in some cases.
 - The support of `cull` commands is limited.
 - Ligature commands\
   Only `:`, `::`, `kern`, `skipto` as well as the ligature operators `=:`, `|=:`, `=:|` and `|=:|` are supported. The ligtable command ignores `>` in operators. Moreover, the operator `||:` is not supported.
@@ -259,7 +298,7 @@ If a specific limitation is holding your project back, open an issue so that fut
 
 ## Troubleshooting
 There are a few things, that might help. Keep in mind that I don't understand them 100%:
-- add `/usr/local/lib/python3/dist-packages` to your `$PYTHONPATH`  
+- add `/usr/local/lib/python3/dist-packages` to your `$PYTHONPATH`
   (add `export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3/dist-packages` to your `~/.profile`)
   - seems to be relevant for Debian systems (I used it on Ubuntu)
   - seems only needed for Python 3
