@@ -96,6 +96,7 @@ class Mf2ff():
             'extrema': False,
             'hint': False,
             'is_type': False,
+            'kerning-classes': False,
             'otf': False,
             'remove-artifacts': False,
             'sfd': True,
@@ -282,6 +283,13 @@ class Mf2ff():
             start_time_ff (float): start time of fontforge from time.time()
             cmds (list[tuple[str]]): list of commands
         '''
+
+        if self.options['kerning-classes']:
+            kerning_list = {
+                'left-glyphs': [],
+                'right-glyphs': [],
+                'offsets': []
+            }
 
         i = 0
         while i < len(cmds):
@@ -645,7 +653,7 @@ class Mf2ff():
             elif cmd_name == 'shipout':
                 shipout = self.shipout_pattern.search(self.cmd_body)
 
-                # "The values of xoffset, yoffset, charcode , and charext are
+                # "The values of xoffset, yoffset, charcode, and charext are
                 # first rounded to integers, if necessary." (The METAFONTbook,
                 # p. 220)
                 charcode = round(float(shipout.group(1)))
@@ -770,7 +778,7 @@ class Mf2ff():
                             try:
                                 self.font[lig].addPosSub('gsub_ligature_subtable', (char1, char2))
                             except TypeError as e:
-                                print('! Error while adding ligature: ', e, 'either '+repr(char1)+' or '+repr(char2)+' is unknown. Ignored.')
+                                print('! Error while adding ligature:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
                         elif lig_type[0] == '|' and lig_type[3] == ' ':
                             if not 'gsub_single_after_' + char1 in self.font.gsub_lookups:
                                 self.font.addLookup('gsub_single_after_' + char1, 'gsub_single', (), ())
@@ -806,17 +814,45 @@ class Mf2ff():
                             )
 
                 if len(pos_list) > 0:
-                    if not 'gpos_pair' in self.font.gpos_lookups:
-                        self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.scripts),))
-                        self.font.addLookupSubtable('gpos_pair', 'gpos_pair_subtable')
-                    for pos in pos_list:
-                        char1 = self.to_glyph_name(pos[0][0])
-                        char2 = self.to_glyph_name(pos[0][1])
-                        kern = pos[1]
-                        try:
-                            self.font[char1].addPosSub('gpos_pair_subtable', char2, 0, 0, kern, 0, 0, 0, 0, 0)
-                        except TypeError as e:
-                            print('! Error while adding ligature: ', e, 'either '+repr(char1)+' or '+repr(char2)+' is unknown. Ignored.')
+                    if self.options['kerning-classes']:
+                        leftGlyphs = kerning_list['left-glyphs']
+                        rightGlyphs = kerning_list['right-glyphs']
+                        offsets = kerning_list['offsets']
+                        for pos in pos_list:
+                            lChar = self.to_glyph_name(pos[0][0])
+                            rChar = self.to_glyph_name(pos[0][1])
+                            offset = pos[1]
+                            if lChar in leftGlyphs:
+                                idxL = leftGlyphs.index(lChar)
+                            else:
+                                leftGlyphs.append(lChar)
+                                if len(offsets) > 0:
+                                    offsets.append([0]*len(offsets[-1]))
+                                else:
+                                    offsets.append([])
+                                idxL = len(leftGlyphs)-1
+                            if rChar in rightGlyphs:
+                                idxR = rightGlyphs.index(rChar)
+                            else:
+                                rightGlyphs.append(rChar)
+                                idxR = len(rightGlyphs)-1
+                                for i_offset in range(len(offsets)):
+                                    offsets[i_offset].append(0)
+                            offsets[idxL][idxR] = offset
+                            # combination of glyphs to classes will be done at the end
+                    else:
+                        # kerning pairs
+                        if not 'gpos_pair' in self.font.gpos_lookups:
+                            self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.scripts),))
+                            self.font.addLookupSubtable('gpos_pair', 'gpos_pair_subtable')
+                        for pos in pos_list:
+                            char1 = self.to_glyph_name(pos[0][0])
+                            char2 = self.to_glyph_name(pos[0][1])
+                            kern = pos[1]
+                            try:
+                                self.font[char1].addPosSub('gpos_pair_subtable', char2, 0, 0, kern, 0, 0, 0, 0, 0)
+                            except TypeError as e:
+                                print('! Error while adding kerning pair:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
 
             elif cmd_name == 'fontdimen':
                 cmd_body_parts = self.cmd_body.split('>> ')
@@ -841,6 +877,51 @@ class Mf2ff():
                 print('  If the input is correct, consider reporting a bug.')
             i += 1
 
+        # all commands processed, but for some commands post processing is needed
+        if self.options['kerning-classes']:
+            # make every glyph a class
+            leftClasses = [[glyph_name] for glyph_name in kerning_list['left-glyphs']]
+            rightClasses = [[glyph_name] for glyph_name in kerning_list['right-glyphs']]
+            offsets = kerning_list['offsets']
+
+            # remove duplicate rows
+            i = 0
+            while i < len(offsets)-1: # -1: last row has no following rows to check
+                ii = i+1
+                while ii < len(offsets):
+                    if offsets[i] == offsets[ii]:
+                        leftClasses[i].extend(leftClasses[ii])
+                        del leftClasses[ii]
+                        del offsets[ii]
+                    else:
+                        ii += 1
+                i += 1
+
+            # remove duplicate columns
+            j = 0
+            while j < len(offsets[0])-1: # -1: last column has no following columns to check
+                jj = j+1
+                while jj < len(offsets[0]):
+                    if all([offsets[i1][j] == offsets[i1][jj] for i1 in range(len(offsets))]):
+                        rightClasses[j].extend(rightClasses[jj])
+                        del rightClasses[jj]
+                        for i in range(len(offsets)):
+                            del offsets[i][jj]
+                    else:
+                        jj += 1
+                j += 1
+
+            # finally pass to FontForge\
+            # The fist right class is replaced by None (GUI: {Everything Else} /
+            # {All}) by FontForge. Add None class to prevent overwriting first
+            # right class.
+            rightClasses = [None]+rightClasses
+            offsets = [[0]+row for row in offsets]
+            offset_flattened = [offset for row in offsets for offset in row]
+            if not 'gpos_pair' in self.font.gpos_lookups:
+                self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.scripts),))
+            self.font.addKerningClass('gpos_pair', 'gpos_pair_subtable', leftClasses, rightClasses, offset_flattened)
+
     def apply_font_options_and_save(self):
         '''apply self.options to self.font and generate font file from self.font
         based on self.options
@@ -853,9 +934,9 @@ class Mf2ff():
             self.font.autoInstr()
         if self.options['sfd']:
             self.font.save(self.jobname + '.sfd')
-        if  self.options['otf']:
+        if self.options['otf']:
             self.font.generate(self.jobname + '.otf')
-        if  self.options['ttf']:
+        if self.options['ttf']:
             self.font.generate(self.jobname + '.ttf', flags='opentype')
 
 
@@ -1414,10 +1495,10 @@ def parse_arguments(mf2ff):
                         mf2ff.base = args[i+1]
                         i += 1
                 # negatable mf2ff options
-                elif arg in ('cull-at-shipout', 'debug', 'extrema', 'hint', 'is_type',
+                elif arg in ('cull-at-shipout', 'debug', 'extrema', 'hint', 'is_type', 'kerning-classes',
                         'otf', 'remove-artifacts', 'sfd', 'stroke-simplify', 'time', 'ttf'):
                     mf2ff.options[arg] = True
-                elif arg in ('no-cull-at-shipout', 'no-debug', 'no-extrema', 'no-hint', 'no-is_type',
+                elif arg in ('no-cull-at-shipout', 'no-debug', 'no-extrema', 'no-hint', 'no-is_type', 'no-kerning-classes',
                         'no-otf', 'no-remove-artifacts', 'no-sfd', 'no-stroke-simplify', 'no-time', 'no-ttf'):
                     mf2ff.options[full_arg[4:]] = False
                 # name value option which don't need to be passed to mf (stored in options property)
@@ -1490,6 +1571,8 @@ def parse_arguments(mf2ff):
                         '  -[no-]is_type          disable/enable definition of is_pen and is_picture (default: disabled)\n'
                         '                           as pen and picture, respectively\n'
                         '  -italicangle=NUM       set font\'s italic angle\n'
+                        '  -[no-]kerning-classes  disable/enable kerning classes instead of kerning pairs\n'
+                        '                           (default: disabled = kerning pairs)'
                         '  -[no-]otf              disable/enable OpenType output generation (default: disabled)\n'
                         '  -ppi=INT               set ppi to INT\n'
                         '  -[no-]remove-artifacts disable/enable removing of artifacts (default: disabled)'
