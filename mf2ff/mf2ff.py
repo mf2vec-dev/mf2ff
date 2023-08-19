@@ -830,14 +830,17 @@ class Mf2ff():
                 attachment_point_class_name = attachment_point.group(1)[1:-1] # clip quotes
                 x = float(attachment_point.group(2))
                 y = float(attachment_point.group(3))
-                # TODO consider hppp?
                 if lookup_feature == 'mark':
                     lookup_type = 'gpos_mark2base'
-                    # TODO What about 'abvm' and 'blwm' for mark2base?
                 if lookup_feature == 'mkmk':
                     lookup_type = 'gpos_mark2mark'
-                if not lookup_type in self.font.gpos_lookups:
-                    self.font.addLookup(lookup_type, lookup_type, None, ((lookup_feature, self.scripts),))
+                if lookup_type not in self.font.gpos_lookups:
+                    if lookup_type == 'gpos_mark2mark' and 'gpos_mark2base' in self.font.gpos_lookups:
+                        # make sure mark2mark lookup is after mark2base lookup, not first lookup (default)
+                        addLookup_args = ["gpos_mark2base"] # after_lookup_name
+                    else:
+                        addLookup_args = []
+                    self.font.addLookup(lookup_type, lookup_type, None, ((lookup_feature, self.scripts),), *addLookup_args)
                     self.font.addLookupSubtable(lookup_type, lookup_type+'_subtable')
                 if attachment_point_class_name not in self.font.getLookupSubtableAnchorClasses(lookup_type+'_subtable'):
                     self.font.addAnchorClass(lookup_type+'_subtable', attachment_point_class_name)
