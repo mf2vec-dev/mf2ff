@@ -7,11 +7,12 @@ import unicodedata
 from copy import deepcopy
 from functools import reduce
 from itertools import combinations, permutations
-from math import atan2, sqrt
+from math import atan2, sqrt, pi, atan
 from time import time
 
 try:
     import fontforge
+    import psMat
 except ImportError:
     # On windows the fontforge python module is located in the same directory as fontforge.exe.
     if platform.system() == 'Windows':
@@ -43,6 +44,7 @@ class Mf2ff():
         # (greater), p means | (pipe) # TODO explain why replacement is needed
         self.command_pattern = re.compile(M+
             r'(addto|also|contour|doublepath|turningcheck|turningnumber|withpen|withweight'
+            r'|rotated|scaled|shifted|slanted|xscaled|yscaled'
             r'|cull|keeping|dropping'
             r'|picture|pic_eqn|pic|as|eq|mi|pl'
             r'|shipout'
@@ -361,7 +363,33 @@ class Mf2ff():
                     self.pictures[addto] += self.pictures[cmds[j][1:-1]].reverseDirection()
                     j += 1
                 elif addto_next_cmd_name == 'also':
-                    self.pictures[addto] += self.pictures[addto_next_cmd_body[1:-1]]
+                    # use a copy (duplicate) of the also picture so transform is not applied to original
+                    self.pictures['temp_layer'] = self.pictures[addto_next_cmd_body[1:-1]].dup()
+                    transform_ps_matrix = psMat.identity()
+                    jj = i + 1
+                    while jj < len(cmds):
+                        addto_also_next_cmd_name = cmds[jj][0]
+                        addto_also_next_cmd_body = cmds[jj][2]
+                        if addto_also_next_cmd_name == 'rotated':
+                            transform_ps_matrix = psMat.compose(transform_ps_matrix, psMat.rotate(float(addto_also_next_cmd_body)/180*pi))
+                        elif addto_also_next_cmd_name == 'scaled':
+                            transform_ps_matrix = psMat.compose(transform_ps_matrix, psMat.scale(float(addto_also_next_cmd_body)))
+                        elif addto_also_next_cmd_name == 'shifted':
+                            translate_x = float(self.pair_pattern.search(addto_also_next_cmd_body).group(1))
+                            translate_y = float(self.pair_pattern.search(addto_also_next_cmd_body).group(2))
+                            transform_ps_matrix = psMat.compose(transform_ps_matrix, psMat.translate(translate_x, translate_y))
+                        elif addto_also_next_cmd_name == 'slanted':
+                            transform_ps_matrix = psMat.compose(transform_ps_matrix, psMat.skew(atan(float(addto_also_next_cmd_body))))
+                        elif addto_also_next_cmd_name == 'xscaled':
+                            transform_ps_matrix = psMat.compose(transform_ps_matrix, psMat.scale(float(addto_also_next_cmd_body), 0))
+                        elif addto_also_next_cmd_name == 'yscaled':
+                            transform_ps_matrix = psMat.compose(transform_ps_matrix, psMat.scale(0, float(addto_also_next_cmd_body)))
+                        else:
+                            break
+                        jj += 1
+                    i = jj - 1 # i will be increased at the end of the outer while loop
+                    self.pictures['temp_layer'].transform(transform_ps_matrix)
+                    self.pictures[addto] += self.pictures['temp_layer']
                 else: # add a path
                     # There are four basic cases of adding a path to a glyph:
                     # 1. A contour without a pen: The contour is simply added to
@@ -1074,7 +1102,20 @@ class Mf2ff():
             # in one of which p is reversed." (The METAFONTbook, p. 119)
             'def addto text t = '+m_+'addto"; begingroup '
                 'save also, contour, doublepath, withpen, withweight;'
-                'def also              = ; '+mm_+'also";          show str enddef;'
+                # Since also does accept a picture expression, transformers of
+                # pictures need support. Use own group so transformers are not
+                # redefined for paths after contour/doublepath. Group needs to
+                # be closed at the end of addto command (but only for also),
+                # so use a boolean.
+                'boolean __mfIIvec__inside_addto_also__;__mfIIvec__inside_addto_also__:=false;'
+                'def also=;'+mm_+'also"; begingroup __mfIIvec__inside_addto_also__:=true;'
+                    # transformer 'transformed <transform primary>' and 'zscaled <pair primary>' not supported
+                    'save rotated,scaled,shifted,slanted,xscaled,yscaled;'
+                    +(''.join([
+                        f'def {c} primary p=;'+mm_+f'{c}";show p enddef;'
+                        for c in ['rotated', 'scaled', 'shifted', 'slanted', 'xscaled', 'yscaled']
+                    ]))+
+                    'show str enddef;'
                 'def contour    expr p = ; '+mm_+'turningcheck";  show turningcheck;'
                                             +mm_+'turningnumber"; show turningnumber p;'
                                             +mm_+'contour";       show p   enddef;'
@@ -1083,7 +1124,7 @@ class Mf2ff():
                                             +mm_+'doublepath";    show p   enddef;'
                 'def withpen           = ; '+mm_+'withpen";       show     enddef;'
                 'def withweight        = ; '+mm_+'withweight";    show     enddef;'
-                'show str t; endgroup; '+m__+
+                'show str t;if __mfIIvec__inside_addto_also__:endgroup fi endgroup; '+m__+
             'enddef;'
 
             ## cull
