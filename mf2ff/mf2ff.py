@@ -1189,7 +1189,7 @@ class Mf2ff():
             # if statement
             'def fontdimen text t='+m_+'fontdimen"; show hppp; begingroup '
                 'save:;'
-                'def:text tt=;'+mm_+':";show tt enddef;' # TODO Use __mfIIvec__special_colon__ here instead of : ?
+                'def __mfIIvec__other_colon__ text tt=;'+mm_+':";show tt enddef;'
                 '__mfIIvec__redef_colon__ '
                 'show t endgroup; '+m__+
             'enddef;'
