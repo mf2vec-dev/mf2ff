@@ -96,6 +96,7 @@ class Mf2ff():
             'cull-at-shipout': False,
             'debug': False,
             'extrema': False,
+            'fix-contours': False,
             'hint': False,
             'is_type': False,
             'kerning-classes': False,
@@ -697,6 +698,9 @@ class Mf2ff():
                 glyph_code = charcode + charext*256
                 pic_name = cmds[i+1][2][1:-1] # clip quotes
                 pic = self.pictures[pic_name]
+
+                if self.options['fix-contours']:
+                    self.fix_contours(pic)
 
                 if self.options['remove-artifacts']:
                     self.remove_artefacts(pic)
@@ -1397,15 +1401,28 @@ class Mf2ff():
         self.pictures[pic_name].removeOverlap()
         self.pictures[pic_name].transform((1/s, 0, 0, 1/s, 0, 0))
 
+    def fix_contours(self, layer):
+        """fixes contours by closing open contours if first and last point have the same coordinates
+
+        Args:
+            layer (fontforge.layer): layers whose contours should be fixed
+        """
+        for i_c in range(len(layer)):
+            c = layer[i_c]
+            if c.closed:
+                continue
+            if c[0] == c[-1]:
+                c.closed = True
+
     def remove_artefacts(self, layer):
-        '''remove artefacts in pic to remove unnecessary (parts of) contours
+        '''remove artefacts in layer to remove unnecessary (parts of) contours
 
         Simplify messes up with the dish_serif of computer modern
         even when reducing the error_bound. Therefore an own
         cleanup is done.
 
         Args:
-            pic (fontforge.layer): layers whose contours should be cleaned up
+            layer (fontforge.layer): layers whose contours should be cleaned up
         '''
         i_c = 0
         while i_c < len(layer):
@@ -1505,9 +1522,9 @@ def parse_arguments(mf2ff):
                 font_option_names_int = ('ascent', 'descent', 'ppi', 'uwidth', 'upos')
                 font_option_names_float = ('designsize', 'italicangle')
                 negatable_options = [
-                    'cull-at-shipout', 'debug', 'extrema', 'hint', 'is_type',
-                    'kerning-classes', 'otf', 'remove-artifacts', 'sfd',
-                    'stroke-simplify', 'time', 'ttf'
+                    'cull-at-shipout', 'debug', 'extrema', 'fix-contours',
+                    'hint', 'is_type', 'kerning-classes', 'otf', 
+                    'remove-artifacts', 'sfd', 'stroke-simplify', 'time', 'ttf'
                 ]
                 # options and negatable options directly passed to mf.
                 if arg in ('file-line-error', 'no-file-line-error',
@@ -1606,6 +1623,7 @@ def parse_arguments(mf2ff):
                         '  -encoding=STR          set font\'s encoding\n'
                         '  -[no-]extrema          disable/enable extrema adding (default: disabled)\n'
                         '  -familyname=STR        set font\'s family name\n'
+                        '  -[no-]fix-contours     disable/enable contour fixing in FontForge (default: disabled)\n'
                         '  -fontlog=STR           set font\'s log\n'
                         '  -fontname=STR          set font\'s name\n'
                         '  -font-version=STR      set font\'s version\n'
