@@ -1504,6 +1504,11 @@ def parse_arguments(mf2ff):
                 font_option_names_str = ('comment', 'copyright', 'encoding', 'familyname', 'fontlog', 'fontname', 'font-version', 'fullname')
                 font_option_names_int = ('ascent', 'descent', 'ppi', 'uwidth', 'upos')
                 font_option_names_float = ('designsize', 'italicangle')
+                negatable_options = [
+                    'cull-at-shipout', 'debug', 'extrema', 'hint', 'is_type',
+                    'kerning-classes', 'otf', 'remove-artifacts', 'sfd',
+                    'stroke-simplify', 'time', 'ttf'
+                ]
                 # options and negatable options directly passed to mf.
                 if arg in ('file-line-error', 'no-file-line-error',
                         'halt-on-error', 'ini', 'parse-first-line',
@@ -1536,12 +1541,10 @@ def parse_arguments(mf2ff):
                         mf2ff.base = args[i+1]
                         i += 1
                 # negatable mf2ff options
-                elif arg in ('cull-at-shipout', 'debug', 'extrema', 'hint', 'is_type', 'kerning-classes',
-                        'otf', 'remove-artifacts', 'sfd', 'stroke-simplify', 'time', 'ttf'):
+                elif arg in negatable_options:
                     mf2ff.options[arg] = True
-                elif arg in ('no-cull-at-shipout', 'no-debug', 'no-extrema', 'no-hint', 'no-is_type', 'no-kerning-classes',
-                        'no-otf', 'no-remove-artifacts', 'no-sfd', 'no-stroke-simplify', 'no-time', 'no-ttf'):
-                    mf2ff.options[full_arg[4:]] = False
+                elif arg[:3] == 'no-' and arg[3:] in negatable_options:
+                    mf2ff.options[arg[3:]] = False
                 # name value option which don't need to be passed to mf (stored in options property)
                 elif arg.split('=', 1)[0] == 'stroke-accuracy':
                     if '=' in arg:
