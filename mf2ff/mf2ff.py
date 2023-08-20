@@ -705,6 +705,11 @@ class Mf2ff():
                 if self.options['remove-artifacts']:
                     self.remove_artefacts(pic)
 
+                if self.options['cull-at-shipout']:
+                    # Above fixes are after actual cull-at-shipout so remove
+                    # overlaps again.
+                    self.remove_overlap(pic)
+
                 glyph = self.font.createChar(glyph_code,)
                 glyph.layers[1] = pic
 
@@ -1382,24 +1387,30 @@ class Mf2ff():
         reversed_path += ' ..cycle'
         return reversed_path
 
-    def remove_overlap(self, pic_name, s=None):
-        '''applies layer.removeOverlap() to picture pic_name
+    def remove_overlap(self, pic, s=None):
+        '''applies layer.removeOverlap() to pic or self.pictures[pic]
 
-        scales the image up before and down after applying removeOverlap to
+        Scales the layer up before and down after applying removeOverlap to
         overcome problems or inaccuracies of FontForge. Without this, some
         points might be missing and some contours might be broken.
 
         Args:
-            pic_name (str): name of a picture in self.pictures s (int or float,
-            optional): scale factor to upscale before and downscale after
-            removeOverlap(). Value should be much greater than 1. Defaults to
-            None. None will use self.params['remove-overlap']['scale-factor'].
+            pic_name (fontforge.layer or str): a layer or a name of a picture in
+              self.pictures
+            s (int or float, optional): scale factor to upscale before and
+              downscale after removeOverlap(). Value should be much greater than
+              1. Defaults to None. None will use
+              self.params['remove-overlap']['scale-factor'].
         '''
+        if isinstance(pic, fontforge.layer):
+            picture = pic
+        else:
+            picture = self.pictures[pic]
         if s is None:
             s = self.params['remove-overlap']['scale-factor']
-        self.pictures[pic_name].transform((s, 0, 0, s, 0, 0))
-        self.pictures[pic_name].removeOverlap()
-        self.pictures[pic_name].transform((1/s, 0, 0, 1/s, 0, 0))
+        picture.transform((s, 0, 0, s, 0, 0))
+        picture.removeOverlap()
+        picture.transform((1/s, 0, 0, 1/s, 0, 0))
 
     def fix_contours(self, layer):
         """fixes contours by closing open contours if first and last point have the same coordinates
