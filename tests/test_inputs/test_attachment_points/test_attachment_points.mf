@@ -1,0 +1,17 @@
+mode_setup;
+
+beginchar("A", 100, 100, 0);
+    attachment_point_mark_base("Top", w/2, h);
+endchar;
+
+beginchar("B", 100, 100, 0);
+    attachment_point_mark_mark("Top", w/2, h/2);
+    attachment_point_mkmk_basemark("TopMark", 50, 100);
+endchar;
+
+beginchar("C", 100, 100, 0);
+    attachment_point_mark_mark("Top", 50, 50);
+    attachment_point_mkmk_mark("TopMark", 50, 50);
+endchar;
+
+end
