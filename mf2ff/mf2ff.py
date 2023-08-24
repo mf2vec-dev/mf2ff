@@ -8,6 +8,7 @@ from copy import deepcopy
 from functools import reduce
 from itertools import combinations, permutations
 from math import atan, atan2, pi, sqrt
+from pathlib import Path
 from time import time
 
 try:
@@ -119,11 +120,11 @@ class Mf2ff():
 
         if not self.jobname:
             if self.input_file:
-                self.jobname = self.input_file
+                self.jobname = Path(self.input_file).name
                 self.mf_options.append('-jobname=' + self.jobname)
             else:
-                # use plain since it's used as the jobname by mf in this case
-                self.jobname = 'plain'
+                # use mfput since it's used as the jobname by mf in this case
+                self.jobname = 'mfput'
 
         # load base file if defined
         if self.base:
