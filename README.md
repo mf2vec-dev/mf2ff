@@ -12,7 +12,6 @@ The tool has not yet been thoroughly tested, but most common METAFONT commands a
     - [Linux](#linux)
     - [macOS](#macos)
   - [Usage](#usage)
-    - [Extensions](#extensions)
   - [mf2vec concept](#mf2vec-concept)
     - [Details of the concept](#details-of-the-concept)
   - [Background](#background)
@@ -28,13 +27,14 @@ The tool has not yet been thoroughly tested, but most common METAFONT commands a
 ## Setup
 You need to install FontForge and METAFONT to use `mf2ff`.
 
-You may have problems running the `mf2ff` script. One issue may be that you need to run Python 3 with the fontforge module. Below are some tips on how to get it to work. I can't guaranty that this will work on your system, but you should give it a try.
+You may have problems running the `mf2ff` script. One issue may be that you need to run Python 3 with the fontforge module. Below are some tips on how to get it to work. I can't guarantee that this will work on your system, but you should give it a try.
 
 On different operating systems or system configurations where the tips below do not work, check if you use Python and FontForge's Python module is present:
 - Run your Python 3 command (`ffpython`, `python3`, `python`). Check that the version info states that you are running `Python 3`.
 - `import fontforge` within the interpreter should work without errors.
 - `fontforge.font()` should not raise an error.
 If this only works in some directories, you should check your `PATH` or `PYTHONPATH` variable.
+
 
 ### Windows
 - Download Fontforge from its website: https://fontforge.org/
@@ -43,7 +43,7 @@ If this only works in some directories, you should check your `PATH` or `PYTHONP
 For temporary access to FontForge's Python version `ffpython`, FontForge comes with a batch file:
 
 - Go to your installation folder of FontForge (e.g. `C:\Program Files (x86)\FontForgeBuilds`) and execute `fontforge-console.bat`
-  Since Windows' `set` command changes the `PATH` variable only in the current Command Prompt session, ffpython is only available in every location in the Command Prompt in which the batch file was executed.
+  Since Windows' `set` command changes the `PATH` variable only in the current Command Prompt session, `ffpython` is only available in every location in the Command Prompt in which the batch file was executed.
 
 For permanent access, you need to edit the PATH variable permanently:
 
@@ -55,8 +55,9 @@ To easily access the `mf2ff` script from everywhere, do the following:
 - As described above, go to the environment variables and add the path of `mf2ff` to the `PYTHONPATH` variable. If there is no `PYTHONPATH` variable yet, add it to the list.
 - Now, you should be able to run `mf2ff` with `ffpython -m mf2ff ...` in new Command Prompt sessions.
 
+
 ### Linux
-Ubuntu is used in this example.
+Ubuntu is used here as an example.
 
 Some repositories ship old versions of FontForge with Python 2 support. You may want to build FontForge from source:
 
@@ -93,6 +94,7 @@ To easily access the `mf2ff` script from everywhere, add its location to the PYT
 
 Note: Depending on which dotfile you are using, a restart of the shell instead of a reboot may be sufficient.
 
+
 ### macOS
 The solution below uses Homebrew. This way Fontforge is also accessible with Python:
 
@@ -109,8 +111,9 @@ To easily access the `mf2ff` script from everywhere, add its location to the `PY
   - If you have a Mac OS X 10.2 Jaguar or newer, you probably use `bash`. In your home directory, create or modify the file `.bash_profile`.
   - If you have a Mac OS X 10.1 Puma or older, you probably use `tcsh`. In your home directory, create or modify the corresponding file of the `tcsh` shell.
   - If you don't use the shells listed above, you probably changed it by yourself.
-- For some shells you may need to reboot.
+- For some shells, you may need to reboot.
 - Now, you can always run `mf2ff` with `python3 -m mf2ff ...` in new shell sessions.
+
 
 ## Usage
 Examples:
@@ -121,55 +124,24 @@ Depending on your OS, you need to use `ffpython` or `python3` instead of `python
 
 By default, `mf2ff` will generate a Spline Font Database (.sfd) file. You can deactivate this using the option `-no-sfd` / `mf2ff.options['sfd'] = False` and `-ttf` / `mf2ff.options['ttf'] = True` or `-otf` / `mf2ff.options['otf'] = True` to generate font files directly.
 
-`mf2ff` doesn't do much cleanup by default, as you may want to manually rework the glyphs. You can use the options `-cull-at-shipout` / `mf2ff.options['cull-at-shipout'] = True` or `-remove-artifacts` / `mf2ff.options['remove-artifacts'] = True` to perform some automated cleanup. Note that cull commands that are part of a glyph definition may result in the `cull-at-shipout` option not making any further changes for some glyphs.
+`mf2ff` doesn't do much cleanup by default, as you may want to manually rework the glyphs. Please refer to the [user guide](docs/user-guide.md) for useful options to perform some automated cleanup, an introduction to using the package in a Python script, or extensions for modern font features. 
 
-Please take a look at the [limitations](#current-limitations-of-the-mf2ff) listed below.
-
-### Extensions
-Since METAFONT was designed to generate generic font files and TeX font metric files, it doesn't provide access to functionalities available in modern font file formats. `mf2ff` has implemented the following extension to overcome METAFONT's restrictions:
-
-**Attachment points**\
-Attachment points (in FontForge called anchors) are used to precisely place diacritic marks on base characters. `mf2ff` provides a `-extension-attachment-points` / `mf2ff.options['extension-attachment-points'] = True` option to activate the attachment point extension.
-This will make the following macros available:
-- `attachment_point_mark_base(...)` to place the attachment point in a base glyph to attach a mark glyph
-- `attachment_point_mark_mark(...)` to place the attachment point in a mark glyph to be attached to a base glyph
-- `attachment_point_mkmk_basemark(...)` to place the attachment point in a mark glyph to attach another mark glyph
-- `attachment_point_mkmk_mark(...)` to place the attachment point in a mark glyph to be attached to another mark glyph
-
-The arguments (`(...)`) should be comma separated list of:
-- `attachment_point_class_name`: The name of the attachment point class, e.g. `"Top"`. Corresponding attachment points need to have the same class name in the base glyph and the mark glyph to be linked.
-- `x`: The horizontal position of the attachment point.
-- `y`: The vertical position of the attachment point.
-
-Example: `attachment_point_mark_base("Top", w/2, h);`
-
-If the name of one of the macros listed above is already used by the .mf file and you don't want to rename this existing variable or macro, you can use the option `-extension-attachment-points-macro-prefix=STR` / `mf2ff.options['extension-attachment-points-macro-prefix'] = '...'` to replace `attachment_point` in the macro names.
-
-To be able to run the .mf files also in METAFONT without using `mf2ff`, you need to define those tokens so METAFONT won't throw an error. Since `mf2ff` definition of those macros should not be overwritten by a definitions in the .mf file, you can use the following code to only define them when you don't run `mf2ff`:
-```
-if unknown __mfIIvec__:
-  def attachment_point_mark_base(text t) = enddef;
-  def attachment_point_mark_mark(text t) = enddef;
-  def attachment_point_mkmk_basemark(text t) = enddef;
-  def attachment_point_mkmk_mark(text t) = enddef;
-fi
-```
-The boolean variable `__mfIIvec__` is defined by `mf2ff` to determine if `mf2ff` is used.\
-If you use `-extension-attachment-points-macro-prefix=STR`, change the macro name in the code above accordingly.
+Please also take a look at the [limitations](#current-limitations-of-the-mf2ff) that are listed below.
 
 
 ## mf2vec concept
-The main idea of the mf2vec concept is to make METAFONT to redirect the glyphs' geometries to another program (in case of `mf2ff` this program is FontForge) instead of using them to generate a bitmap font. This is possible due to the fact that METAFONT internally uses the same geometrical description which is subsequently needed in the vector font files—the Bézier curves.\
+The main idea of the mf2vec concept is to make METAFONT redirect the glyphs' geometries to another program (in the case of `mf2ff`, this program is FontForge) instead of using them to generate a bitmap font. This is possible because METAFONT internally uses the same geometrical description that is subsequently needed in the vector font files—the Bézier curves.\
 The detour used by some alternatives of converting the Bézier curves to raster graphics and back to Bézier curves is circumvented. By using directly the geometry, no information gets lost.\
 Since METAFONT is used instead of other tools like METAPOST to read `.mf` files, unmodified METAFONT code files can be used and not only the geometry but also character encoding, box sizes, kerning and ligature information etc. is shipped to the vector font without manual rework.
 
 This interception of the information is done by redefining METAFONT commands. As METAFONT can't interact with other programs during runtime, the interpretation of the .mf file and the generation of the font need to be separated in time. Therefore, the information METAFONT would use to generate bitmap graphics is saved in METAFONT's log file. METAFONT's commands are redefined so that METAFONT writes the geometry and font properties in its log file. Once METAFONT has processed all commands of the METAFONT files, the information is read from the log file, processed to create a font and then removed from the log file to keep it clear.
 
-The idea to this approach came up in October 2018. To check for practicability an implementation for FontForge was immediately realized in Python and the range of supported commands was progressively expanded. When initial tests showed that the idea worked, it was decided to make `mf2ff` available to other interested users. This has been happening since March 2019. After a few improvements and bug fixes, development was paused for a few years. Due to community feedback, `mf2ff` development was continued in July 2023.
+The idea for this approach came up in October 2018. To check for practicability an implementation for FontForge was immediately realized in Python and the range of supported commands was progressively expanded. When initial tests showed that the idea worked, it was decided to make `mf2ff` available to other interested users. This has been happening since March 2019. After a few improvements and bug fixes, development was paused for a few years. Due to community feedback, `mf2ff` development was continued in July 2023.
+
 
 ### Details of the concept
 **Basic idea**\
-The concept is based on redefining basic METAFONT commands. They are defined in such a way that the information METAFONT normally uses to create the bitmap font is written into the log file. Subsequently, this log file is then read and the instructions are passed to the program generating the vector font from it. For example, `mf2ff` uses FontForge for this purpose. Afterwards, the information added by modified METAFONT commands is removed from the log file to keep it clear.
+The concept is based on redefining basic METAFONT commands. They are defined in such a way that the information METAFONT normally uses to create the bitmap font is written into the log file. Subsequently, this log file is then read and the instructions are passed to the program generating the vector font from it. For example, `mf2ff` uses FontForge for this purpose. Afterward, the information added by modified METAFONT commands is removed from the log file to keep it clear.
 
 The following diagram illustrates the concept using `mf2ff` as an example.
 ```
@@ -189,9 +161,9 @@ The following diagram illustrates the concept using `mf2ff` as an example.
 │          │ > │ FontForge │
 └──────────┘   └───────────┘
      v               v
-┌──────────┐   ┌─────────────────────┐
-│ font.log │   │ font.ttf / font.otf │
-└──────────┘   └─────────────────────┘
+┌──────────┐   ┌────────────────────────────────┐
+│ font.log │   │ font.sfd / font.ttf / font.otf │
+└──────────┘   └────────────────────────────────┘
 ```
 
 **Simple Example**\
@@ -203,16 +175,17 @@ def fill expr c =
 enddef;
 ```
 
-After METAFONT finished processing the file, a script analyzes the log file and knows from that there was a `fill` command and it knows the contour to be filled. This information can be passed to the font processing program to add it to the glyph.
+After METAFONT finished processing the file, a script analyzes the log file and knows that there was a `fill` command and it knows the contour to be filled. This information can be passed to the font processing program to add it to the glyph.
 
 In fact, this process is much more complicated. To be able to process METAFONT files not based on plain METAFONT, commands like `addto` instead of commands like `fill` need to be redefined. But those `addto` commands are more complex; they also form the basis for other plain METAFONT commands like `unfill`, (`un`)`draw`, (`un`)`drawdot` and `erase`. These commands expand to several keywords separating the different parts of information needed to do these different operations (`addto`, `also`, `contour`, `doublepath`, `withpen`, `withweight`).
 
 Another challenge is the colon in conditions and loops. These structures can appear in any other command, even in commands that use the colon as a separator (`ligtable` and `fontdimen`), so `:` has to be redefined like other keywords to output information to the log file. A sophisticated switching between different redefinitions of the colon is required within these commands.
 
-In addition to that, a process needs to be implemented to make it easy to find all the commands in the log file even if there are message commands in the METAFONT file not related to the redefinition of the METAFONT primitives. Those should not be interpreted as information for font generation. Therefore all information written in the log file needs to be enclosed in special keywords which are unlikely to be used in the METAFONT files' message commands.
+In addition to that, a process needs to be implemented to make it easy to find all the commands in the log file even if there are message commands in the METAFONT file not related to the redefinition of the METAFONT primitives. Those should not be interpreted as information for font generation. Therefore all information written in the log file needs to be enclosed in special keywords that are unlikely to be used in the METAFONT files' message commands.
+
 
 ## Background
-METAFONT, developed by D. E. Knuth since 1977, is a program which generates bitmap fonts from files written in the METAFONT language. Bitmap fonts have the disadvantage that they become blurred under magnification. METAFONT was developed so that for the particular resolution of the printer a separate font was generated. Nowadays, vector fonts are standard, which do not have this problem under magnification. Therefore, they are more suitable for use on displays. Moreover, they can be used with every printer without any restrictions.
+METAFONT, developed by D. E. Knuth since 1977, is a program that generates bitmap fonts from files written in the METAFONT language. Bitmap fonts have the disadvantage that they become blurred under magnification. METAFONT was developed so that for the particular resolution of the printer a separate font was generated. Nowadays, vector fonts are standard, and do not have this problem under magnification. Therefore, they are more suitable for use on displays. Moreover, they can be used with every printer without any restrictions.
 
 Besides the mf2vec approach with the `mf2ff` presented here, the following scripts for converting METAFONT files to vector fonts are available:
 
@@ -227,10 +200,11 @@ In this context, METAPOST means that the program METAPOST is used to convert eve
 
 Bitmap tracing means that METAFONT generates a bitmap font first. In a separate program, the bitmap of every glyph is traced and then put together to get a vector font.
 
-Each of the methods have specific downsides. Please take a look at the comparison below for more details.
+Each of the methods has specific downsides. Please take a look at the comparison below for more details.
+
 
 ### Comparison
-In the following table shows a comparison of the available scripts to convert METAFONT files to vector fonts.
+The following table shows a comparison of the available scripts to convert METAFONT files to vector fonts.
 
 | Characteristic | <a href="https://ctan.org/pkg/metafont" target="_blank" title="METAFONT, CTAN">METAFONT</a> | `mf2ff` | <a href="https://ctan.org/pkg/metatype1" target="_blank" title="MetaType1, CTAN">MetaType1</a> | <a href="https://ctan.org/pkg/mf2pt1" target="_blank" title="mf2pt1, CTAN">mf2pt1</a> | <a href="http://lilypond.org/mftrace/" target="_blank" title="mftrace, Website">mftrace</a> | <a href="https://pts.50.hu/textrace/" target="_blank" title="TeXtrace, Website">TeXtrace</a> |
 | - | - | - | - | - | - | - |
@@ -248,6 +222,9 @@ In the following table shows a comparison of the available scripts to convert ME
 ## Examples
 The following are some examples created with `mf2ff`. The outlines and filled characters are shown as they are displayed in FontForge. Note that the results are not perfect yet.
 
+In the `examples` directory, you can find code to generate the results yourself.
+
+
 ### cmr10
 Some glyphs of the Computer Modern typefaces are not correctly processed yet, i.e. the middle part of capital S and `sloped_serif` in lowercase letters.
 
@@ -258,6 +235,7 @@ Some glyphs of the Computer Modern typefaces are not correctly processed yet, i.
 
 The image on the left was created by deactivating `cull` commands.
 
+
 ### El Palo Alto
 The stylized coast redwood tree El Palo Alto which is presented on pages 124-126 of The METAFONTbook. In the left version, the option `cull-at-shipout` is activated. Since the trunk and the topmost branch share an on-curve point, the current implementation causes wrong results there.
 
@@ -265,14 +243,16 @@ The stylized coast redwood tree El Palo Alto which is presented on pages 124-126
 | - | - | - | - |
 | ![](img/examples/el_palo_alto/el_palo_alto_contour.png) | ![](img/examples/el_palo_alto/el_palo_alto_filled.png) | ![](img/examples/el_palo_alto/el_palo_alto_contour_culled.png) | ![](img/examples/el_palo_alto/el_palo_alto_filled_culled.png) |
 
+
 ### JofA Logo
 The logo, which is presented on page 138, The METAFONTbook. In the left version, the option `cull-at-shipout` is activated. The filled logo is the same in both cases.
 | | | |
 | - | - | - |
 | ![](img/examples/jofa_logo/jofa_logo_contour.png) | ![](img/examples/jofa_logo/jofa_logo_filled.png) | ![](img/examples/jofa_logo/jofa_logo_contour_culled.png) |
 
+
 ## Current limitations of the `mf2ff`
-Since `mf2ff` is still under development and not thoroughly tested, there are a few limitations. They may get addressed in future updates.\
+Since `mf2ff` is still under development and not thoroughly tested, there are a few limitations. They may be addressed in future updates.\
 If a specific limitation is holding your project back, open an issue so that future updates can focus on the needs of users.
 - Pen commands\
   Only round, elliptical and polygonal pens are supported. It is assumed that a path of length 8 (8 points) is an ellipse. Four of these points are used to calculate the axis lengths and the angle. All paths with other lengths are interpreted as polygons. Thereby only points on the Bézier curve are processed.
@@ -281,21 +261,22 @@ If a specific limitation is holding your project back, open an issue so that fut
 - The support of `cull` commands is limited.
 - Ligature commands\
   Only `:`, `::`, `kern`, `skipto` as well as the ligature operators `=:`, `|=:`, `=:|` and `|=:|` are supported. The ligtable command ignores `>` in operators. Moreover, the operator `||:` is not supported.
-- Nether `charlist` nor `extensible` commands are supported yet.
+- Neither `charlist` nor `extensible` commands are supported yet.
 - picture type test\
   The `picture` keyword has to be redefined to initialize the picture variables as a FontForge vector layer. As METAFONT uses the type keywords for both, variable declaration and type test in boolean expressions, the `picture` keyword cannot be used to test if a variable is of type `picture`.
 - System of equations of picture variables\
   METAFONT's pictures can be interpreted as arrays representing the value of the pixels*. A system of equations of these pictures can be solved by solving systems of equations for each and every pixel. This method cannot be transferred to vector graphics. Therefore systems of equations of pictures are not supported, but simple assignments and assignment-like equations should work fine.\
   \* However, METAFONT stores picture variables by storing the difference between successive pixels.
 - Pen and path types are the same\
-  In fact, every pen variable is a path variable. Therefore, commands like `makepen` and `makepath` have no effect. Pens and path cannot be distinguished using `pen` or `path` in a boolean expression. There is a option `is_type` that introduces `is_pen` or `is_path` which might help you to circumvent this problem.
+  In fact, every pen variable is a path variable. Therefore, commands like `makepen` and `makepath` have no effect. Pens and paths cannot be distinguished using `pen` or `path` in a boolean expression. There is a option `is_type` that introduces `is_pen` or `is_path` which might help you to circumvent this problem.
 - nested conditions or loops inside of `ligtable` and `fontdimen`\
   In some situations, `mf2ff` needs to redefine the colon (`:`). This may cause problems in processing multiple nested `if`...(`elseif`)...(`end`)...`fi` and/or `for`/`forsuffixes`/`forever`...`endfor` inside of commands that use the colon in their own syntax, i.e. `ligtable` and `fontdimen`.
 - `charlist` and `extensible`
 - FontForge sometimes hangs\
   FontForge hangs in certain situations while stroking a contour. So far, no particular trigger has been identified. This may be a bug in FontForge.
 - FontForge sometimes raises errors\
-  FontForge raises errors in certain situations while processing cull commands or addto commands with a pen. Nevertheless, the results—especially those of cull commands—often seem to be ok. This may be a bug in FontForge. The errors are hardcoded in FontForge so they cannot be caught or suppressed.
+  FontForge raises errors in certain situations while processing `cull` commands or `addto` commands with a pen. Nevertheless, the results—especially those of `cull` commands—often seem to be ok. This may be a bug in FontForge. The errors are hardcoded in FontForge so they cannot be caught or suppressed.
+
 
 ## Troubleshooting
 There are a few things, that might help. Keep in mind that I don't understand them 100%:
@@ -304,4 +285,4 @@ There are a few things, that might help. Keep in mind that I don't understand th
   - seems to be relevant for Debian systems (I used it on Ubuntu)
   - seems only needed for Python 3
   - seems only needed if FontForge is built from source
-  - inspired by Update 2 of [this comment of FontForge issue #2966](https://github.com/fontforge/fontforge/issues/2966#issue-192697937) which suggests to add `/usr/local/lib/python3.4/site-packages` to Python's path
+  - inspired by Update 2 of [this comment of FontForge issue #2966](https://github.com/fontforge/fontforge/issues/2966#issue-192697937) which suggests adding `/usr/local/lib/python3.4/site-packages` to Python's path
