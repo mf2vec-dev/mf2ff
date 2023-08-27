@@ -44,24 +44,25 @@ class Mf2ff():
         self.last_known_line = 0
 
         # set default values
-        self.cwd = os.getcwd()
-        self.mf_options = ['-interaction=batchmode', '-output-directory=' + self.cwd]
-        self.mf_first_line = ''
-        self.jobname = ''
-        self.base = ''
         self.ascent = 0
+        self.base = ''
         self.comment = ''
         self.copyright = ''
+        self.cwd = Path.cwd()
         self.descent = 0
         self.designsize = 0.0
         self.encoding = 'UnicodeFull'
         self.family_name = ''
-        self.ff_path = ''
         self.fontlog = ''
         self.fontname = ''
         self.font_version = '001.000'
         self.fullname = ''
+        self.input_file = ''
         self.italicangle = 0.0
+        self.jobname = ''
+        self.mf_first_line = ''
+        self.mf_options = ['-interaction=batchmode']
+        self.output_directory = Path(self.cwd)
         self.ppi = 1000
         self.scripts = (
             ('cyrl', ('dflt',)),
@@ -70,6 +71,7 @@ class Mf2ff():
         )
         self.upos = -10
         self.uwidth = 2
+
         self.options = {
             'cull-at-shipout': False,
             'debug': False,
@@ -88,7 +90,6 @@ class Mf2ff():
             'time': False,
             'ttf': False,
         }
-        self.input_file = ''
 
         self.params = {
             'remove-artefacts': {
@@ -121,10 +122,11 @@ class Mf2ff():
         if not self.jobname:
             if self.input_file:
                 self.jobname = Path(self.input_file).name
-                self.mf_options.append('-jobname=' + self.jobname)
             else:
                 # use mfput since it's used as the jobname by mf in this case
                 self.jobname = 'mfput'
+        self.mf_options.append('-jobname=' + self.jobname)
+        self.mf_options.append('-output-directory=' + self.output_directory)
 
         # load base file if defined
         if self.base:
@@ -159,11 +161,12 @@ class Mf2ff():
 
         # open and process log file
         start_time_ff = time()
+        log_path = Path(self.output_directory) / (self.jobname + '.log')
         try:
-            with open(self.jobname + '.log', 'r+') as f:
+            with open(log_path, 'r+') as f:
                 orig_log_data = f.read()
         except IOError as e:
-            print('! I can\'t find file: `' + self.jobname + '.log\'.')
+            print('! I can\'t find file: `' + str(log_path) + '\'.')
             print(e)
             sys.exit()
 
@@ -232,11 +235,12 @@ class Mf2ff():
             extension = '.clean.log'
         else:
             extension = '.log'
+        log_path_str = str(log_path.with_suffix('')) + extension
         try:
-            with open(self.jobname + extension, 'w') as outfile:
+            with open(log_path_str, 'w') as outfile:
                 outfile.write(clean_log)
         except IOError:
-            print('! I can\'t find file: `' + self.jobname + extension + '\'.')
+            print('! I can\'t find file: `' + log_path_str + '\'.')
             sys.exit()
         end_time_log = time()
         print('Log file cleaned up')
@@ -253,7 +257,7 @@ class Mf2ff():
         subprocess.call(
             ['mf'] + self.mf_options + [self.mf_first_line],
             stdout=subprocess.DEVNULL,
-            cwd=self.cwd
+            cwd=Path(self.cwd)
         )
         end_time_mf = time()
         if self.options['time']:
@@ -973,6 +977,7 @@ class Mf2ff():
         '''apply self.options to self.font and generate font file from self.font
         based on self.options
         '''
+        output_path = Path(self.output_directory) / self.jobname
         if self.options['extrema']:
             self.font.selection.all()
             self.font.addExtrema()
@@ -980,11 +985,11 @@ class Mf2ff():
             self.font.autoHint()
             self.font.autoInstr()
         if self.options['sfd']:
-            self.font.save(self.jobname + '.sfd')
+            self.font.save(str(output_path) + '.sfd')
         if self.options['otf']:
-            self.font.generate(self.jobname + '.otf')
+            self.font.generate(str(output_path) + '.otf')
         if self.options['ttf']:
-            self.font.generate(self.jobname + '.ttf', flags='opentype')
+            self.font.generate(str(output_path) + '.ttf', flags='opentype')
 
 
     def check_scripts(self, scripts):
@@ -1599,9 +1604,9 @@ def parse_arguments(mf2ff):
             if option_args: # options only before other arguments
                 arg = full_arg[1:]
                 # define groups of options
-                font_option_names_str = ('comment', 'copyright', 'encoding', 'familyname', 'fontlog', 'fontname', 'font-version', 'fullname')
-                font_option_names_int = ('ascent', 'descent', 'ppi', 'uwidth', 'upos')
-                font_option_names_float = ('designsize', 'italicangle')
+                mf2ff_option_names_str = ('comment', 'copyright', 'encoding', 'familyname', 'fontlog', 'fontname', 'font-version', 'fullname', 'output-directory')
+                mf2ff_option_names_int = ('ascent', 'descent', 'ppi', 'uwidth', 'upos')
+                mf2ff_option_names_float = ('designsize', 'italicangle')
                 negatable_options = [
                     'cull-at-shipout', 'debug', 'extension-attachment-points',
                     'extrema', 'fix-contours', 'hint', 'is_type', 
@@ -1616,7 +1621,7 @@ def parse_arguments(mf2ff):
                 # name value pairs and passed to mf
                 # TODO separated by space support?
                 elif arg.split('=', 1)[0] in ('interaction', 'kpathsea-debug',
-                        'mktex', 'no-mktex', 'output-directory', 'translate-file'):
+                        'mktex', 'no-mktex', 'translate-file'):
                     if '=' in arg:
                         mf2ff.mf_options.append(full_arg)
                     else:
@@ -1660,17 +1665,18 @@ def parse_arguments(mf2ff):
                         i += 1
                     mf2ff.options['extension-attachment-points-macro-prefix'] = val
                 # name value option which don't need to be passed to mf (stored as properties)
-                elif arg.split('=', 1)[0] in font_option_names_str + font_option_names_int + font_option_names_float:
+                elif arg.split('=', 1)[0] in mf2ff_option_names_str + mf2ff_option_names_int + mf2ff_option_names_float:
                     name = arg.split('=', 1)[0]
                     if '=' in arg:
                         val = arg.split('=', 1)[1]
                     else:
                         val = args[i+1]
                         i += 1
-                    if name in font_option_names_int:
+                    if name in mf2ff_option_names_int:
                         val = int(val)
-                    elif name in font_option_names_float:
+                    elif name in mf2ff_option_names_float:
                         val = float(val)
+                    name = name.replace('-', '_')
                     mf2ff.__dict__[name] = val
                 elif arg.split('=', 1)[0] == 'scripts':
                     if '=' in arg:
@@ -1728,6 +1734,8 @@ def parse_arguments(mf2ff):
                         '                    disable/enable kerning classes instead of kerning pairs\n'
                         '                      (default: disabled = kerning pairs)'
                         '  -[no-]otf         disable/enable OpenType output generation (default: disabled)\n'
+                        '  -output-directory=DIR\n'
+                        '                    set existing directory DIR as output directory\n'
                         '  -ppi=INT          set ppi to INT\n'
                         '  -[no-]remove-artifacts\n'
                         '                    disable/enable removing of artifacts (default: disabled)\n'

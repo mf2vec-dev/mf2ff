@@ -28,6 +28,7 @@ class Mf2ffTest(unittest.TestCase):
         cls.mf2ff.ppi = 72.27 # coordinates in mf are the same in font
         test_file_path = cls.test_dir / 'test_inputs' / file_path
         cls.mf2ff.input_file = str(test_file_path)
+        cls.mf2ff.output_directory = str(test_file_path.parent)
         cls.mf2ff.options['debug'] = bool(debug)
         if options is not None:
             cls.mf2ff.options.update(options)
