@@ -126,7 +126,7 @@ class Mf2ff():
                 # use mfput since it's used as the jobname by mf in this case
                 self.jobname = 'mfput'
         self.mf_options.append('-jobname=' + self.jobname)
-        self.mf_options.append('-output-directory=' + self.output_directory)
+        self.mf_options.append('-output-directory=' + str(self.output_directory))
 
         # load base file if defined
         if self.base:
