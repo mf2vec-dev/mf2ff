@@ -1055,31 +1055,31 @@ class Mf2ff():
         '''
         # abbreviations for inserting log file markers for redefined tokens
         M = self.MARKER
-        m_ = 'message "'+M # begin redefined token, followed by token name or identifier
-        m__ = m_+'";'      # end of redefined token, possibly preceded by an expression
-        mm_ = m__+m_       # end of redefined token and begin of new redefined token
+        m_ = 'message"'+M # begin redefined token, followed by token name or identifier
+        m__ = m_+'";'     # end of redefined token, possibly preceded by an expression
+        mm_ = m__+m_      # end of redefined token and begin of new redefined token
         return (
             'if unknown __mfIIvec__:boolean __mfIIvec__;__mfIIvec__:=true;fi '
             # First, some mf primitives are saved, so they are accessible even
             # after redefining them.
-            'let __mfIIvec__orig_colon__ = : ;'
-            'let __mfIIvec__orig_else__ = else;'
-            'let __mfIIvec__orig_elseif__ = elseif;'
-            'let __mfIIvec__orig_end__ = end;'
-            'let __mfIIvec__orig_eq__ = = ;'
-            'let __mfIIvec__orig_for__ = for;'
-            'let __mfIIvec__orig_forever__ = forever;'
-            'let __mfIIvec__orig_forsuffixes__ = forsuffixes;'
-            'let __mfIIvec__orig_if__ = if;'
-            'let __mfIIvec__orig_pen__ = pen;'
-            'let __mfIIvec__orig_picture__ = picture;'
-            'let __mfIIvec__orig_hide__ = hide;'
+            'let __mfIIvec__orig_colon__= :;'
+            'let __mfIIvec__orig_else__=else;'
+            'let __mfIIvec__orig_elseif__=elseif;'
+            'let __mfIIvec__orig_end__=end;'
+            'let __mfIIvec__orig_eq__= =;'
+            'let __mfIIvec__orig_for__=for;'
+            'let __mfIIvec__orig_forever__=forever;'
+            'let __mfIIvec__orig_forsuffixes__=forsuffixes;'
+            'let __mfIIvec__orig_if__=if;'
+            'let __mfIIvec__orig_pen__=pen;'
+            'let __mfIIvec__orig_picture__=picture;'
+            'let __mfIIvec__orig_hide__=hide;'
 
             # Numerical equations should still be processed in mf to get the
             # correct results. This is different for picture equations. They
             # need to be evaluated in fontforge using boolean operations. To
             # keep track of the type of equation, a boolean is used.
-            'boolean __mfIIvec__pic_eqn__; __mfIIvec__pic_eqn__ := false;'
+            'boolean __mfIIvec__pic_eqn__;__mfIIvec__pic_eqn__:=false;'
 
             ## redefinitions
             # All redefinitions use the undelimited parameter text t, therefor
@@ -1099,7 +1099,7 @@ class Mf2ff():
             # called before evaluating the content of the statement so the colon
             # definition changes to it original meaning if there is a if, for,
             # etc. in the statement and back after the colon
-            'def __mfIIvec__redef_colon__ ='
+            'def __mfIIvec__redef_colon__='
                 # The following colon definition is made for being used when
                 # waiting for a colon a) separating boolean expression and
                 # conditional text (in if or elseif), b) after else or c)
@@ -1112,42 +1112,42 @@ class Mf2ff():
                 # definition of the colon is switched back to
                 # __mfIIvec__other_colon__ which should be defined to add a
                 # message to the the log file that there was a colon.
-                'def __mfIIvec__special_colon__ ='
-                    '__mfIIvec__orig_hide__(let : = __mfIIvec__other_colon__;)'
+                'def __mfIIvec__special_colon__='
+                    '__mfIIvec__orig_hide__(let: =__mfIIvec__other_colon__;)'
                     '__mfIIvec__orig_colon__ '
                 'enddef;'
                 # The following sparks are redefined by this subroutine to
                 # activate the __mfIIvec__special_colon__ (which deactivates
                 # itself).
-                'save if, elseif, else, for, forsuffixes, forever;'
-                'def if ='
+                'save if,elseif,else,for,forsuffixes,forever;'
+                'def if='
                     '__mfIIvec__orig_if__ '
-                    '__mfIIvec__orig_hide__(let : = __mfIIvec__special_colon__;)'
+                    '__mfIIvec__orig_hide__(let: =__mfIIvec__special_colon__;)'
                 'enddef;'
-                'def elseif ='
+                'def elseif='
                     '__mfIIvec__orig_elseif__ '
-                    '__mfIIvec__orig_hide__(let : = __mfIIvec__special_colon__;)'
+                    '__mfIIvec__orig_hide__(let: =__mfIIvec__special_colon__;)'
                 'enddef;'
-                'def else ='
+                'def else='
                     '__mfIIvec__orig_else__ '
-                    '__mfIIvec__orig_hide__(let : = __mfIIvec__special_colon__;)'
+                    '__mfIIvec__orig_hide__(let: =__mfIIvec__special_colon__;)'
                 'enddef;'
-                'def for ='
+                'def for='
                     '__mfIIvec__orig_for__ '
-                    '__mfIIvec__orig_hide__(let : = __mfIIvec__special_colon__;)'
+                    '__mfIIvec__orig_hide__(let: =__mfIIvec__special_colon__;)'
                 'enddef;'
-                'def forsuffixes ='
+                'def forsuffixes='
                     '__mfIIvec__orig_forsuffixes__ '
-                    '__mfIIvec__orig_hide__(let : = __mfIIvec__special_colon__;)'
+                    '__mfIIvec__orig_hide__(let: =__mfIIvec__special_colon__;)'
                 'enddef;'
-                'def forever ='
+                'def forever='
                     '__mfIIvec__orig_forever__ '
-                    '__mfIIvec__orig_hide__(let : = __mfIIvec__special_colon__;)'
+                    '__mfIIvec__orig_hide__(let: =__mfIIvec__special_colon__;)'
                 'enddef;'
                 # In ligtable and fontdimen every colon should match the message
                 # generating __mfIIvec__other_colon__ if they are not part of
                 # the condition or loop structure itself.
-                'let : = __mfIIvec__other_colon__;'
+                'let: =__mfIIvec__other_colon__;'
             'enddef;'
 
             ## addto
@@ -1157,15 +1157,15 @@ class Mf2ff():
             # path is simply `p .. cycle'). On the other hand if p is a cyclic
             # path, this case reduces to two addto commands of the second type,
             # in one of which p is reversed." (The METAFONTbook, p. 119)
-            'def addto text t = '+m_+'addto"; begingroup '
-                'save also, contour, doublepath, withpen, withweight;'
+            'def addto text t='+m_+'addto";begingroup '
+                'save also,contour,doublepath,withpen,withweight;'
                 # Since also does accept a picture expression, transformers of
                 # pictures need support. Use own group so transformers are not
                 # redefined for paths after contour/doublepath. Group needs to
                 # be closed at the end of addto command (but only for also),
                 # so use a boolean.
                 'boolean __mfIIvec__inside_addto_also__;__mfIIvec__inside_addto_also__:=false;'
-                'def also=;'+mm_+'also"; begingroup __mfIIvec__inside_addto_also__:=true;'
+                'def also=;'+mm_+'also";begingroup __mfIIvec__inside_addto_also__:=true;'
                     # transformer 'transformed <transform primary>' and 'zscaled <pair primary>' not supported
                     'save rotated,scaled,shifted,slanted,xscaled,yscaled;'
                     +(''.join([
@@ -1173,24 +1173,24 @@ class Mf2ff():
                         for c in ['rotated', 'scaled', 'shifted', 'slanted', 'xscaled', 'yscaled']
                     ]))+
                     'show str enddef;'
-                'def contour    expr p = ; '+mm_+'turningcheck";  show turningcheck;'
-                                            +mm_+'turningnumber"; show turningnumber p;'
-                                            +mm_+'contour";       show p   enddef;'
-                'def doublepath expr p = ; '+mm_+'turningcheck";  show turningcheck;'
-                                            +mm_+'turningnumber"; show turningnumber p;'
-                                            +mm_+'doublepath";    show p   enddef;'
-                'def withpen           = ; '+mm_+'withpen";       show     enddef;'
-                'def withweight        = ; '+mm_+'withweight";    show     enddef;'
-                'show str t;if __mfIIvec__inside_addto_also__:endgroup fi endgroup; '+m__+
+                'def contour expr p=;'   +mm_+'turningcheck";'  'show turningcheck;'
+                                         +mm_+'turningnumber";' 'show turningnumber p;'
+                                         +mm_+'contour";'       'show p enddef;'
+                'def doublepath expr p=;'+mm_+'turningcheck";'  'show turningcheck;'
+                                         +mm_+'turningnumber";' 'show turningnumber p;'
+                                         +mm_+'doublepath";'    'show p enddef;'
+                'def withpen=;'          +mm_+'withpen";'       'show enddef;'
+                'def withweight=;'       +mm_+'withweight";'    'show enddef;'
+                'show str t;if __mfIIvec__inside_addto_also__:endgroup fi endgroup;'+m__+
             'enddef;'
 
             ## cull
-            'def cull text t = '+m_+'cull"; begingroup '
-                'save keeping, dropping, withweight;'
-                'def keeping    = ; '+mm_+'keeping";    show enddef;'
-                'def dropping   = ; '+mm_+'dropping";   show enddef;'
-                'def withweight = ; '+mm_+'withweight"; show enddef;'
-                'show str t; endgroup; '+m__+
+            'def cull text t='+m_+'cull";begingroup '
+                'save keeping,dropping,withweight;'
+                'def keeping=;'   +mm_+'keeping";'    'show enddef;'
+                'def dropping=;'  +mm_+'dropping";'   'show enddef;'
+                'def withweight=;'+mm_+'withweight";' 'show enddef;'
+                'show str t;endgroup;'+m__+
             'enddef;'
 
             ## picture
@@ -1207,12 +1207,12 @@ class Mf2ff():
             # need to be redefined inside picture equations. The operations
             # which can occur in a picture equation are := = - + (see
             # METAFONTbook, pp. 115 and 214)
-            'def picture text t = '+m_+'picture";'
-                'forsuffixes p = t:'
+            'def picture text t='+m_+'picture";'
+                'forsuffixes p=t:'
                     'show str p;'
-                    'vardef p text tt = '
+                    'vardef p text tt='
                         'if __mfIIvec__pic_eqn__:'
-                            +mm_+'pic"; show str p;'
+                            +mm_+'pic";show str p;'
                         'else:'
                             +m_+'pic_eqn";__mfIIvec__pic_eqn__:=true;begingroup '
                                 'save=,:=,+,-;'
@@ -1245,12 +1245,12 @@ class Mf2ff():
             #   keeping (1, infinity).\
             # TODO Why __mfIIvec__pic_eqn__ ?
             'def shipout text t='
-                +('cull currentpicture dropping (-infinity,0);' if self.options['cull-at-shipout'] else '')
-                +m_+'shipout"; __mfIIvec__pic_eqn__ := true;'
-                'show charcode, charext, '
-                     'charwd*hppp, charht*hppp, chardp*hppp, charic*hppp, '
-                     'chardx*hppp, chardy*hppp, xoffset, yoffset;'
-                't; __mfIIvec__pic_eqn__ := false;'
+                +('cull currentpicture dropping(-infinity,0);' if self.options['cull-at-shipout'] else '')
+                +m_+'shipout";__mfIIvec__pic_eqn__:=true;'
+                'show charcode,charext,'
+                     'charwd*hppp,charht*hppp,chardp*hppp,charic*hppp,'
+                     'chardx*hppp,chardy*hppp,xoffset,yoffset;'
+                't;__mfIIvec__pic_eqn__:=false;'
                 +m__+
             'enddef;'
 
@@ -1259,37 +1259,37 @@ class Mf2ff():
             # is also used in the structure of conditions and loops, it has to
             # be redefined during such a structure. __mfIIvec__other_colon__ is
             # used to be able to switch between both.
-            'def ligtable text t = '+m_+'ligtable"; show hppp; begingroup '
-                'save :, ::, ||:, kern, =:, |=:, |=:>, =:|, =:|>, |=:|, |=:|>, |=:|>>, skipto;'
-                'def __mfIIvec__other_colon__ = ; '+mm_+':"; show enddef;'
-                'def   ::   = ; '+mm_+'::";     show enddef;'
-                'def ||:    =   '+mm_+'pp:";    show enddef;' # no ; required since there is no preceding expression whose show command needs to end before the message
-                'def kern   = ; '+mm_+'kern";   show enddef;'
-                'def  =:    = ; '+mm_+'=:";     show enddef;'
-                'def |=:    = ; '+mm_+'p=:";    show enddef;'
-                'def |=:>   = ; '+mm_+'p=:g";   show enddef;'
-                'def  =:|   = ; '+mm_+'=:p";    show enddef;'
-                'def  =:|>  = ; '+mm_+'=:pg";   show enddef;'
-                'def |=:|   = ; '+mm_+'p=:p";   show enddef;'
-                'def |=:|>  = ; '+mm_+'p=:pg";  show enddef;'
-                'def |=:|>> = ; '+mm_+'p=:pgg"; show enddef;'
+            'def ligtable text t='+m_+'ligtable";show hppp;begingroup '
+                'save:,::,||:,kern,=:,|=:,|=:>,=:|,=:|>,|=:|,|=:|>,|=:|>>,skipto;'
+                'def __mfIIvec__other_colon__=;'+mm_+':";show enddef;'
+                'def'   ':: '   '=;'+mm_+'::";'     'show enddef;'
+                'def' '||: '    '=' +mm_+'pp:";'    'show enddef;' # no ; required since there is no preceding expression whose show command needs to end before the message
+                'def kern'      '=;'+mm_+'kern";'   'show enddef;'
+                'def'  '=: '    '=;'+mm_+'=:";'     'show enddef;'
+                'def' '|=: '    '=;'+mm_+'p=:";'    'show enddef;'
+                'def' '|=:> '   '=;'+mm_+'p=:g";'   'show enddef;'
+                'def'  '=:| '   '=;'+mm_+'=:p";'    'show enddef;'
+                'def'  '=:|> '  '=;'+mm_+'=:pg";'   'show enddef;'
+                'def' '|=:| '   '=;'+mm_+'p=:p";'   'show enddef;'
+                'def' '|=:|> '  '=;'+mm_+'p=:pg";'  'show enddef;'
+                'def' '|=:|>> ' '=;'+mm_+'p=:pgg";' 'show enddef;'
                 # skipto is always preceded by a show command and a comma (,),
                 # so a normal message can't follow. Therefor the message command
                 # is hidden. After the comma, the code after the skipto command
                 # will be shown by the previous show command.
-                'def skipto = __mfIIvec__orig_hide__('+mm_+'skipto") enddef;'
+                'def skipto=__mfIIvec__orig_hide__('+mm_+'skipto")enddef;'
                 '__mfIIvec__redef_colon__ ' # restore colon before showing t
-                'show t; endgroup; '+m__+
+                'show t;endgroup;'+m__+
             'enddef;'
 
             # fontdimen command's syntax uses of colon (:). Therefor some
             # redefinitions are needed to be used in combinations with e.g. the
             # if statement
-            'def fontdimen text t='+m_+'fontdimen"; show hppp; begingroup '
+            'def fontdimen text t='+m_+'fontdimen";show hppp;begingroup '
                 'save:;'
                 'def __mfIIvec__other_colon__ text tt=;'+mm_+':";show tt enddef;'
                 '__mfIIvec__redef_colon__ '
-                'show t endgroup; '+m__+
+                'show t endgroup;'+m__+
             'enddef;'
 
             # end should show the designsize: "METAFONT looks at the value of
@@ -1306,20 +1306,20 @@ class Mf2ff():
             # longer needed.\
             # Note that \dl{fullcirlce} and \dl{directionpoint} are defined in
             # plain mf.
-            'let pen = path; def nullpen = ((0,0)..cycle) enddef; def pencircle = fullcircle enddef;'
-            'def penoffset = directionpoint enddef;' # TODO explain
-            'let makepen = relax;'
-            'let makepath = relax;'
+            'let pen=path;def nullpen=((0,0)..cycle)enddef;def pencircle=fullcircle enddef;'
+            'def penoffset=directionpoint enddef;' # TODO explain
+            'let makepen=relax;'
+            'let makepath=relax;'
             # mf is run in background, so don't display anything.
-            'def display text t = enddef;'
+            'def display text t=enddef;'
             # nullpicture should be a variables of type \dl{picture}.
-            'save nullpicture; picture nullpicture;'
+            'save nullpicture;picture nullpicture;'
             # The loading of plain.mf is preceded by some saves so there will be no errors.
-            'save hide, blankpicture, unitpixel, pensquare, penrazor, mm, pt, dd, bp, cm, pc, cc, in, modesetup, mode_name, mode;'
+            'save hide,blankpicture,unitpixel,pensquare,penrazor,mm,pt,dd,bp,cm,pc,cc,in,modesetup,mode_name,mode;'
             'input plain.mf;'
 
             # A special mode is defined, to prepare for vector font generation.
-            'mode_def mfIIff='
+            'mode_def mfIIvec='
                 'proofing:=0;' # don't make proofs
                 'fontmaking:=0;' # mf itself should not make a font
                 'tracingtitles:=0;' # no titles (e.g. "The letter O") in stdout
@@ -1328,7 +1328,7 @@ class Mf2ff():
                 'fillin:=0;' # no pixels that could influence their neighbors
                 'o_correction:=1;' # no reduction in overshoot
             'enddef;'
-            'mode:=mfIIff;'
+            'mode:=mfIIvec;'
 
             # extension\
             # attachment points\
