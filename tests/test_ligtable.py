@@ -8,7 +8,7 @@ class TestLigtable(Mf2ffTest):
     def set_up_class(cls):
         cls.run_mf_file('test_ligtable/test_ligtable')
 
-    def test_kering(self):
+    def test_kerning(self):
         # test the 'kern' subcommand
 
         gpos_lookup_names = self.font.gpos_lookups
@@ -27,7 +27,7 @@ class TestLigtable(Mf2ffTest):
         self.assertEqual(a_posSub[0][2], 'B')
         self.assertEqual(a_posSub[0][3], 0)
         self.assertEqual(a_posSub[0][4], 0)
-        self.assertEqual(a_posSub[0][5], 100)
+        self.assertEqual(a_posSub[0][5], 10)
         self.assertEqual(a_posSub[0][6], 0)
         self.assertEqual(a_posSub[0][7], 0)
         self.assertEqual(a_posSub[0][8], 0)

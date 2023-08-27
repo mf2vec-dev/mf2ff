@@ -1,14 +1,14 @@
 mode_setup;
 
-beginchar("A", 1000, 1000, 0);
-  fill (100,100)--(300,100)--(300,300)--(100,300)--cycle;
-  fill (200,200)--(400,200)--(400,400)--(200,400)--cycle;
+beginchar("A", 100, 100, 0);
+  fill (10,10)--(30,10)--(30,30)--(10,30)--cycle;
+  fill (20,20)--(40,20)--(40,40)--(20,40)--cycle;
   cull currentpicture keeping (1,infinity) withweight 1;
 endchar;
 
-beginchar("B", 1000, 1000, 0);
-  fill (100,100)--(300,100)--(300,300)--(100,300)--cycle;
-  fill (100,100)--(200,100)--(200,200)--(100,200)--cycle;
+beginchar("B", 100, 100, 0);
+  fill (10,10)--(30,10)--(30,30)--(10,30)--cycle;
+  fill (10,10)--(20,10)--(20,20)--(10,20)--cycle;
   cull currentpicture keeping (1,1) withweight 1;
 endchar;
 

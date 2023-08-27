@@ -1,28 +1,28 @@
 mode_setup;
 
-beginchar("A", 1000, 1000, 0);
+beginchar("A", 100, 100, 0);
     % empty char
 endchar;
 
-beginchar("B", 1000, 1000, 0);
+beginchar("B", 100, 100, 0);
     % char with some specific coordinates to check
     fill (1,2)--(3,4)--(6,5)--cycle;
 endchar;
 
-beginchar("C", 1000, 1000, 0);
+beginchar("C", 100, 100, 0);
     % char with clockwise path
-    fill (100,100)--(200,100)--(200,200)--(100,200)--cycle;
+    fill (10,10)--(20,10)--(20,20)--(10,20)--cycle;
 endchar;
 
-beginchar("D", 1000, 1000, 0);
+beginchar("D", 100, 100, 0);
     % char with counter-clockwise path
-    fill (100,100)--(100,200)--(200,200)--(200,100)--cycle;
+    fill (10,10)--(10,20)--(20,20)--(20,10)--cycle;
 endchar;
 
-beginchar("E", 1000, 1000, 0);
+beginchar("E", 100, 100, 0);
     % char with two paths
-    fill (100,100)--(100,400)--(400,400)--(400,100)--cycle;
-    unfill (200,200)--(200,300)--(300,300)--(300,200)--cycle;
+    fill (10,10)--(10,40)--(40,40)--(40,10)--cycle;
+    unfill (20,20)--(20,30)--(30,30)--(30,20)--cycle;
 endchar;
 
 beginchar("c", 10, 12, 0);

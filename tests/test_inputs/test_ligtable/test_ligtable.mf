@@ -1,51 +1,51 @@
 mode_setup;
 
-beginchar("A", 1000, 1000, 0);
+beginchar("A", 100, 100, 0);
 endchar;
 
-beginchar("B", 1000, 1000, 0);
+beginchar("B", 100, 100, 0);
 endchar;
 
-ligtable "A": "B" kern 100;
+ligtable "A": "B" kern 10;
 
 
-beginchar("C", 1000, 1000, 0);
+beginchar("C", 100, 100, 0);
 endchar;
 
-beginchar("D", 1000, 1000, 0);
+beginchar("D", 100, 100, 0);
 endchar;
 
-beginchar("E", 1000, 1000, 0);
+beginchar("E", 100, 100, 0);
 endchar;
 
-beginchar("F", 1000, 1000, 0);
+beginchar("F", 100, 100, 0);
 endchar;
 
-beginchar("G", 1000, 1000, 0);
+beginchar("G", 100, 100, 0);
 endchar;
 
 ligtable "C": "D" =: "E", "F" =: "G";
 
 
-beginchar("H", 1000, 1000, 0);
+beginchar("H", 100, 100, 0);
 endchar;
 
-beginchar("I", 1000, 1000, 0);
+beginchar("I", 100, 100, 0);
 endchar;
 
-beginchar("J", 1000, 1000, 0);
+beginchar("J", 100, 100, 0);
 endchar;
 
 ligtable "H": "I" |=: "J";
 
 
-beginchar("K", 1000, 1000, 0);
+beginchar("K", 100, 100, 0);
 endchar;
 
-beginchar("L", 1000, 1000, 0);
+beginchar("L", 100, 100, 0);
 endchar;
 
-beginchar("M", 1000, 1000, 0);
+beginchar("M", 100, 100, 0);
 endchar;
 
 ligtable "K": "L" =:| "M";
