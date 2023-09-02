@@ -85,6 +85,7 @@ class Mf2ff():
             'is_type': False,
             'kerning-classes': False,
             'otf': False,
+            'quadratic': False,
             'remove-artifacts': False,
             'sfd': True,
             'stroke-simplify': True,
@@ -995,9 +996,11 @@ class Mf2ff():
             self.font.addKerningClass('gpos_pair', 'gpos_pair_subtable', leftClasses, rightClasses, offset_flattened)
 
     def apply_font_options_and_save(self):
-        '''apply self.options to self.font and generate font file from self.font
-        based on self.options
+        '''apply self.options to self.font and generate font file
         '''
+        if self.options['quadratic']:
+            self.font.layers['Fore'].is_quadratic = True
+
         output_path = Path(self.output_directory) / self.jobname
         if self.options['extrema']:
             self.font.selection.all()
@@ -1650,7 +1653,7 @@ def parse_arguments(mf2ff):
                 negatable_options = [
                     'cull-at-shipout', 'debug', 'extension-attachment-points',
                     'extension-ligtable-switch', 'extrema', 'fix-contours',
-                    'hint', 'is_type', 'kerning-classes', 'otf',
+                    'hint', 'is_type', 'kerning-classes', 'otf', 'quadratic',
                     'remove-artifacts', 'sfd', 'stroke-simplify', 'time', 'ttf'
                 ]
                 # options and negatable options directly passed to mf.
@@ -1791,6 +1794,7 @@ def parse_arguments(mf2ff):
                         '  -output-directory=DIR\n'
                         '                    set existing directory DIR as output directory\n'
                         '  -ppi=INT          set ppi to INT\n'
+                        '  -[no-]quadratic   approximate cubic with quadratic Bézier curves\n'
                         '  -[no-]remove-artifacts\n'
                         '                    disable/enable removing of artifacts (default: disabled)\n'
                         '  -scripts=TUPLE    set scripts for tables,\n'
