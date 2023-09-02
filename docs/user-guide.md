@@ -98,13 +98,13 @@ This should expand to a ligtable command which kerns all combinations of the fir
 This option removes contours and parts of contours which are closed and collinear and thus don't have an influence on the shape of the glyph. Those artifacts can result from FontForge's "Overlap" commands.
 
 
-### `stroke-accuracy` & `stroke-simplify`
+### `stroke-simplify` & `stroke-accuracy`
 
 |||
 |-|-|
 | CLI |`-`[`no-`]`stroke-simplify` |
 | API | `mf2ff.options['stroke-simplify'] = True` / `False` |
-| default | disabled |
+| default | enabled |
 
 |||
 |-|-|
