@@ -909,6 +909,9 @@ class Mf2ff():
                         self.font.italicangle = -atan(params[j])*180/pi
                     elif k == 2:
                         self.font.createChar(32).width = int(hppp*params[j])
+                    elif k == 5:
+                        # font.os2_xheight not in FontForge docs
+                        self.font.os2_xheight = int(hppp*params[j])
 
             # TODO: charlist, extensible
 
