@@ -904,7 +904,9 @@ class Mf2ff():
                 params = [float(p) for p in cmds[i+1][2].split('>> ')]
                 i += 1
                 for j, k in enumerate(range(first_fontdimen, first_fontdimen + len(params))):
-                    if k == 2:
+                    if k == 1:
+                        self.font.italicangle = -atan(params[j])*180/pi
+                    elif k == 2:
                         self.font.createChar(32).width = int(hppp*params[j])
 
             # TODO: charlist, extensible
