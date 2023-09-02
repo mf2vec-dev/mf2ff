@@ -151,9 +151,33 @@ If the name of one of the macros listed above is already used by the .mf file an
 | API | `mf2ff.options['extension-attachment-points-macro-prefix'] = ` string |
 | default | `attachment_point` |
 
-Example: add `-extension-attachment-points-macro-prefix=customPrefix` to your options and use `customPrefix_mark_base("Top", w/2, h);` 
+Example: add `-extension-attachment-points-macro-prefix=customPrefix` to your options and use `customPrefix_mark_base("Top", w/2, h);`
 
-To be able to run the .mf files also in METAFONT without using `mf2ff`, you need to define those tokens so METAFONT won't throw an error. Since `mf2ff`'s definition of those macros should not be overwritten by a definitions in the .mf file, you can use the following code to only define them when you don't run `mf2ff`:
+
+### Ligtable switch
+While the `ligtable` command can be used to define ligatures, it doesn't allow selection of which OpenType feature to use. The ligtable switch commands provide an interface to switch the used OpenType feature for following ligtable commands. Currently, only ligatures (`=:`) are supported.
+|||
+|-|-|
+| CLI |`-`[`no-`]`extension-ligtable-switch` |
+| API | `mf2ff.options['extension-ligtable-switch'] = True` / `False` |
+| default | disabled |
+
+If enabled, the following macros can be used in `mf2ff`'s input:
+- `ligtable_switch_lig_to_liga` to switch to the `liga` feature for following ligatures in ligtable commands
+- `ligtable_switch_lig_to_dlig` to switch to the `dlig` feature for following ligatures in ligtable commands
+- `ligtable_switch_lig_to_hlig` to switch to the `hlig` feature for following ligatures in ligtable commands
+
+Similar to the attachment points extension, you can also change the prefix of the ligtable switch macros:
+
+|||
+|-|-|
+| CLI |`-extension-ligtable-switch-macro-prefix=` string |
+| API | `mf2ff.options['extension-ligtable-switch-macro-prefix'] = ` string |
+| default | `ligtable_switch` |
+
+
+### General note on extensions
+To be able to run the .mf files also in METAFONT without using `mf2ff`, you need to define the tokens of extensions so METAFONT won't throw an error. Since `mf2ff`'s definition of those macros should not be overwritten by a definitions in the .mf file, you can use the following code to only define them when you don't run `mf2ff` (using the attachment point extension as an example):
 ```
 if unknown __mfIIvec__:
   def attachment_point_mark_base(text t) = enddef;

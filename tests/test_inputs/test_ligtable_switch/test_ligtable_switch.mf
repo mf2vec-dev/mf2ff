@@ -1,0 +1,26 @@
+mode_setup;
+
+for s = "A", "B", "C", "D", "E", "F", "G", "H",
+        "a", "b", "c", "d", "e", "f", "g", "h",
+        "N", "O", "P", "Q", "R", "S", "T", "U",
+        "n", "o", "p", "q", "r", "s", "t", "u":
+  beginchar(s, 100, 100, 0);
+  endchar;
+endfor
+
+ligtable "A": "B" =: "C";
+ligtable "D": "E" =: "F", "G" =: "H";
+
+ligtable_switch_lig_to_dlig;
+ligtable "a": "b" =: "c";
+ligtable "d": "e" =: "f", "g" =: "h";
+
+ligtable_switch_lig_to_hlig;
+ligtable "N": "O" =: "P";
+ligtable "Q": "R" =: "S", "T" =: "U";
+
+ligtable_switch_lig_to_liga;
+ligtable "n": "o" =: "p";
+ligtable "q": "r" =: "s", "t" =: "u";
+
+end

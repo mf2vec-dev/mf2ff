@@ -38,7 +38,7 @@ class TestLigtable(Mf2ffTest):
         # test the '=:' (equal-colon) subcommand and multiple commands
 
         gsub_lookup_names = self.font.gsub_lookups
-        gsub_lookup_name = 'gsub_ligature'
+        gsub_lookup_name = 'gsub_ligature_liga'
         self.assertIn(gsub_lookup_name, gsub_lookup_names)
 
         gsub_lookup_info = self.font.getLookupInfo(gsub_lookup_name)
@@ -46,7 +46,7 @@ class TestLigtable(Mf2ffTest):
         # gpos_lookup_info has many other values!
 
         gsub_subtable_names = self.font.getLookupSubtables(gsub_lookup_name)
-        gsub_subtable_name = 'gsub_ligature_subtable'
+        gsub_subtable_name = 'gsub_ligature_liga_subtable'
         self.assertIn(gsub_subtable_name, gsub_subtable_names)
 
         e_posSub = self.font['E'].getPosSub(gsub_subtable_name)

@@ -75,6 +75,10 @@ class Mf2ff():
         self.options = {
             'cull-at-shipout': False,
             'debug': False,
+            'extension-attachment-points': False,
+            'extension-attachment-points-macro-prefix': 'attachment_point', # TODO validation needed: only r'[A-Za-z_]'
+            'extension-ligtable-switch': False,
+            'extension-ligtable-switch-macro-prefix': 'ligtable_switch',
             'extrema': False,
             'fix-contours': False,
             'hint': False,
@@ -85,8 +89,6 @@ class Mf2ff():
             'sfd': True,
             'stroke-simplify': True,
             'stroke-accuracy': None, # use fontforge's default (should be 0.25)
-            'extension-attachment-points': False,
-            'extension-attachment-points-macro-prefix': 'attachment_point', # TODO validation needed: only r'[A-Za-z_]'
             'time': False,
             'ttf': False,
         }
@@ -101,6 +103,11 @@ class Mf2ff():
             'remove-overlap': {
                 'scale-factor': 1000,
             },
+        }
+
+        # first of every dict element is default
+        self.supported_ligtable_ot_features = {
+            'lig': ['liga', 'dlig', 'hlig']
         }
 
         # On Windows, ANSI Control Sequence are not available by default. They
@@ -280,6 +287,10 @@ class Mf2ff():
                 'offsets': []
             }
         attachment_points = []
+        current_ligtable_to_feature = { # set defaults (first item in lists)
+            ligtable_op_type: ligtable_ot_features[0]
+            for ligtable_op_type, ligtable_ot_features in self.supported_ligtable_ot_features.items()
+        }
 
         i = 0
         while i < len(cmds):
@@ -796,15 +807,19 @@ class Mf2ff():
                         char1 = self.to_glyph_name(sub[2][0])
                         char2 = self.to_glyph_name(sub[2][1])
                         if lig_type[0] == ' ' and lig_type[3] == ' ':
-                            if not 'gsub_ligature' in self.font.gsub_lookups:
-                                self.font.addLookup( 'gsub_ligature', 'gsub_ligature', (), (('liga', self.scripts),))
-                                self.font.addLookupSubtable('gsub_ligature', 'gsub_ligature_subtable')
+                            ot_feature = current_ligtable_to_feature['lig']
+                            lookup_type = 'gsub_ligature'
+                            lookup_name = lookup_type + '_' + ot_feature
+                            subtable_name = lookup_name + '_subtable'
+                            if not lookup_name in self.font.gsub_lookups:
+                                self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.scripts),))
+                                self.font.addLookupSubtable(lookup_name, subtable_name)
                             # Try to create the ligature. FontForge will
                             # raise a TypeError, if one of the
                             # characters is unknown. In that case, print
                             # a warning and continue
                             try:
-                                self.font[lig].addPosSub('gsub_ligature_subtable', (char1, char2))
+                                self.font[lig].addPosSub(subtable_name, (char1, char2))
                             except TypeError as e:
                                 print('! Error while adding ligature:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
                         elif lig_type[0] == '|' and lig_type[3] == ' ':
@@ -900,7 +915,7 @@ class Mf2ff():
                     self.font.design_size = design_size
 
             # extension
-            elif cmd_name[:16] == 'attachment_point':
+            elif cmd_name[:17] == 'attachment_point_':
                 lookup_feature, attachment_point_type = cmd_name[17:].split('_')
                 attachment_point = self.attachment_point_pattern.search(self.cmd_body)
                 attachment_point_class_name = attachment_point.group(1)[1:-1] # clip quotes
@@ -921,6 +936,10 @@ class Mf2ff():
                 if attachment_point_class_name not in self.font.getLookupSubtableAnchorClasses(lookup_type+'_subtable'):
                     self.font.addAnchorClass(lookup_type+'_subtable', attachment_point_class_name)
                 attachment_points.append((attachment_point_class_name, attachment_point_type, x, y))
+
+            elif cmd_name[:16] == 'ligtable_switch_':
+                ligtable_op_type, ot_feature = cmd_name[16:].split('_to_')
+                current_ligtable_to_feature[ligtable_op_type] = ot_feature
 
             else:
                 print('! "' + cmd_name + '": ' + self.cmd_body + '?')
@@ -1030,7 +1049,15 @@ class Mf2ff():
                 +(
                     r'|'+self.options['extension-attachment-points-macro-prefix']+r'_(?:mark_(?:base|mark)|mkmk_(?:basemark|mark))'
                     if self.options['extension-attachment-points'] else r''
-                )+
+                )
+                +(
+                    r'|'+r'|'.join(
+                        'ligtable_switch_' + ligtable_op_type + '_to_' + ligtable_ot_feature
+                        for ligtable_op_type in self.supported_ligtable_ot_features
+                        for ligtable_ot_feature in self.supported_ligtable_ot_features[ligtable_op_type]
+                    ) if self.options['extension-ligtable-switch'] else r''
+                )
+                +
             r')'
             r'(?:>> (?:(?:Path|Pen polygon) at line (\d+):)?(.*?))?'+M, re.DOTALL)
         # The begin of every message to the log file (also part of the above
@@ -1356,6 +1383,17 @@ class Mf2ff():
                     'enddef;'
                 ) if self.options['extension-attachment-points'] else ''
             )
+            +(
+                (
+                    ''.join(
+                        'def ' + self.options['extension-ligtable-switch-macro-prefix'] + '_' + ligtable_op_type + '_to_' + ligtable_ot_feature + '='
+                            +m_+'ligtable_switch_'+ ligtable_op_type + '_to_' + ligtable_ot_feature +'";'+m__+
+                        'enddef;'
+                        for ligtable_op_type in self.supported_ligtable_ot_features
+                        for ligtable_ot_feature in self.supported_ligtable_ot_features[ligtable_op_type]
+                    )
+                ) if self.options['extension-ligtable-switch'] else ''
+            )
         )
 
     def show_progress(self, start_time_ff, i, num_cmds):
@@ -1609,9 +1647,9 @@ def parse_arguments(mf2ff):
                 mf2ff_option_names_float = ('designsize', 'italicangle')
                 negatable_options = [
                     'cull-at-shipout', 'debug', 'extension-attachment-points',
-                    'extrema', 'fix-contours', 'hint', 'is_type', 
-                    'kerning-classes', 'otf', 'remove-artifacts', 'sfd',
-                    'stroke-simplify', 'time', 'ttf'
+                    'extension-ligtable-switch', 'extrema', 'fix-contours',
+                    'hint', 'is_type', 'kerning-classes', 'otf',
+                    'remove-artifacts', 'sfd', 'stroke-simplify', 'time', 'ttf'
                 ]
                 # options and negatable options directly passed to mf.
                 if arg in ('file-line-error', 'no-file-line-error',
@@ -1657,13 +1695,16 @@ def parse_arguments(mf2ff):
                         val = args[i+1]
                         i += 1
                     mf2ff.options['stroke-accuracy'] = float(val)
-                elif arg.split('=', 1)[0] == 'extension-attachment-points-macro-prefix':
+                elif (arg.split('=', 1)[0][:10] == 'extension-'
+                        and arg.split('=', 1)[0][10:-13] in ['attachment-points', 'ligtable-switch']
+                        and arg.split('=', 1)[0][-13:] == '-macro-prefix'
+                    ):
                     if '=' in arg:
                         val = arg.split('=', 1)[1]
                     else:
                         val = args[i+1]
                         i += 1
-                    mf2ff.options['extension-attachment-points-macro-prefix'] = val
+                    mf2ff.options['extension-' + arg.split('=', 1)[0][10:-13] + '-macro-prefix'] = val
                 # name value option which don't need to be passed to mf (stored as properties)
                 elif arg.split('=', 1)[0] in mf2ff_option_names_str + mf2ff_option_names_int + mf2ff_option_names_float:
                     name = arg.split('=', 1)[0]
@@ -1717,6 +1758,17 @@ def parse_arguments(mf2ff):
                         '  -descent=NUM      set font\'s descent\n'
                         '  -designsize=NUM   set font\'s design size\n'
                         '  -encoding=STR     set font\'s encoding\n'
+                        '  -[no-]extension-attachment-points\n'
+                        '                    enable/disable attachment point extension (default: disabled)\n'
+                        '  -extension-attachment-points-macro-prefix=STR\n'
+                        '                    set macro name prefix (default: \'attachment_point\')\n'
+                        '                      choose so that in mf files there are none of:\n'
+                        '                      <macro-prefix>_mark_base, <macro-prefix>_mark_mark, <macro-prefix>_mkmk_basemark, <macro-prefix>_mkmk_mark\n'
+                        '  -[no-]extension-ligtable-switch\n'
+                        '                    enable/disable ligtable switch extension (default: disabled)\n'
+                        '  -extension-ligtable-switch-macro-prefix=STR\n'
+                        '                    set macro name prefix (default: \'litgable\')\n'
+                        '                      choose so that in mf files there are no ligtable switch commands.\n'
                         '  -[no-]extrema     disable/enable extrema adding (default: disabled)\n'
                         '  -familyname=STR   set font\'s family name\n'
                         '  -[no-]fix-contours\n'
@@ -1749,12 +1801,6 @@ def parse_arguments(mf2ff):
                         '                      stroke-simplify is disabled. (default: 0.25)\n'
                         '  -[no-]stroke-simplify\n'
                         '                    disable/enable stroke simplification (default: enabled)\n'
-                        '  -[no-]extension-attachment-points\n'
-                        '                    enable/disable attachment point extension (default: disabled)\n'
-                        '  -extension-attachment-points-macro-prefix=STR\n'
-                        '                    set macro name prefix (default: \'attachment_point\')\n'
-                        '                      choose so that in mf files there are none of:\n'
-                        '                      <macro-prefix>_mark_base, <macro-prefix>_mark_mark, <macro-prefix>_mkmk_basemark, <macro-prefix>_mkmk_mark\n'
                         '  -[no-]time        disable/enable timing (default: disabled)\n'
                         '  -[no-]ttf         disable/enable TrueType output generation (default: disabled)\n'
                         '  -upos=NUM         set the font\'s underline position\n'
