@@ -87,6 +87,17 @@ group_kerning("F", "V", "W", "Y")(-4/5pt#)("c", "e", "o", "q");
 This should expand to a ligtable command which kerns all combinations of the first list and the second list (e.g. "Fc", "Fo", "We", etc.) with the offset defined in the middle. METAFONT will create 16 kerning pairs from this example. If you run `mf2ff` on input with such this example, it will create the classes based on these kerning pairs and builds up a kerning matrix. If there are other ligtable or group_kerning commands, `mf2ff` will split up or combine the classes according to the kerning specifications. 
 
 
+### `quadratic`
+
+|||
+|-|-|
+| CLI |`-`[`no-`]`quadratic` |
+| API | `mf2ff.options['quadratic'] = True` / `False` |
+| default | enabled |
+
+This option enables or disables the conversion of the contours on foreground layer to quadratic Bézier curves. It uses FontForge's algorithm. In most cases this is only an approximation.
+
+
 ### `remove-artifacts`
 
 |||
@@ -96,6 +107,17 @@ This should expand to a ligtable command which kerns all combinations of the fir
 | default | disabled |
 
 This option removes contours and parts of contours which are closed and collinear and thus don't have an influence on the shape of the glyph. Those artifacts can result from FontForge's "Overlap" commands.
+
+
+### `set-italic-correction`
+
+|||
+|-|-|
+| CLI |`-`[`no-`]`set-italic-correction` |
+| API | `mf2ff.options['set-italic-correction'] = True` / `False` |
+| default | enabled |
+
+This option enables or disables setting `glyph.italicCorrection` to the value of `charic` during `shipout`.
 
 
 ### `stroke-simplify` & `stroke-accuracy`
