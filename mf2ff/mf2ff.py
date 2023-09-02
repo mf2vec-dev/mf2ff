@@ -918,7 +918,7 @@ class Mf2ff():
             # TODO: charlist, extensible
 
             elif cmd_name == 'end':
-                design_size = int(self.cmd_body)
+                design_size = float(self.cmd_body)
                 if design_size != 0:
                     self.font.design_size = design_size
 
