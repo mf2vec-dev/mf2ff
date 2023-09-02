@@ -87,6 +87,7 @@ class Mf2ff():
             'otf': False,
             'quadratic': False,
             'remove-artifacts': False,
+            'set-italic-correction': True,
             'sfd': True,
             'stroke-simplify': True,
             'stroke-accuracy': None, # use fontforge's default (should be 0.25)
@@ -715,7 +716,8 @@ class Mf2ff():
                 glyph.width = charwd
                 glyph.texheight = charht
                 glyph.texdepth = chardp
-                glyph.italicCorrection = charic
+                if self.options['set-italic-correction']:
+                    glyph.italicCorrection = charic
 
                 if xoffset != 0 or yoffset != 0:
                     # "The pixels of v are shifted by (xoffset, yoffset) as they
@@ -1657,7 +1659,8 @@ def parse_arguments(mf2ff):
                     'cull-at-shipout', 'debug', 'extension-attachment-points',
                     'extension-ligtable-switch', 'extrema', 'fix-contours',
                     'hint', 'is_type', 'kerning-classes', 'otf', 'quadratic',
-                    'remove-artifacts', 'sfd', 'stroke-simplify', 'time', 'ttf'
+                    'remove-artifacts', 'set-italic-correction', 'sfd',
+                    'stroke-simplify', 'time', 'ttf'
                 ]
                 # options and negatable options directly passed to mf.
                 if arg in ('file-line-error', 'no-file-line-error',
@@ -1802,6 +1805,8 @@ def parse_arguments(mf2ff):
                         '                    disable/enable removing of artifacts (default: disabled)\n'
                         '  -scripts=TUPLE    set scripts for tables,\n'
                         '                      e.g. ((\'latn\',(\'dflt\',)),)\n'
+                        '  -[no-]set-italic-correction\n'
+                        '                    disable/enable setting italic correction based on charic (default: enabled)\n'
                         '  -[no-]sfd         disable/enable Spline Font Database (FontForge\n'
                         '                      Project) output generation (default: enabled)\n'
                         '  -stroke-accuracy=NUM\n'
