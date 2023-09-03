@@ -139,6 +139,17 @@ FontForge's `layer.stroke()` function provides `simplify` and `accuracy` options
 **See also**: FontForge's [documentation](https://fontforge.org/docs/scripting/python/fontforge.html#fontforge.glyph.stroke) of `glyph.stroke()` which explains the available options for FontForge's stroke functions (`font.stroke()`, `glyph.stroke()` and `layer.stroke()`).
 
 
+### `upm`
+
+|||
+|-|-|
+| CLI |`-upm=`number |
+| API | `mf2ff.options['upm'] = ` number / `None` |
+| default | `None` |
+
+Specifying UPM (units per em or em size) triggers a preliminary run of METAFONT to estimate the correct ppi. Since METAFONT limits the numbers to `4095.99998`, anything above that is handled by using a fraction of the ideal ppi and scaling the font to the desired UPM in FontForge.
+
+
 ## Extensions
 Since METAFONT was designed to generate generic font files and TeX font metric files, it doesn't provide access to functionalities available in modern font file formats. `mf2ff` supports the following extension to overcome METAFONT's restrictions:
 

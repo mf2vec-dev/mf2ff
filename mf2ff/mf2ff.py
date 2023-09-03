@@ -38,6 +38,8 @@ class Mf2ff():
     # "[...] a complex pen is one whose boundary contains at least two points." (The METAFONTbook, p. 119)
     SIMPLE_PENS = ('(0,0) .. cycle', '(0,0)..controls (0,0) and (0,0) ..cycle')
 
+    MF_INFINITY = 4095.99998
+
     def __init__(self):
         self.MARKER = '@mf2vec@'
 
@@ -60,7 +62,7 @@ class Mf2ff():
         self.input_file = ''
         self.italicangle = 0.0
         self.jobname = ''
-        self.mf_first_line = ''
+        self.first_line = ''
         self.mf_options = ['-interaction=batchmode']
         self.output_directory = Path(self.cwd)
         self.ppi = 1000
@@ -88,6 +90,7 @@ class Mf2ff():
             'quadratic': False,
             'remove-artifacts': False,
             'set-italic-correction': True,
+            'upm': None,
             'sfd': True,
             'stroke-simplify': True,
             'stroke-accuracy': None, # use fontforge's default (should be 0.25)
@@ -124,7 +127,7 @@ class Mf2ff():
 
         M = self.MARKER
 
-        if not self.input_file and not self.mf_first_line:
+        if not self.input_file and not self.first_line:
             print('! No input')
             sys.exit()
 
@@ -137,52 +140,34 @@ class Mf2ff():
         self.mf_options.append('-jobname=' + self.jobname)
         self.mf_options.append('-output-directory=' + str(self.output_directory))
 
-        # load base file if defined
-        if self.base:
-            input_base = 'input ' + self.base + ';'
-        else:
-            input_base = ''
-
-        # If option is_type is given, add the extra definitions is_pen and
-        # is_picture.
-        extra_defs = ''
-        if self.options['is_type']:
-            extra_defs += 'let is_pen = __mfIIvec__orig_pen__;'
-            extra_defs += 'let is_picture = __mfIIvec__orig_picture__;'
-
-        # The first line of the mf argument start with a backslash (\\) so mf
-        # knows the first argument is not a file to be loaded. After that
-        # initial backslash a list of mf commands is passed to mf.
-        self.mf_first_line = ('\\ '
-            # redefinition of mf tokens, extra definitions which depend on
-            # options, the input of the base file, the first line given by the
-            # user and the input of the given input file.
-            + self.get_redefinitions()
-            + extra_defs
-            + input_base
-            + self.mf_first_line
-            + 'input ' + self.input_file
-        )
+        self.define_mf_first_line()
 
         self.define_patterns()
+        self.log_path = Path(self.output_directory) / (self.jobname + '.log')
+
+        pre_run_required = self.options['upm'] is not None
+        if pre_run_required:
+            self.run_mf(is_pre_run=True)
+            self.extract_cmds_from_log()
+            pre_run_results = self.process_pre_run_commands()
+            # upm
+            orig_upm = pre_run_results['ascent'] + pre_run_results['descent']
+            target_upm = self.options['upm']
+            target_ppi = self.ppi * target_upm / orig_upm
+            self.ppi = target_ppi
+            upm_factor = 1
+            while self.ppi > self.MF_INFINITY:
+                # create font with lower UPM to not exceed METAFONT's infinity with pixels_per_inch value
+                upm_factor += 1
+                self.ppi = target_ppi/upm_factor
+            # redefine self.mf_first_line with new ppi value
+            self.define_mf_first_line()
 
         self.run_mf()
 
         # open and process log file
         start_time_ff = time()
-        log_path = Path(self.output_directory) / (self.jobname + '.log')
-        try:
-            with open(log_path, 'r+') as f:
-                orig_log_data = f.read()
-        except IOError as e:
-            print('! I can\'t find file: `' + str(log_path) + '\'.')
-            print(e)
-            sys.exit()
-
-        log_data = self.error_pattern.sub('', orig_log_data)
-        log_data = re.sub('\n', '', log_data)
-        log_data = log_data.split(self.mf_first_line, 1)[1] # interesting info only after the input
-        cmds = self.command_pattern.findall(log_data) # find all commands
+        self.extract_cmds_from_log()
 
         print('processing its output...')
         print('Some error messages below come directly from fontforge and cannot be muted.')
@@ -225,7 +210,11 @@ class Mf2ff():
         # keep a record of ligtable's skipto labels
         self.skiptos = {}
 
-        self.process_commands(start_time_ff, cmds)
+        self.process_commands(start_time_ff)
+
+        # rescale to match UPM
+        if self.options['upm'] is not None:
+            self.font.em = self.options['upm']
 
         self.apply_font_options_and_save()
 
@@ -238,13 +227,13 @@ class Mf2ff():
         pattern = re.sub(r'(\.|\*|\||\\|\(|\)|\+)', r'\\\1', '\n?'.join(self.mf_first_line), flags=re.DOTALL) \
             + '\n|\n' + '\n?'.join(M) + '.*?\n' + '\n?'.join(M)
         start_time_log = time()
-        clean_log = re.sub(pattern, '', orig_log_data, flags=re.DOTALL)
+        clean_log = re.sub(pattern, '', self.orig_log_data, flags=re.DOTALL)
 
         if self.options['debug']:
             extension = '.clean.log'
         else:
             extension = '.log'
-        log_path_str = str(log_path.with_suffix('')) + extension
+        log_path_str = str(self.log_path.with_suffix('')) + extension
         try:
             with open(log_path_str, 'w') as outfile:
                 outfile.write(clean_log)
@@ -257,29 +246,108 @@ class Mf2ff():
             print('  (took ' + '%.2f' % (end_time_log-start_time_log) + 's)')
         print('Done.')
 
-    def run_mf(self):
+    def define_mf_first_line(self):
+        '''define self.mf_first_line based on options
+        '''
+        # load base file if defined
+        if self.base:
+            input_base = 'input ' + self.base + ';'
+        else:
+            input_base = ''
+
+        # If option is_type is given, add the extra definitions is_pen and
+        # is_picture.
+        extra_defs = ''
+        if self.options['is_type']:
+            extra_defs += 'let is_pen = __mfIIvec__orig_pen__;'
+            extra_defs += 'let is_picture = __mfIIvec__orig_picture__;'
+
+        # The first line of the mf argument start with a backslash (\\) so mf
+        # knows the first argument is not a file to be loaded. After that
+        # initial backslash a list of mf commands is passed to mf.
+        self.mf_first_line = ('\\ '
+            # redefinition of mf tokens, extra definitions which depend on
+            # options, the input of the base file, the first line given by the
+            # user and the input of the given input file.
+            + self.get_redefinitions()
+            + extra_defs
+            + input_base
+            + self.first_line
+            + 'input ' + self.input_file
+        )
+
+    def run_mf(self, is_pre_run=False):
         '''runs METAFONT with self.mf_options and self.mf_first_line.
         stdout is devnull
         '''
-        print('running METAFONT...')
-        start_time_mf = time()
+        if is_pre_run:
+            print('running METAFONT (preliminary run) ...')
+        else:
+            print('running METAFONT...')
+            start_time_mf = time()
         subprocess.call(
             ['mf'] + self.mf_options + [self.mf_first_line],
             stdout=subprocess.DEVNULL,
             cwd=Path(self.cwd)
         )
         end_time_mf = time()
-        if self.options['time']:
+        if self.options['time'] and not is_pre_run:
             print('  (took ' + '%.2f' % (end_time_mf-start_time_mf) + 's)')
 
-    def process_commands(self, start_time_ff, cmds):
+    def extract_cmds_from_log(self):
+        '''open log file and extract all commands
+        
+        sets self.orig_log_data and self.cmds
+        '''
+        try:
+            with open(self.log_path, 'r+') as f:
+                self.orig_log_data = f.read()
+        except IOError as e:
+            print('! I can\'t find file: `' + str(self.log_path) + '\'.')
+            print(e)
+            sys.exit()
+
+        log_data = self.error_pattern.sub('', self.orig_log_data)
+        log_data = re.sub('\n', '', log_data)
+        log_data = log_data.split(self.mf_first_line, 1)[1] # interesting info only after the input
+        self.cmds = self.command_pattern.findall(log_data) # find all commands
+
+    def process_pre_run_commands(self):
+        '''process commands for preliminary run
+
+        Returns:
+            dict: results of preliminary run
+        '''
+        pre_run_results = {
+            'ascent': 0,
+            'descent': 0,
+        }
+
+        i = 0
+        while i < len(self.cmds):
+            cmd = self.cmds[i]
+            cmd_name = cmd[0]
+            self.cmd_body = cmd[2]
+
+            if cmd_name == 'shipout' and self.ascent == 0 and self.descent == 0:
+                shipout = self.shipout_pattern.search(self.cmd_body)
+                charht = int(float(shipout.group(4)))
+                chardp = int(float(shipout.group(5)))
+                if self.ascent == 0 and charht > pre_run_results['ascent']:
+                    pre_run_results['ascent'] = charht
+                if self.descent == 0 and chardp > pre_run_results['descent']:
+                    pre_run_results['descent'] = chardp
+            # else command not important in pre run
+            i += 1
+        return pre_run_results
+
+    def process_commands(self, start_time_ff):
         '''processes the commands cmds
 
         shows progress and eta based on start_time_ff
 
         Args:
             start_time_ff (float): start time of fontforge from time.time()
-            cmds (list[tuple[str]]): list of commands
         '''
 
         if self.options['kerning-classes']:
@@ -295,14 +363,14 @@ class Mf2ff():
         }
 
         i = 0
-        while i < len(cmds):
-            cmd = cmds[i]
+        while i < len(self.cmds):
+            cmd = self.cmds[i]
             cmd_name = cmd[0]
             if cmd[1]:
                 self.last_known_line = int(cmd[1])
             self.cmd_body = cmd[2]
 
-            self.show_progress(start_time_ff, i, len(cmds))
+            self.show_progress(start_time_ff, i)
 
             # addto\
             # TODO This section needs to be tested and maybe reworked! mf only
@@ -313,19 +381,19 @@ class Mf2ff():
 
             if cmd_name == 'addto':
                 addto = self.cmd_body[1:-1] # clip quotes
-                if cmds[i+1][0] == 'turningcheck':
+                if self.cmds[i+1][0] == 'turningcheck':
                     # turningcheck is always followed by turningnumber
-                    turningcheck = int(cmds[i+1][2])
-                    turningnumber = int(cmds[i+2][2])
+                    turningcheck = int(self.cmds[i+1][2])
+                    turningnumber = int(self.cmds[i+2][2])
                     j = i + 3
                 else:
                     j = i + 1
 
                 # next command is also, contour or doublepath
-                addto_next_cmd_name = cmds[j][0]
-                if cmds[j][1]:
-                    self.last_known_line = int(cmds[j][1])
-                addto_next_cmd_body = cmds[j][2]
+                addto_next_cmd_name = self.cmds[j][0]
+                if self.cmds[j][1]:
+                    self.last_known_line = int(self.cmds[j][1])
+                addto_next_cmd_body = self.cmds[j][2]
                 j += 1
 
                 # pen and weight
@@ -339,8 +407,8 @@ class Mf2ff():
                 # are multiple withpen and withweight commands: "If more than one
                 # pen or weight is given, the last specification overrides all
                 # previous ones." (The METAFONTbook, p. 118)
-                while j < len(cmds):
-                    cmd = cmds[j]
+                while j < len(self.cmds):
+                    cmd = self.cmds[j]
                     cmd_name = cmd[0]
                     if cmd[1]:
                         self.last_known_line = int(cmd[1])
@@ -361,16 +429,16 @@ class Mf2ff():
                 if addto_next_cmd_name == 'mi': # - (minus)
                     # TODO can - even occur here?
                     # TODO i instead of j?
-                    self.pictures[addto] += self.pictures[cmds[j][1:-1]].reverseDirection()
+                    self.pictures[addto] += self.pictures[self.cmds[j][1:-1]].reverseDirection()
                     j += 1
                 elif addto_next_cmd_name == 'also':
                     # use a copy (duplicate) of the also picture so transform is not applied to original
                     self.pictures['temp_layer'] = self.pictures[addto_next_cmd_body[1:-1]].dup()
                     transform_ps_matrix = psMat.identity()
                     jj = i + 1
-                    while jj < len(cmds):
-                        addto_also_next_cmd_name = cmds[jj][0]
-                        addto_also_next_cmd_body = cmds[jj][2]
+                    while jj < len(self.cmds):
+                        addto_also_next_cmd_name = self.cmds[jj][0]
+                        addto_also_next_cmd_body = self.cmds[jj][2]
                         if addto_also_next_cmd_name == 'rotated':
                             transform_ps_matrix = psMat.compose(transform_ps_matrix, psMat.rotate(float(addto_also_next_cmd_body)/180*pi))
                         elif addto_also_next_cmd_name == 'scaled':
@@ -520,15 +588,15 @@ class Mf2ff():
             # TODO This section needs extensive testing and rework!
             elif cmd_name == 'cull':
                 cull_pic_name = self.cmd_body[1:-1] # clip quotes
-                keep_or_drop = cmds[i+1][0]
-                a, b = [int(float(s)) for s in self.pair_pattern.search(cmds[i+1][2]).groups()]
+                keep_or_drop = self.cmds[i+1][0]
+                a, b = [int(float(s)) for s in self.pair_pattern.search(self.cmds[i+1][2]).groups()]
                 weight = 1 # default # TODO source
                 num_paths = len(self.pictures[cull_pic_name])
 
                 i += 1
                 j = i+1
-                while j < len(cmds):
-                    cmd = cmds[j]
+                while j < len(self.cmds):
+                    cmd = self.cmds[j]
                     cmd_name = cmd[0]
                     self.cmd_body = cmd[2]
 
@@ -644,10 +712,10 @@ class Mf2ff():
                 j = i+1
                 j_eq = [i-1]
                 complex_expressions = []
-                while j < len(cmds):
-                    if cmds[j][0] not in ('pic', 'eq', 'as', 'pl', 'mi'):
+                while j < len(self.cmds):
+                    if self.cmds[j][0] not in ('pic', 'eq', 'as', 'pl', 'mi'):
                         break
-                    elif cmds[j][0] in ('eq', 'as'):
+                    elif self.cmds[j][0] in ('eq', 'as'):
                         if j-j_eq[-1] < 2:
                             complex_expressions.append(j)
                             if len(complex_expressions) > 1:
@@ -659,24 +727,24 @@ class Mf2ff():
 
                 for k in j_eq[:-2]:
                     if len(complex_expressions) == 0:
-                        if cmds[k-1][0] != 'mi':
-                            self.pictures[cmds[k+1][2][1:-1]] = fontforge.layer()
-                            for c in self.pictures[cmds[j_eq[-2]+1][2][1:-1]]:
-                                self.pictures[cmds[k+1][2][1:-1]] += c
+                        if self.cmds[k-1][0] != 'mi':
+                            self.pictures[self.cmds[k+1][2][1:-1]] = fontforge.layer()
+                            for c in self.pictures[self.cmds[j_eq[-2]+1][2][1:-1]]:
+                                self.pictures[self.cmds[k+1][2][1:-1]] += c
                         else:
-                            self.pictures[cmds[k+1][2][1:-1]] = fontforge.layer()
-                            for c in self.pictures[cmds[j_eq[-2]+1][2][1:-1]]:
-                                self.pictures[cmds[k+1][2][1:-1]] += c
-                            self.pictures[cmds[k+1][2][1:-1]] = self.pictures[cmds[k+1][2][1:-1]].reverseDirection()
+                            self.pictures[self.cmds[k+1][2][1:-1]] = fontforge.layer()
+                            for c in self.pictures[self.cmds[j_eq[-2]+1][2][1:-1]]:
+                                self.pictures[self.cmds[k+1][2][1:-1]] += c
+                            self.pictures[self.cmds[k+1][2][1:-1]] = self.pictures[self.cmds[k+1][2][1:-1]].reverseDirection()
                     else:
                         for k in range(i,j):
                             if k in complex_expressions[1:]:
                                 for l in range(j_eq[k-1], j_eq[k], 2):
-                                    if cmds[l][2] == 'pic':
-                                        if cmds[l-1][2] in ('eq', 'as', 'pl'):
-                                            self.pictures[cmds[j_eq[-1]][2][1:-1]] += self.pictures[cmds[l][2][1:-1]]
-                                        elif cmds[l-1][2] == 'mi':
-                                            self.pictures[cmds[j_eq[-1]][2][1:-1]] += self.pictures[cmds[l][2][1:-1]].reverseDirection()
+                                    if self.cmds[l][2] == 'pic':
+                                        if self.cmds[l-1][2] in ('eq', 'as', 'pl'):
+                                            self.pictures[self.cmds[j_eq[-1]][2][1:-1]] += self.pictures[self.cmds[l][2][1:-1]]
+                                        elif self.cmds[l-1][2] == 'mi':
+                                            self.pictures[self.cmds[j_eq[-1]][2][1:-1]] += self.pictures[self.cmds[l][2][1:-1]].reverseDirection()
                 i = j_eq[-1]-1
 
             elif cmd_name == 'shipout':
@@ -696,7 +764,7 @@ class Mf2ff():
                 yoffset = round(float(shipout.group(10)))
 
                 glyph_code = charcode + charext*256
-                pic_name = cmds[i+1][2][1:-1] # clip quotes
+                pic_name = self.cmds[i+1][2][1:-1] # clip quotes
                 pic = self.pictures[pic_name]
 
                 if self.options['fix-contours']:
@@ -746,11 +814,11 @@ class Mf2ff():
                 self.tmp_list = []
 
                 j = i+1
-                while j < len(cmds):
-                    cmd = cmds[j]
+                while j < len(self.cmds):
+                    cmd = self.cmds[j]
                     cmd_name = cmd[0]
                     self.cmd_body = cmd[2].split('>> ')[0]
-                    self.last_cmd_body = cmds[j-1][2].split('>> ')[-1]
+                    self.last_cmd_body = self.cmds[j-1][2].split('>> ')[-1]
 
                     if cmd_name == ':':
                         self.tmp_list.append([[self.last_cmd_body.split('"')[1] if self.last_cmd_body[0] == '"' else int(float(self.last_cmd_body))]])
@@ -904,7 +972,7 @@ class Mf2ff():
                 cmd_body_parts = self.cmd_body.split('>> ')
                 hppp = float(cmd_body_parts[0])
                 first_fontdimen = int(cmd_body_parts[1])
-                params = [float(p) for p in cmds[i+1][2].split('>> ')]
+                params = [float(p) for p in self.cmds[i+1][2].split('>> ')]
                 i += 1
                 for j, k in enumerate(range(first_fontdimen, first_fontdimen + len(params))):
                     if k == 1:
@@ -1406,14 +1474,14 @@ class Mf2ff():
             )
         )
 
-    def show_progress(self, start_time_ff, i, num_cmds):
+    def show_progress(self, start_time_ff, i):
         '''shows progress bar and ETA
 
         Args:
             start_time_ff (float): start time of fontforge from time.time()
             i (int): index of current command (0 based)
-            num_cmds (int): number of commands
         '''
+        num_cmds = len(self.cmds)
         # simple eta formula
         eta = (time()-start_time_ff)*(num_cmds-(i+1))/(i+1)
         # find appropriate unit
@@ -1654,7 +1722,7 @@ def parse_arguments(mf2ff):
                 # define groups of options
                 mf2ff_option_names_str = ('comment', 'copyright', 'encoding', 'familyname', 'fontlog', 'fontname', 'font-version', 'fullname', 'output-directory')
                 mf2ff_option_names_int = ('ascent', 'descent', 'ppi', 'uwidth', 'upos')
-                mf2ff_option_names_float = ('designsize', 'italicangle')
+                mf2ff_option_names_float = ('designsize', 'italicangle', 'upm')
                 negatable_options = [
                     'cull-at-shipout', 'debug', 'extension-attachment-points',
                     'extension-ligtable-switch', 'extrema', 'fix-contours',
@@ -1799,7 +1867,7 @@ def parse_arguments(mf2ff):
                         '  -[no-]otf         disable/enable OpenType output generation (default: disabled)\n'
                         '  -output-directory=DIR\n'
                         '                    set existing directory DIR as output directory\n'
-                        '  -ppi=INT          set ppi to INT\n'
+                        '  -ppi=INT          set pixels per inch passed to METAFONT (default: 1000)\n'
                         '  -[no-]quadratic   approximate cubic with quadratic Bézier curves\n'
                         '  -[no-]remove-artifacts\n'
                         '                    disable/enable removing of artifacts (default: disabled)\n'
@@ -1817,8 +1885,9 @@ def parse_arguments(mf2ff):
                         '                    disable/enable stroke simplification (default: enabled)\n'
                         '  -[no-]time        disable/enable timing (default: disabled)\n'
                         '  -[no-]ttf         disable/enable TrueType output generation (default: disabled)\n'
-                        '  -upos=NUM         set the font\'s underline position\n'
-                        '  -uwidth=NUM       set the font\'s underline width\n'
+                        '  -upm=NUM          desired UPM (units per em) or em size. If \'None`, UPM depends on ppi. (default: \'None`)\n'
+                        '  -upos=NUM         set the font\'s underline position in font units\n'
+                        '  -uwidth=NUM       set the font\'s underline width in font units\n'
                         '  -version          output version information of mf2ff and exit\n'
                         '\n'
                         'The following options are also available and are passed to METAFONT:\n'
@@ -1869,7 +1938,7 @@ def parse_arguments(mf2ff):
             if full_arg[0] == '&': # & introduces the name of the base
                 base = arg # TODO
             elif full_arg[0] == '\\': # line starting with \ should be processed first.
-                mf2ff.mf_first_line += arg + ' ' + ' '.join(mf2ff.args[i+1:])
+                mf2ff.first_line += arg + ' ' + ' '.join(mf2ff.args[i+1:])
                 break
             else: # everything else is a filename
                 mf2ff.input_file = full_arg
