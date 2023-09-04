@@ -296,7 +296,7 @@ class Mf2ff():
 
     def extract_cmds_from_log(self):
         '''open log file and extract all commands
-        
+
         sets self.orig_log_data and self.cmds
         '''
         try:
@@ -349,6 +349,9 @@ class Mf2ff():
         Args:
             start_time_ff (float): start time of fontforge from time.time()
         '''
+
+        pos_list = []
+        sub_list = []
 
         if self.options['kerning-classes']:
             kerning_list = {
@@ -809,9 +812,9 @@ class Mf2ff():
                 hppp = float(cmd_body_parts[0])
                 self.cmd_body = cmd_body_parts[1]
 
-                self.sub_list = []
-                pos_list = []
-                self.tmp_list = []
+                tmp_list = []
+                tmp_sub_list = []
+                tmp_pos_list = []
 
                 j = i+1
                 while j < len(self.cmds):
@@ -821,10 +824,10 @@ class Mf2ff():
                     self.last_cmd_body = self.cmds[j-1][2].split('>> ')[-1]
 
                     if cmd_name == ':':
-                        self.tmp_list.append([[self.last_cmd_body.split('"')[1] if self.last_cmd_body[0] == '"' else int(float(self.last_cmd_body))]])
+                        tmp_list.append([[self.last_cmd_body.split('"')[1] if self.last_cmd_body[0] == '"' else int(float(self.last_cmd_body))]])
                     elif cmd_name == '::':
                         if self.last_cmd_body in self.skiptos:
-                            self.tmp_list += self.skiptos[self.last_cmd_body]
+                            tmp_list += self.skiptos[self.last_cmd_body]
                     elif cmd_name == ':||':
                         print('! ligtable :|| not supported yet, ignored')
                     elif cmd_name == 'kern':
@@ -832,9 +835,9 @@ class Mf2ff():
                         kern = self.cmd_body
                         char = char[1:-1] if char[0] == '"' else int(float(char))
                         kern = int(float(kern)*hppp)
-                        pos_list += deepcopy(self.tmp_list)
-                        for k in range(len(pos_list)-len(self.tmp_list),len(pos_list)):
-                            pos_list[k] = [pos_list[k][0] + [char]] + [kern]
+                        tmp_pos_list += deepcopy(tmp_list)
+                        for k in range(len(tmp_pos_list)-len(tmp_list),len(tmp_pos_list)):
+                            tmp_pos_list[k] = [tmp_pos_list[k][0] + [char]] + [kern]
                     elif '=:' in cmd_name:
                         cmd_name_parts = cmd_name.split('=:',1)
                         lig_type = '=:' # start with the characters in the center
@@ -861,112 +864,18 @@ class Mf2ff():
                         lig = self.cmd_body
                         char = char[1:-1] if char[0] == '"' else int(float(char))
                         lig = lig [1:-1] if lig [0] == '"' else int(float(lig ))
-                        self.sub_list += deepcopy(self.tmp_list)
-                        for i in range(len(self.sub_list)-len(self.tmp_list), len(self.sub_list)):
-                            self.sub_list[i] = [lig, lig_type] + [self.sub_list[i][0] + [char]]
+                        tmp_sub_list += deepcopy(tmp_list)
+                        for i in range(len(tmp_sub_list)-len(tmp_list), len(tmp_sub_list)):
+                            tmp_sub_list[i] = [lig, lig_type] + [tmp_sub_list[i][0] + [char]] + [current_ligtable_to_feature['lig']]
                     elif cmd_name == 'skipto':
-                        self.skiptos[self.last_cmd_body] = self.tmp_list
+                        self.skiptos[self.last_cmd_body] = tmp_list
                     else:
                         break
                     j += 1
                 i = j-1
 
-                if len(self.sub_list) > 0:
-                    for sub in self.sub_list:
-                        lig = self.to_glyph_name(sub[0])
-                        lig_type = sub[1]
-                        char1 = self.to_glyph_name(sub[2][0])
-                        char2 = self.to_glyph_name(sub[2][1])
-                        if lig_type[0] == ' ' and lig_type[3] == ' ':
-                            ot_feature = current_ligtable_to_feature['lig']
-                            lookup_type = 'gsub_ligature'
-                            lookup_name = lookup_type + '_' + ot_feature
-                            subtable_name = lookup_name + '_subtable'
-                            if not lookup_name in self.font.gsub_lookups:
-                                self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.scripts),))
-                                self.font.addLookupSubtable(lookup_name, subtable_name)
-                            # Try to create the ligature. FontForge will
-                            # raise a TypeError, if one of the
-                            # characters is unknown. In that case, print
-                            # a warning and continue
-                            try:
-                                self.font[lig].addPosSub(subtable_name, (char1, char2))
-                            except TypeError as e:
-                                print('! Error while adding ligature:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
-                        elif lig_type[0] == '|' and lig_type[3] == ' ':
-                            if not 'gsub_single_after_' + char1 in self.font.gsub_lookups:
-                                self.font.addLookup('gsub_single_after_' + char1, 'gsub_single', (), ())
-                                self.font.addLookupSubtable('gsub_single_after_' + char1, 'gsub_single_after_' + char1 + '_subtable')
-                            self.font[char2].addPosSub('gsub_single_after_' + char1 + '_subtable', lig)
-                            if not 'gsub_contextchain' in self.font.gsub_lookups:
-                                self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.scripts),))
-                            self.font.addContextualSubtable(
-                                'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
-                                char1 + ' | ' + char2 + ' @<gsub_single_after_' + char1 + '> |'
-                            )
-                        elif lig_type[0] == ' ' and lig_type[3] == '|':
-                            if not 'gsub_single_before_' + char2 in self.font.gsub_lookups:
-                                self.font.addLookup('gsub_single_before_' + char2, 'gsub_single', (), ())
-                                self.font.addLookupSubtable('gsub_single_before_' + char2, 'gsub_single_before_' + char2 + '_subtable')
-                            self.font[char1].addPosSub('gsub_single_before_' + char2 + '_subtable', lig)
-                            if not 'gsub_contextchain' in self.font.gsub_lookups:
-                                self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.scripts),))
-                            self.font.addContextualSubtable(
-                                'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
-                                '| ' + char1 + ' @<gsub_single_before_' + char2 + '> | ' + char2
-                            )
-                        elif lig_type[0] == '|' and lig_type[3] == '|':
-                            if not 'gsub_multiple_between_' + char1 + '_' + char2 in self.font.gsub_lookups:
-                                self.font.addLookup('gsub_multiple_between_' + char1 + '_' + char2, 'gsub_multiple', (), ())
-                                self.font.addLookupSubtable('gsub_multiple_between_' + char1 + '_' + char2, 'gsub_multiple_between_' + char1 + '_' + char2 + '_subtable')
-                            self.font[char2].addPosSub('gsub_multiple_between_' + char1 + '_' + char2 + '_subtable', (lig, char2))
-                            if not 'gsub_contextchain' in self.font.gsub_lookups:
-                                self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.scripts),))
-                            self.font.addContextualSubtable(
-                                'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
-                                char1 + ' | ' + char2 + ' @<gsub_multiple_between_' + char1 + '_' + char2 + '> |'
-                            )
-
-                if len(pos_list) > 0:
-                    if self.options['kerning-classes']:
-                        leftGlyphs = kerning_list['left-glyphs']
-                        rightGlyphs = kerning_list['right-glyphs']
-                        offsets = kerning_list['offsets']
-                        for pos in pos_list:
-                            lChar = self.to_glyph_name(pos[0][0])
-                            rChar = self.to_glyph_name(pos[0][1])
-                            offset = pos[1]
-                            if lChar in leftGlyphs:
-                                idxL = leftGlyphs.index(lChar)
-                            else:
-                                leftGlyphs.append(lChar)
-                                if len(offsets) > 0:
-                                    offsets.append([0]*len(offsets[-1]))
-                                else:
-                                    offsets.append([])
-                                idxL = len(leftGlyphs)-1
-                            if rChar in rightGlyphs:
-                                idxR = rightGlyphs.index(rChar)
-                            else:
-                                rightGlyphs.append(rChar)
-                                idxR = len(rightGlyphs)-1
-                                for i_offset in range(len(offsets)):
-                                    offsets[i_offset].append(0)
-                            offsets[idxL][idxR] = offset
-                            # combination of glyphs to classes will be done at the end
-                    else:
-                        # kerning pairs
-                        if not 'gpos_pair' in self.font.gpos_lookups:
-                            self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.scripts),))
-                            self.font.addLookupSubtable('gpos_pair', 'gpos_pair_subtable')
-                        for pos in pos_list:
-                            char1 = self.to_glyph_name(pos[0][0])
-                            char2 = self.to_glyph_name(pos[0][1])
-                            kern = pos[1]
-                            try:
-                                self.font[char1].addPosSub('gpos_pair_subtable', char2, 0, 0, kern, 0, 0, 0, 0, 0)
-                            except TypeError as e:
-                                print('! Error while adding kerning pair:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
+                pos_list.extend(tmp_pos_list)
+                sub_list.extend(tmp_sub_list)
 
             elif cmd_name == 'fontdimen':
                 cmd_body_parts = self.cmd_body.split('>> ')
@@ -1024,6 +933,102 @@ class Mf2ff():
             i += 1
 
         # all commands processed, but for some commands post processing is needed
+        for sub in sub_list:
+            lig = self.to_glyph_name(sub[0])
+            lig_type = sub[1]
+            char1 = self.to_glyph_name(sub[2][0])
+            char2 = self.to_glyph_name(sub[2][1])
+            if lig_type[0] == ' ' and lig_type[3] == ' ':
+                ot_feature = sub[3]
+                lookup_type = 'gsub_ligature'
+                lookup_name = lookup_type + '_' + ot_feature
+                subtable_name = lookup_name + '_subtable'
+                if not lookup_name in self.font.gsub_lookups:
+                    self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.scripts),))
+                    self.font.addLookupSubtable(lookup_name, subtable_name)
+                # Try to create the ligature. FontForge will
+                # raise a TypeError, if one of the
+                # characters is unknown. In that case, print
+                # a warning and continue
+                try:
+                    self.font[lig].addPosSub(subtable_name, (char1, char2))
+                except TypeError as e:
+                    print('! Error while adding ligature:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
+            elif lig_type[0] == '|' and lig_type[3] == ' ':
+                if not 'gsub_single_after_' + char1 in self.font.gsub_lookups:
+                    self.font.addLookup('gsub_single_after_' + char1, 'gsub_single', (), ())
+                    self.font.addLookupSubtable('gsub_single_after_' + char1, 'gsub_single_after_' + char1 + '_subtable')
+                self.font[char2].addPosSub('gsub_single_after_' + char1 + '_subtable', lig)
+                if not 'gsub_contextchain' in self.font.gsub_lookups:
+                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.scripts),))
+                self.font.addContextualSubtable(
+                    'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
+                    char1 + ' | ' + char2 + ' @<gsub_single_after_' + char1 + '> |'
+                )
+            elif lig_type[0] == ' ' and lig_type[3] == '|':
+                if not 'gsub_single_before_' + char2 in self.font.gsub_lookups:
+                    self.font.addLookup('gsub_single_before_' + char2, 'gsub_single', (), ())
+                    self.font.addLookupSubtable('gsub_single_before_' + char2, 'gsub_single_before_' + char2 + '_subtable')
+                self.font[char1].addPosSub('gsub_single_before_' + char2 + '_subtable', lig)
+                if not 'gsub_contextchain' in self.font.gsub_lookups:
+                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.scripts),))
+                self.font.addContextualSubtable(
+                    'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
+                    '| ' + char1 + ' @<gsub_single_before_' + char2 + '> | ' + char2
+                )
+            elif lig_type[0] == '|' and lig_type[3] == '|':
+                if not 'gsub_multiple_between_' + char1 + '_' + char2 in self.font.gsub_lookups:
+                    self.font.addLookup('gsub_multiple_between_' + char1 + '_' + char2, 'gsub_multiple', (), ())
+                    self.font.addLookupSubtable('gsub_multiple_between_' + char1 + '_' + char2, 'gsub_multiple_between_' + char1 + '_' + char2 + '_subtable')
+                self.font[char2].addPosSub('gsub_multiple_between_' + char1 + '_' + char2 + '_subtable', (lig, char2))
+                if not 'gsub_contextchain' in self.font.gsub_lookups:
+                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.scripts),))
+                self.font.addContextualSubtable(
+                    'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
+                    char1 + ' | ' + char2 + ' @<gsub_multiple_between_' + char1 + '_' + char2 + '> |'
+                )
+
+        if len(pos_list) > 0:
+            if self.options['kerning-classes']:
+                leftGlyphs = kerning_list['left-glyphs']
+                rightGlyphs = kerning_list['right-glyphs']
+                offsets = kerning_list['offsets']
+                for pos in pos_list:
+                    lChar = self.to_glyph_name(pos[0][0])
+                    rChar = self.to_glyph_name(pos[0][1])
+                    offset = pos[1]
+                    if lChar in leftGlyphs:
+                        idxL = leftGlyphs.index(lChar)
+                    else:
+                        leftGlyphs.append(lChar)
+                        if len(offsets) > 0:
+                            offsets.append([0]*len(offsets[-1]))
+                        else:
+                            offsets.append([])
+                        idxL = len(leftGlyphs)-1
+                    if rChar in rightGlyphs:
+                        idxR = rightGlyphs.index(rChar)
+                    else:
+                        rightGlyphs.append(rChar)
+                        idxR = len(rightGlyphs)-1
+                        for i_offset in range(len(offsets)):
+                            offsets[i_offset].append(0)
+                    offsets[idxL][idxR] = offset
+                    # combination of glyphs to classes will be done at the end
+            else:
+                # kerning pairs
+                if not 'gpos_pair' in self.font.gpos_lookups:
+                    self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.scripts),))
+                    self.font.addLookupSubtable('gpos_pair', 'gpos_pair_subtable')
+                for pos in pos_list:
+                    char1 = self.to_glyph_name(pos[0][0])
+                    char2 = self.to_glyph_name(pos[0][1])
+                    kern = pos[1]
+                    try:
+                        self.font[char1].addPosSub('gpos_pair_subtable', char2, 0, 0, kern, 0, 0, 0, 0, 0)
+                    except TypeError as e:
+                        print('! Error while adding kerning pair:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
+
         if self.options['kerning-classes']:
             # make every glyph a class
             leftClasses = [[glyph_name] for glyph_name in kerning_list['left-glyphs']]

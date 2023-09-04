@@ -1,5 +1,6 @@
 mode_setup;
 
+
 beginchar("A", 100, 100, 0);
 endchar;
 
@@ -49,5 +50,28 @@ beginchar("M", 100, 100, 0);
 endchar;
 
 ligtable "K": "L" =:| "M";
+
+
+% ligtable before definition of chars
+ligtable "N": "O" kern -20;
+
+beginchar("N", 100, 100, 0);
+endchar;
+
+beginchar("O", 100, 100, 0);
+endchar;
+
+
+ligtable "P": "Q" =: "R"
+
+beginchar("P", 100, 100, 0);
+endchar;
+
+beginchar("Q", 100, 100, 0);
+endchar;
+
+beginchar("R", 100, 100, 0);
+endchar;
+
 
 end

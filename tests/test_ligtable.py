@@ -125,5 +125,36 @@ class TestLigtable(Mf2ffTest):
         self.assertEqual(i_subPos[0][1], 'Substitution')
         self.assertEqual(i_subPos[0][2], 'M')
 
+    def test_kerning_before_chars(self):
+        # test the 'kern' subcommand before definition of chars
+
+        gpos_lookup_names = self.font.gpos_lookups
+        gpos_lookup_name = gpos_lookup_names[0]
+        gpos_subtable_names = self.font.getLookupSubtables(gpos_lookup_name)
+        gpos_subtable_name = gpos_subtable_names[0]
+        n_posSub = self.font['N'].getPosSub(gpos_subtable_name)
+
+        self.assertEqual(len(n_posSub), 1)
+        self.assertEqual(n_posSub[0][1], 'Pair')
+        self.assertEqual(n_posSub[0][2], 'O')
+        self.assertEqual(n_posSub[0][3], 0)
+        self.assertEqual(n_posSub[0][4], 0)
+        self.assertEqual(n_posSub[0][5], -20)
+        self.assertEqual(n_posSub[0][6], 0)
+        self.assertEqual(n_posSub[0][7], 0)
+        self.assertEqual(n_posSub[0][8], 0)
+        self.assertEqual(n_posSub[0][9], 0)
+        self.assertEqual(n_posSub[0][10], 0)
+
+    def test_ligature_ec_before_chars(self):
+        # test the '=:' (equal-colon) subcommand before definition of chars
+
+        gsub_subtable_name = 'gsub_ligature_liga_subtable'
+        r_posSub = self.font['R'].getPosSub(gsub_subtable_name)
+        self.assertEqual(len(r_posSub), 1)
+        self.assertEqual(r_posSub[0][1], 'Ligature')
+        self.assertEqual(r_posSub[0][2], 'P')
+        self.assertEqual(r_posSub[0][3], 'Q')
+
 if __name__ == '__main__':
     unittest.main()
