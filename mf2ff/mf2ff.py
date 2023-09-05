@@ -352,6 +352,10 @@ class Mf2ff():
 
         pos_list = []
         sub_list = []
+        charlist_list = []
+        extensible_list = []
+
+        base_glyphs_of_variants = {}
 
         if self.options['kerning-classes']:
             kerning_list = {
@@ -892,7 +896,53 @@ class Mf2ff():
                         # font.os2_xheight not in FontForge docs
                         self.font.os2_xheight = int(hppp*params[j])
 
-            # TODO: charlist, extensible
+            elif cmd_name == 'charlist':
+                base_glyph_name = self.to_glyph_name(int(self.cmd_body))
+                # TODO big accents: horizontal variants
+                charlist = []
+                j = i+1
+                while j < len(self.cmds):
+                    cmd = self.cmds[j]
+                    cmd_name = cmd[0]
+                    if cmd_name == ":":
+                        charlist.append(self.to_glyph_name(int(cmd[2])))
+                        # charlist.append('uni{:04X}'.format(int(cmd[2])))
+                    else:
+                        break
+                    j += 1
+                i = j-1
+                vertical_variants_str = ' '.join(charlist)
+                charlist_list.append((base_glyph_name, vertical_variants_str))
+                # save last variant in case it is extensible
+                base_glyphs_of_variants[charlist[-1]] = base_glyph_name
+
+            elif cmd_name == 'extensible':
+                label_glyph_name = self.to_glyph_name(int(self.cmd_body))
+                # TODO: extensible before charlist?
+                if label_glyph_name in base_glyphs_of_variants: # base is only known in MF when label of extensible is part of a charlist
+                    base_glyph_name = base_glyphs_of_variants[label_glyph_name]
+                    cmd_body_part_ints = [int(p) for p in self.cmds[i+1][2].split('>> ')]
+                    cmd_body_part_names = [self.to_glyph_name(int(p)) for p in cmd_body_part_ints]
+                    i += 1
+                    vertical_components = []
+                    if cmd_body_part_ints[2] != 0: # bottom (only non-zero)
+                        vertical_components.append([cmd_body_part_names[2], 0, 0, 0, 'texdepth'])
+                    vertical_components.append([cmd_body_part_names[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater
+                    if cmd_body_part_ints[1] != 0: # middle (only non-zero)
+                        vertical_components.append([cmd_body_part_names[1], 0, 0, 0, 'texdepth'])
+                        vertical_components.append([cmd_body_part_names[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater (only if middle)
+                    if cmd_body_part_ints[0] != 0: # top (only non-zero)
+                        vertical_components.append([cmd_body_part_names[0], 0, 0, 0, 'texdepth'])
+                    extensible_list.append((base_glyph_name, tuple(vertical_components)))
+
+                    # remove label char from charlist
+                    label_glyph_charlist_index = [i for i, cl in enumerate(charlist_list) if cl[0]==base_glyph_name][0]
+                    vertical_variants_str = charlist_list[label_glyph_charlist_index][1]
+                    vertical_variants_str, label_glyph_name_ = vertical_variants_str.rsplit(' ', 1)
+                    assert label_glyph_name == label_glyph_name_
+                    charlist_list[label_glyph_charlist_index] = (base_glyph_name, vertical_variants_str)
+                else:
+                    print('! Label glyph `' + label_glyph_name + '\' was not used at the end of a charlist. Ignored.')
 
             elif cmd_name == 'end':
                 design_size = float(self.cmd_body)
@@ -1029,6 +1079,17 @@ class Mf2ff():
                     except TypeError as e:
                         print('! Error while adding kerning pair:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
 
+        for base_glyph_name, vertical_variants_str in charlist_list:
+            base_glyph = self.font[base_glyph_name]
+            base_glyph.verticalVariants = vertical_variants_str
+
+        for base_glyph_name, vertical_components in extensible_list:
+            base_glyph = self.font[base_glyph_name]
+            base_glyph.verticalComponents = (
+                tuple(vc[0:2] + [self.font[vc[0]].texdepth if p == 'texdepth' else p for p in vc[2:]])
+                for vc in vertical_components
+            )
+
         if self.options['kerning-classes']:
             # make every glyph a class
             leftClasses = [[glyph_name] for glyph_name in kerning_list['left-glyphs']]
@@ -1128,7 +1189,7 @@ class Mf2ff():
                 r'|picture|pic_eqn|pic|as|eq|mi|pl'
                 r'|shipout'
                 r'|ligtable|:|::|pp:|kern|=:|p=:|p=:g|=:p|=:pg|p=:p|p=:pg|p=:pgg|skipto'
-                r'|fontdimen|end'
+                r'|fontdimen|charlist|extensible|end'
                 +(
                     r'|'+self.options['extension-attachment-points-macro-prefix']+r'_(?:mark_(?:base|mark)|mkmk_(?:basemark|mark))'
                     if self.options['extension-attachment-points'] else r''
@@ -1392,15 +1453,21 @@ class Mf2ff():
                 'show t;endgroup;'+m__+
             'enddef;'
 
-            # fontdimen command's syntax uses of colon (:). Therefor some
-            # redefinitions are needed to be used in combinations with e.g. the
-            # if statement
-            'def fontdimen text t='+m_+'fontdimen";show hppp;begingroup '
-                'save:;'
-                'def __mfIIvec__other_colon__ text tt=;'+mm_+':";show tt enddef;'
-                '__mfIIvec__redef_colon__ '
-                'show t endgroup;'+m__+
-            'enddef;'
+            # fontdimen, charlist and extensible command's syntax uses of colon
+            # (:). Therefor some redefinitions are needed to be used in
+            # combinations with e.g. the if statement
+            +(
+                ''.join(
+                    'def '+cmd_name+' text t='+m_+cmd_name+'";'+('show hppp;' if cmd_name == 'fontdimen' else '')+'begingroup '
+                        'save:;'
+                        'def __mfIIvec__other_colon__ text tt=;'+mm_+':";show tt enddef;'
+                        '__mfIIvec__redef_colon__ '
+                        'show t endgroup;'+m__+
+                    'enddef;'
+                    for cmd_name in ['fontdimen', 'charlist', 'extensible']
+                )
+            )
+            +
 
             # end should show the designsize: "METAFONT looks at the value of
             # designsize only when the job ends" (The METAFONTbook, p. 320)
