@@ -1090,7 +1090,7 @@ class Mf2ff():
                 for vc in vertical_components
             )
 
-        if self.options['kerning-classes']:
+        if self.options['kerning-classes'] and len(kerning_list['offsets']) > 0:
             # make every glyph a class
             leftClasses = [[glyph_name] for glyph_name in kerning_list['left-glyphs']]
             rightClasses = [[glyph_name] for glyph_name in kerning_list['right-glyphs']]
