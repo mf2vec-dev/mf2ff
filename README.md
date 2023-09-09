@@ -261,7 +261,6 @@ If a specific limitation is holding your project back, open an issue so that fut
 - The support of `cull` commands is limited.
 - Ligature commands\
   Only `:`, `::`, `kern`, `skipto` as well as the ligature operators `=:`, `|=:`, `=:|` and `|=:|` are supported. The ligtable command ignores `>` in operators. Moreover, the operator `||:` is not supported.
-- Neither `charlist` nor `extensible` commands are supported yet.
 - picture type test\
   The `picture` keyword has to be redefined to initialize the picture variables as a FontForge vector layer. As METAFONT uses the type keywords for both, variable declaration and type test in boolean expressions, the `picture` keyword cannot be used to test if a variable is of type `picture`.
 - System of equations of picture variables\
@@ -269,9 +268,8 @@ If a specific limitation is holding your project back, open an issue so that fut
   \* However, METAFONT stores picture variables by storing the difference between successive pixels.
 - Pen and path types are the same\
   In fact, every pen variable is a path variable. Therefore, commands like `makepen` and `makepath` have no effect. Pens and paths cannot be distinguished using `pen` or `path` in a boolean expression. There is a option `is_type` that introduces `is_pen` or `is_path` which might help you to circumvent this problem.
-- nested conditions or loops inside of `ligtable` and `fontdimen`\
-  In some situations, `mf2ff` needs to redefine the colon (`:`). This may cause problems in processing multiple nested `if`...(`elseif`)...(`end`)...`fi` and/or `for`/`forsuffixes`/`forever`...`endfor` inside of commands that use the colon in their own syntax, i.e. `ligtable` and `fontdimen`.
-- `charlist` and `extensible`
+- Nested conditions or nested loops within `ligtable`, `fontdimen`, `charlist` and `extensible` commands\
+  In some situations, `mf2ff` needs to redefine the colon (`:`). This may cause problems in processing multiple nested `if`...(`elseif`)...(`end`)...`fi` and/or `for`/`forsuffixes`/`forever`...`endfor` within commands that use the colon in their own syntax, i.e. `ligtable`, `fontdimen`, `charlist` and `extensible`.
 - FontForge sometimes hangs\
   FontForge hangs in certain situations while stroking a contour. So far, no particular trigger has been identified. This may be a bug in FontForge.
 - FontForge sometimes raises errors\
