@@ -906,7 +906,6 @@ class Mf2ff():
                     cmd_name = cmd[0]
                     if cmd_name == ":":
                         charlist.append(self.to_glyph_name(int(cmd[2])))
-                        # charlist.append('uni{:04X}'.format(int(cmd[2])))
                     else:
                         break
                     j += 1
@@ -921,28 +920,28 @@ class Mf2ff():
                 # TODO: extensible before charlist?
                 if label_glyph_name in base_glyphs_of_variants: # base is only known in MF when label of extensible is part of a charlist
                     base_glyph_name = base_glyphs_of_variants[label_glyph_name]
-                    cmd_body_part_ints = [int(p) for p in self.cmds[i+1][2].split('>> ')]
-                    cmd_body_part_names = [self.to_glyph_name(int(p)) for p in cmd_body_part_ints]
-                    i += 1
-                    vertical_components = []
-                    if cmd_body_part_ints[2] != 0: # bottom (only non-zero)
-                        vertical_components.append([cmd_body_part_names[2], 0, 0, 0, 'texdepth'])
-                    vertical_components.append([cmd_body_part_names[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater
-                    if cmd_body_part_ints[1] != 0: # middle (only non-zero)
-                        vertical_components.append([cmd_body_part_names[1], 0, 0, 0, 'texdepth'])
-                        vertical_components.append([cmd_body_part_names[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater (only if middle)
-                    if cmd_body_part_ints[0] != 0: # top (only non-zero)
-                        vertical_components.append([cmd_body_part_names[0], 0, 0, 0, 'texdepth'])
-                    extensible_list.append((base_glyph_name, tuple(vertical_components)))
 
-                    # remove label char from charlist
+                    # remove label glyph from charlist
                     label_glyph_charlist_index = [i for i, cl in enumerate(charlist_list) if cl[0]==base_glyph_name][0]
                     vertical_variants_str = charlist_list[label_glyph_charlist_index][1]
                     vertical_variants_str, label_glyph_name_ = vertical_variants_str.rsplit(' ', 1)
                     assert label_glyph_name == label_glyph_name_
                     charlist_list[label_glyph_charlist_index] = (base_glyph_name, vertical_variants_str)
                 else:
-                    print('! Label glyph `' + label_glyph_name + '\' was not used at the end of a charlist. Ignored.')
+                    base_glyph_name = label_glyph_name
+                cmd_body_part_ints = [int(p) for p in self.cmds[i+1][2].split('>> ')]
+                cmd_body_part_names = [self.to_glyph_name(int(p)) for p in cmd_body_part_ints]
+                i += 1
+                vertical_components = []
+                if cmd_body_part_ints[2] != 0: # bottom (only non-zero)
+                    vertical_components.append([cmd_body_part_names[2], 0, 0, 0, 'texdepth'])
+                vertical_components.append([cmd_body_part_names[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater
+                if cmd_body_part_ints[1] != 0: # middle (only non-zero)
+                    vertical_components.append([cmd_body_part_names[1], 0, 0, 0, 'texdepth'])
+                    vertical_components.append([cmd_body_part_names[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater (only if middle)
+                if cmd_body_part_ints[0] != 0: # top (only non-zero)
+                    vertical_components.append([cmd_body_part_names[0], 0, 0, 0, 'texdepth'])
+                extensible_list.append((base_glyph_name, tuple(vertical_components)))
 
             elif cmd_name == 'end':
                 design_size = float(self.cmd_body)
