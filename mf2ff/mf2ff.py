@@ -11,11 +11,12 @@ from math import atan, atan2, pi, sqrt
 from pathlib import Path
 from time import time
 
+import tex_encodings
+
 try:
     import fontforge
     import psMat
 except ImportError:
-    # On windows the fontforge python module is located in the same directory as fontforge.exe.
     if platform.system() == 'Windows':
         print('! No module named \'fontforge\'. Check that fontforge is installed and that you are using ffpython (you may need to add it to your PATH).')
         sys.exit()
@@ -53,18 +54,19 @@ class Mf2ff():
         self.cwd = Path.cwd()
         self.descent = 0
         self.designsize = 0.0
-        self.encoding = 'UnicodeFull'
         self.family_name = ''
         self.fontlog = ''
         self.fontname = ''
         self.font_version = '001.000'
         self.fullname = ''
         self.input_file = ''
+        self.input_encoding = 'None'
         self.italicangle = 0.0
         self.jobname = ''
         self.first_line = ''
         self.mf_options = ['-interaction=batchmode']
         self.output_directory = Path(self.cwd)
+        self.output_encoding = 'None'
         self.ppi = 1000
         self.scripts = (
             ('cyrl', ('dflt',)),
@@ -187,7 +189,8 @@ class Mf2ff():
         self.font.copyright = self.copyright
         self.font.descent = self.descent
         self.font.design_size = self.designsize
-        self.font.encoding = self.encoding
+        if self.input_encoding != 'None':
+            self.reencode(self.input_encoding)
         self.font.familyname = self.family_name
         self.font.fontlog = self.fontlog
         self.font.fontname = self.fontname
@@ -785,7 +788,7 @@ class Mf2ff():
                     # overlaps again.
                     self.remove_overlap(pic)
 
-                glyph = self.font.createChar(glyph_code,)
+                glyph = self.font.createMappedChar(glyph_code)
                 glyph.layers[1] = pic
 
                 glyph.width = charwd
@@ -897,7 +900,7 @@ class Mf2ff():
                         self.font.os2_xheight = int(hppp*params[j])
 
             elif cmd_name == 'charlist':
-                base_glyph_name = self.to_glyph_name(int(self.cmd_body))
+                base_glyph_code = int(self.cmd_body)
                 # TODO big accents: horizontal variants
                 charlist = []
                 j = i+1
@@ -905,43 +908,40 @@ class Mf2ff():
                     cmd = self.cmds[j]
                     cmd_name = cmd[0]
                     if cmd_name == ":":
-                        charlist.append(self.to_glyph_name(int(cmd[2])))
+                        charlist.append(int(cmd[2]))
                     else:
                         break
                     j += 1
                 i = j-1
-                vertical_variants_str = ' '.join(charlist)
-                charlist_list.append((base_glyph_name, vertical_variants_str))
+                charlist_list.append((base_glyph_code, charlist))
                 # save last variant in case it is extensible
-                base_glyphs_of_variants[charlist[-1]] = base_glyph_name
+                base_glyphs_of_variants[charlist[-1]] = base_glyph_code
 
             elif cmd_name == 'extensible':
-                label_glyph_name = self.to_glyph_name(int(self.cmd_body))
+                label_glyph_code = int(self.cmd_body)
                 # TODO: extensible before charlist?
-                if label_glyph_name in base_glyphs_of_variants: # base is only known in MF when label of extensible is part of a charlist
-                    base_glyph_name = base_glyphs_of_variants[label_glyph_name]
+                if label_glyph_code in base_glyphs_of_variants: # base is only known in MF when label of extensible is part of a charlist
+                    base_glyph_code = base_glyphs_of_variants[label_glyph_code]
 
                     # remove label glyph from charlist
-                    label_glyph_charlist_index = [i for i, cl in enumerate(charlist_list) if cl[0]==base_glyph_name][0]
-                    vertical_variants_str = charlist_list[label_glyph_charlist_index][1]
-                    vertical_variants_str, label_glyph_name_ = vertical_variants_str.rsplit(' ', 1)
-                    assert label_glyph_name == label_glyph_name_
-                    charlist_list[label_glyph_charlist_index] = (base_glyph_name, vertical_variants_str)
+                    label_glyph_charlist_index = [i for i, cl in enumerate(charlist_list) if cl[0]==base_glyph_code][0]
+                    charlist = charlist_list[label_glyph_charlist_index][1]
+                    assert label_glyph_code == charlist[-1]
+                    charlist_list[label_glyph_charlist_index] = (base_glyph_code, charlist[:-1])
                 else:
-                    base_glyph_name = label_glyph_name
-                cmd_body_part_ints = [int(p) for p in self.cmds[i+1][2].split('>> ')]
-                cmd_body_part_names = [self.to_glyph_name(int(p)) for p in cmd_body_part_ints]
+                    base_glyph_code = label_glyph_code
+                cmd_body_part_codes = [int(p) for p in self.cmds[i+1][2].split('>> ')]
                 i += 1
                 vertical_components = []
-                if cmd_body_part_ints[2] != 0: # bottom (only non-zero)
-                    vertical_components.append([cmd_body_part_names[2], 0, 0, 0, 'texdepth'])
-                vertical_components.append([cmd_body_part_names[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater
-                if cmd_body_part_ints[1] != 0: # middle (only non-zero)
-                    vertical_components.append([cmd_body_part_names[1], 0, 0, 0, 'texdepth'])
-                    vertical_components.append([cmd_body_part_names[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater (only if middle)
-                if cmd_body_part_ints[0] != 0: # top (only non-zero)
-                    vertical_components.append([cmd_body_part_names[0], 0, 0, 0, 'texdepth'])
-                extensible_list.append((base_glyph_name, tuple(vertical_components)))
+                if cmd_body_part_codes[2] != 0: # bottom (only non-zero)
+                    vertical_components.append([cmd_body_part_codes[2], 0, 0, 0, 'texdepth'])
+                vertical_components.append([cmd_body_part_codes[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater
+                if cmd_body_part_codes[1] != 0: # middle (only non-zero)
+                    vertical_components.append([cmd_body_part_codes[1], 0, 0, 0, 'texdepth'])
+                    vertical_components.append([cmd_body_part_codes[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater (only if middle)
+                if cmd_body_part_codes[0] != 0: # top (only non-zero)
+                    vertical_components.append([cmd_body_part_codes[0], 0, 0, 0, 'texdepth'])
+                extensible_list.append((base_glyph_code, tuple(vertical_components)))
 
             elif cmd_name == 'end':
                 design_size = float(self.cmd_body)
@@ -1078,14 +1078,18 @@ class Mf2ff():
                     except TypeError as e:
                         print('! Error while adding kerning pair:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
 
-        for base_glyph_name, vertical_variants_str in charlist_list:
+        for base_glyph_code, charlist in charlist_list:
+            charlist = [self.to_glyph_name(c) for c in charlist]
+            vertical_variants_str = ' '.join(charlist)
+            base_glyph_name = self.to_glyph_name(base_glyph_code)
             base_glyph = self.font[base_glyph_name]
             base_glyph.verticalVariants = vertical_variants_str
 
-        for base_glyph_name, vertical_components in extensible_list:
+        for base_glyph_code, vertical_components in extensible_list:
+            base_glyph_name = self.to_glyph_name(base_glyph_code)
             base_glyph = self.font[base_glyph_name]
             base_glyph.verticalComponents = (
-                tuple(vc[0:2] + [self.font[vc[0]].texdepth if p == 'texdepth' else p for p in vc[2:]])
+                tuple([self.to_glyph_name(vc[0]), vc[1]] + [self.font[vc[0]].texdepth if p == 'texdepth' else p for p in vc[2:]])
                 for vc in vertical_components
             )
 
@@ -1138,6 +1142,8 @@ class Mf2ff():
         '''
         if self.options['quadratic']:
             self.font.layers['Fore'].is_quadratic = True
+        if self.output_encoding != 'None':
+            self.reencode(self.output_encoding)
 
         output_path = Path(self.output_directory) / self.jobname
         if self.options['extrema']:
@@ -1591,17 +1597,62 @@ class Mf2ff():
             string: FontForge glyph name
         '''
         if isinstance(g, str):
-            if fontforge.unicodeFromName(g) != -1:
-                return g
-            else:
-                try:
-                    # convert name to Unicode character and back to Fontforge glyph name
-                    return fontforge.nameFromUnicode(unicodedata.decimal(unicodedata.lookup(g)))
-                except KeyError:
-                    print('! \'' + g + '´ is not a valid glyph name. \'' + g[0] + '´ is assumed.')
-                    return g[0]
+            # if g is a string, use g if it can be used to access the glyph. If
+            # not, try fontforge.unicodeFromName and unicodedata.lookup. If not
+            # found, use first character.
+            g_str = g
+            del g
+            try:
+                self.font[g_str]
+                # g_str is valid name
+                return g_str
+            except TypeError:
+                if fontforge.unicodeFromName(g_str) == -1:
+                    g_int = fontforge.unicodeFromName(g_str)
+                else:
+                    try:
+                        # convert name to Unicode character and back to Fontforge glyph name
+                        g_int = unicodedata.decimal(unicodedata.lookup(g_str))
+                    except KeyError:
+                        if len(g_str) != 1:
+                            print('! \'' + g_str + '´ is not a valid glyph name. \'' + g_str[0] + '´ is assumed.')
+                            g_str = g_str[0]
+                        g_int = ord(g_str)
         else:
-            return fontforge.nameFromUnicode(g)
+            # if g is int, use name based on current encoding
+            g_int = g
+            del g
+        g_str = self.font[g_int].glyphname
+        return g_str
+
+    def reencode(self, encoding_name):
+        try:
+            # font.reencode not in FontForge docs
+            self.font.reencode(encoding_name)
+        except NameError as e:
+            encoding_name = encoding_name.lower().replace(' ', '-')
+            if encoding_name == 'tex-text':
+                tex_encodings.load_tex_text()
+                encoding_name = 'TeX-text'
+            elif encoding_name == 'tex-typewriter-text':
+                tex_encodings.load_tex_typewriter_text()
+                encoding_name = 'TeX-typewriter-text'
+            elif encoding_name == 'tex-math-italic':
+                tex_encodings.load_tex_math_italic()
+                encoding_name = 'TeX-math-italic'
+            elif encoding_name == 'tex-math-symbols':
+                tex_encodings.load_tex_math_symbols()
+                encoding_name = 'TeX-math-symbols'
+            elif encoding_name == 'tex-math-extension':
+                tex_encodings.load_tex_math_extension()
+                encoding_name = 'TeX-math-extension'
+            elif encoding_name == 'tex-extended-ascii':
+                tex_encodings.load_tex_extended_ascii()
+                encoding_name = 'TeX-extended-ASCII'
+            else:
+                raise e
+            # font.reencode not in FontForge docs
+            self.font.reencode(encoding_name)
 
     def add_contours(self, picture, paths):
         '''adds `paths` as contours to fontforge layer `picture`
@@ -1791,7 +1842,7 @@ def parse_arguments(mf2ff):
             if option_args: # options only before other arguments
                 arg = full_arg[1:]
                 # define groups of options
-                mf2ff_option_names_str = ('comment', 'copyright', 'encoding', 'familyname', 'fontlog', 'fontname', 'font-version', 'fullname', 'output-directory')
+                mf2ff_option_names_str = ('comment', 'copyright', 'familyname', 'fontlog', 'fontname', 'font-version', 'fullname', 'input-encoding', 'output-directory', 'output-encoding')
                 mf2ff_option_names_int = ('ascent', 'descent', 'ppi', 'uwidth', 'upos')
                 mf2ff_option_names_float = ('designsize', 'italicangle', 'upm')
                 negatable_options = [
@@ -1907,7 +1958,6 @@ def parse_arguments(mf2ff):
                         '  -[no-]debug       disable/enable debugging mode of mf2ff\n'
                         '  -descent=NUM      set font\'s descent\n'
                         '  -designsize=NUM   set font\'s design size\n'
-                        '  -encoding=STR     set font\'s encoding\n'
                         '  -[no-]extension-attachment-points\n'
                         '                    enable/disable attachment point extension (default: disabled)\n'
                         '  -extension-attachment-points-macro-prefix=STR\n'
@@ -1917,7 +1967,7 @@ def parse_arguments(mf2ff):
                         '  -[no-]extension-ligtable-switch\n'
                         '                    enable/disable ligtable switch extension (default: disabled)\n'
                         '  -extension-ligtable-switch-macro-prefix=STR\n'
-                        '                    set macro name prefix (default: \'litgable\')\n'
+                        '                    set macro name prefix (default: \'ligtable\')\n'
                         '                      choose so that in mf files there are no ligtable switch commands.\n'
                         '  -[no-]extrema     disable/enable extrema adding (default: disabled)\n'
                         '  -familyname=STR   set font\'s family name\n'
@@ -1929,6 +1979,9 @@ def parse_arguments(mf2ff):
                         '  -fullname=STR     set font\'s full name\n'
                         '  -help             display this help\n'
                         '  -[no-]hint        disable/enable auto hinting and auto instructing (default: disabled)\n'
+                        '  -input-encoding=STR\n'
+                        '                    specify encoding of the input file.\n'
+                        '                      Set None to use Unicode. (default: None)\n'
                         '  -[no-]is_type     disable/enable definition of is_pen and is_picture (default: disabled)\n'
                         '                      as pen and picture, respectively\n'
                         '  -italicangle=NUM  set font\'s italic angle\n'
@@ -1938,6 +1991,9 @@ def parse_arguments(mf2ff):
                         '  -[no-]otf         disable/enable OpenType output generation (default: disabled)\n'
                         '  -output-directory=DIR\n'
                         '                    set existing directory DIR as output directory\n'
+                        '  -output-encoding=STR\n'
+                        '                    set encoding of the generated output.\n'
+                        '                      Set None to use same as input. (default: None)\n'
                         '  -ppi=INT          set pixels per inch passed to METAFONT (default: 1000)\n'
                         '  -[no-]quadratic   approximate cubic with quadratic Bézier curves\n'
                         '  -[no-]remove-artifacts\n'
