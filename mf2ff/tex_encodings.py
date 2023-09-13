@@ -14,13 +14,19 @@ def load_encoding(encoding_name, glyph_name_list):
             file.write('] def')
         fontforge.loadEncodingFile(str(file_path))
 
-def load_tex_text(Delta_as_increment=False, pound=False):
+def load_tex_text(Delta_as_increment=False, combining_diacritical_marks=False, pound=False):
+    nd = '/.notdef'
     load_encoding('TeX-text', [ # comment is last in line
         '/Gamma', ('/Delta' if Delta_as_increment else '/uni0394'), '/Theta', '/Lambda', '/Xi', '/Pi', '/Sigma', '/Upsilon', # 0x07
         '/Phi', '/Psi', '/Omega', '/ff', '/fi', '/fl', '/ffi', '/ffl', # 0x0F
-        '/dotlessi', '/dotlessj', '/grave', '/acute', '/caron', '/breve', '/macron', '/ring', # 0x17
-        '/cedilla', '/germandbls', '/ae', '/oe', '/oslash', '/AE', '/OE', '/Oslash', # 0x1F
-        '/uni0337', # ?
+        '/dotlessi', '/dotlessj'] + (
+            ['/gravecomb', '/acutecomb', '/uni030C', '/uni0306', '/uni0304', '/uni030A', # 0x17
+        '/uni0327']
+            if combining_diacritical_marks else
+            ['/grave', '/acute', '/caron', '/breve', '/macron', '/ring', # 0x17
+        '/cedilla']
+            ) + ['/germandbls', '/ae', '/oe', '/oslash', '/AE', '/OE', '/Oslash', # 0x1F
+        ('/uni0337' if combining_diacritical_marks else nd), # ?
             '/exclam', '/quotedblright', '/numbersign', ('/sterling' if pound else '/dollar'), '/percent', '/ampersand', '/quoteright', # 0x27
         '/parenleft', '/parenright', '/asterisk', '/plus', '/comma', '/hyphen', '/period', '/slash', # 0x2F
         '/zero', '/one', '/two', '/three', '/four', '/five', '/six', '/seven', # 0x37
@@ -28,19 +34,32 @@ def load_tex_text(Delta_as_increment=False, pound=False):
         '/at', '/A', '/B', '/C', '/D', '/E', '/F', '/G', # 0x47
         '/H', '/I', '/J', '/K', '/L', '/M', '/N', '/O', # 0x4F
         '/P', '/Q', '/R', '/S', '/T', '/U', '/V', '/W', # 0x57
-        '/X', '/Y', '/Z', '/bracketleft', '/quotedblleft', '/bracketright', '/circumflex', '/dotaccent', # 0x5F
+        '/X', '/Y', '/Z', '/bracketleft', '/quotedblleft', '/bracketright'] + (
+            ['/uni0302', '/uni0307'] # 0x5F
+            if combining_diacritical_marks else
+            ['/circumflex', '/dotaccent'] # 0x5F
+            ) + [
         '/quoteleft', '/a', '/b', '/c', '/d', '/e', '/f', '/g', # 0x67
         '/h', '/i', '/j', '/k', '/l', '/m', '/n', '/o', # 0x6F
         '/p', '/q', '/r', '/s', '/t', '/u', '/v', '/w', # 0x77
-        '/x', '/y', '/z', '/endash', '/emdash', '/hungarumlaut', '/tilde', '/dieresis', # 0x7F
+        '/x', '/y', '/z', '/endash', '/emdash'] + (
+            ['/uni030B', '/tildecomb', '/uni0308'] # 0x7F
+            if combining_diacritical_marks else
+            ['/hungarumlaut', '/tilde', '/dieresis'] # 0x7F
+            ) + [
     ])
 
-def load_tex_typewriter_text(Delta_as_increment=False):
+def load_tex_typewriter_text(Delta_as_increment=False, combining_diacritical_marks=False):
     load_encoding('TeX-typewriter-text', [ # comment is last in line
         '/Gamma', ('/Delta' if Delta_as_increment else '/uni0394'), '/Theta', '/Lambda', '/Xi', '/Pi', '/Sigma', '/Upsilon', # 0x07
         '/Phi', '/Psi', '/Omega', '/arrowup', '/arrowdown', '/quotesingle', '/exclamdown', '/questiondown', # 0x0F
-        '/dotlessi', '/dotlessj', '/grave', '/acute', '/caron', '/breve', '/macron', '/ring', # 0x17
-        '/cedilla', '/germandbls', '/ae', '/oe', '/oslash', '/AE', '/OE', '/Oslash', # 0x1F
+        '/dotlessi', '/dotlessj'] + (
+            ['/gravecomb', '/acutecomb', '/uni030C', '/uni0306', '/uni0304', '/uni030A', # 0x17
+        '/uni0327']
+            if combining_diacritical_marks else
+            ['/grave', '/acute', '/caron', '/breve', '/macron', '/ring', # 0x17
+        '/cedilla']
+            ) + ['/germandbls', '/ae', '/oe', '/oslash', '/AE', '/OE', '/Oslash', # 0x1F
         '/uni2423', '/exclam', '/quotedbl', '/numbersign', '/dollar', '/percent', '/ampersand', '/quoteright', # 0x27
         '/parenleft', '/parenright', '/asterisk', '/plus', '/comma', '/hyphen', '/period', '/slash', # 0x2F
         '/zero', '/one', '/two', '/three', '/four', '/five', '/six', '/seven', # 0x37
@@ -48,11 +67,15 @@ def load_tex_typewriter_text(Delta_as_increment=False):
         '/at', '/A', '/B', '/C', '/D', '/E', '/F', '/G', # 0x47
         '/H', '/I', '/J', '/K', '/L', '/M', '/N', '/O', # 0x4F
         '/P', '/Q', '/R', '/S', '/T', '/U', '/V', '/W', # 0x57
-        '/X', '/Y', '/Z', '/bracketleft', '/backslash', '/bracketright', '/circumflex', '/underscore', # 0x5F
+        '/X', '/Y', '/Z', '/bracketleft', '/backslash', '/bracketright', ('/uni0302' if combining_diacritical_marks else '/circumflex'), '/underscore', # 0x5F
         '/quoteleft', '/a', '/b', '/c', '/d', '/e', '/f', '/g', # 0x67
         '/h', '/i', '/j', '/k', '/l', '/m', '/n', '/o', # 0x6F
         '/p', '/q', '/r', '/s', '/t', '/u', '/v', '/w', # 0x77
-        '/x', '/y', '/z', '/braceleft', '/bar', '/braceright', '/tilde', '/dieresis', # 0x7F
+        '/x', '/y', '/z', '/braceleft', '/bar', '/braceright'] + (
+            ['/tildecomb', '/uni0308'] # 0x7F
+            if combining_diacritical_marks else
+            ['/tilde', '/dieresis'] # 0x7F
+            ) + [
     ])
 
 def load_tex_math_italic(swap_epsilon=False, swap_phi=False, oldstyle_as_basic=False, latin_as_basic=False, greek_as_basic=False):
@@ -154,7 +177,7 @@ def load_tex_math_extension():
         nd, nd, nd, nd, nd, nd, nd, nd, # 0x7F
     ])
 
-def load_tex_extended_ascii(apostrophe=False, minus=False, integral=False):
+def load_tex_extended_ascii(apostrophe=False, minus=False, combining_diacritical_marks=False, grave=False, integral=False):
     nd = '/.notdef'
     load_encoding('TeX-extended-ASCII', [ # comment is last in line
         '/dotmath', '/arrowdown', '/alpha', '/beta', '/logicaland', '/logicalnot', '/element', '/pi', # 0x07
@@ -168,9 +191,9 @@ def load_tex_extended_ascii(apostrophe=False, minus=False, integral=False):
         '/at', '/A', '/B', '/C', '/D', '/E', '/F', '/G', # 0x47
         '/H', '/I', '/J', '/K', '/L', '/M', '/N', '/O', # 0x4F
         '/P', '/Q', '/R', '/S', '/T', '/U', '/V', '/W', # 0x57
-        '/X', '/Y', '/Z', '/bracketleft', '/backslash', '/bracketright', '/circumflex', '/underscore', # 0x5F
-        '/quoteleft', '/a', '/b', '/c', '/d', '/e', '/f', '/g', # 0x67
+        '/X', '/Y', '/Z', '/bracketleft', '/backslash', '/bracketright', ('/uni0302' if combining_diacritical_marks else '/circumflex'), '/underscore', # 0x5F
+        (('/gravecomb' if combining_diacritical_marks else '/grave') if grave else '/quoteleft'), '/a', '/b', '/c', '/d', '/e', '/f', '/g', # 0x67
         '/h', '/i', '/j', '/k', '/l', '/m', '/n', '/o', # 0x6F
         '/p', '/q', '/r', '/s', '/t', '/u', '/v', '/w', # 0x77
-        '/x', '/y', '/z', '/braceleft', '/bar', '/braceright', '/tilde', ('/integral' if integral else nd), # 0x7F
+        '/x', '/y', '/z', '/braceleft', '/bar', '/braceright', ('/tildecomb'if combining_diacritical_marks else '/tilde'), ('/integral' if integral else nd), # 0x7F
     ])
