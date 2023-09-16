@@ -62,7 +62,7 @@ beginchar("O", 100, 100, 0);
 endchar;
 
 
-ligtable "P": "Q" =: "R"
+ligtable "P": "Q" =: "R";
 
 beginchar("P", 100, 100, 0);
 endchar;
