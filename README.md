@@ -122,7 +122,7 @@ Examples:
 
 Depending on your OS, you need to use `ffpython` or `python3` instead of `python`. See above for [setup](#setup).
 
-By default, `mf2ff` will generate a Spline Font Database (.sfd) file. You can deactivate this using the option `-no-sfd` / `mf2ff.options['sfd'] = False` and `-ttf` / `mf2ff.options['ttf'] = True` or `-otf` / `mf2ff.options['otf'] = True` to generate font files directly.
+By default, `mf2ff` will generate a Spline Font Database (.sfd) file. You can deactivate this using the option `-no-sfd` / `mf2ff.options.sfd = False` and `-ttf` / `mf2ff.options.ttf = True` or `-otf` / `mf2ff.options.otf = True` to generate font files directly.
 
 `mf2ff` doesn't do much cleanup by default, as you may want to manually rework the glyphs. Please refer to the [user guide](docs/user-guide.md) for useful options to perform some automated cleanup, an introduction to using the package in a Python script, or extensions for modern font features. 
 

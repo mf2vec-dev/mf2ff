@@ -6,9 +6,9 @@ import unittest
 class TestModule(unittest.TestCase):
     def test_call_on_command_line(self):
         if platform.system() == 'Windows':
-            exit_code = subprocess.call(['ffpython', '-m', 'mf2ff'], stdout=subprocess.DEVNULL)
+            exit_code = subprocess.call(['ffpython', '-m', 'mf2ff', '-version'], stdout=subprocess.DEVNULL)
         else:
-            exit_code = subprocess.call(['python3', '-m', 'mf2ff'], stdout=subprocess.DEVNULL)
+            exit_code = subprocess.call(['python3', '-m', 'mf2ff', '-version'], stdout=subprocess.DEVNULL)
         self.assertEqual(exit_code, 0)
 
     def test_import_f2ff_module(self):

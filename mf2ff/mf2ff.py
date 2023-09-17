@@ -12,6 +12,7 @@ from pathlib import Path
 from time import time
 
 import tex_encodings
+from mf2ff_options import Mf2ffOptions
 
 try:
     import fontforge
@@ -19,20 +20,20 @@ try:
 except ImportError:
     if platform.system() == 'Windows':
         print('! No module named \'fontforge\'. Check that fontforge is installed and that you are using ffpython (you may need to add it to your PATH).')
-        sys.exit()
+        sys.exit(1)
     else:
         print('! No module named \'fontforge\'. Check that fontforge is installed and that the module can be found in PYTHONPATH.')
-        sys.exit()
+        sys.exit(1)
 
 __version__ = '0.3.0'
 
-class Mf2ff():
+class Mf2ff:
     '''The main class of mf2ff
 
     Usage example:
         from mf2ff import Mf2ff
         mf2ff = Mf2ff()
-        mf2ff.input_file = 'path/to/myfont.mf'
+        mf2ff.options.input_file = 'path/to/myfont.mf'
         mf2ff.run() # generates path/to/myfont.sfd
     '''
 
@@ -46,71 +47,7 @@ class Mf2ff():
 
         self.last_known_line = 0
 
-        # set default values
-        self.ascent = 0
-        self.base = ''
-        self.comment = ''
-        self.copyright = ''
-        self.cwd = Path.cwd()
-        self.descent = 0
-        self.designsize = 0.0
-        self.family_name = ''
-        self.fontlog = ''
-        self.fontname = ''
-        self.font_version = '001.000'
-        self.fullname = ''
-        self.input_file = ''
-        self.input_encoding = 'None'
-        self.italicangle = 0.0
-        self.jobname = ''
-        self.first_line = ''
-        self.mf_options = ['-interaction=batchmode']
-        self.output_directory = Path(self.cwd)
-        self.output_encoding = 'None'
-        self.ppi = 1000
-        self.scripts = (
-            ('cyrl', ('dflt',)),
-            ('grek', ('dflt',)),
-            ('latn', ('dflt',))
-        )
-        self.upos = -10
-        self.uwidth = 2
-
-        self.options = {
-            'cull-at-shipout': False,
-            'debug': False,
-            'extension-attachment-points': False,
-            'extension-attachment-points-macro-prefix': 'attachment_point', # TODO validation needed: only r'[A-Za-z_]'
-            'extension-ligtable-switch': False,
-            'extension-ligtable-switch-macro-prefix': 'ligtable_switch',
-            'extrema': False,
-            'fix-contours': False,
-            'hint': False,
-            'is_type': False,
-            'kerning-classes': False,
-            'otf': False,
-            'quadratic': False,
-            'remove-artifacts': False,
-            'set-italic-correction': True,
-            'upm': None,
-            'sfd': True,
-            'stroke-simplify': True,
-            'stroke-accuracy': None, # use fontforge's default (should be 0.25)
-            'time': False,
-            'ttf': False,
-        }
-
-        self.params = {
-            'remove-artefacts': {
-                'collinear': {
-                    'distance-threshold': 0.01,
-                    'point-threshold': 0.1,
-                },
-            },
-            'remove-overlap': {
-                'scale-factor': 1000,
-            },
-        }
+        self.options = Mf2ffOptions(__version__)
 
         # first of every dict element is default
         self.supported_ligtable_ot_features = {
@@ -129,33 +66,33 @@ class Mf2ff():
 
         M = self.MARKER
 
-        if not self.input_file and not self.first_line:
+        if not self.options.input_file and not self.options.first_line:
             print('! No input')
-            sys.exit()
+            sys.exit(1)
 
-        if not self.jobname:
-            if self.input_file:
-                self.jobname = Path(self.input_file).name
+        if not self.options.jobname:
+            if self.options.input_file:
+                self.options.jobname = self.options.input_file.with_suffix('').name
             else:
                 # use mfput since it's used as the jobname by mf in this case
                 self.jobname = 'mfput'
-        self.mf_options.append('-jobname=' + self.jobname)
-        self.mf_options.append('-output-directory=' + str(self.output_directory))
+        self.options.mf_options.append('-jobname=' + self.options.jobname)
+        self.options.mf_options.append('-output-directory=' + str(self.options.output_directory))
 
         self.define_mf_first_line()
 
         self.define_patterns()
-        self.log_path = Path(self.output_directory) / (self.jobname + '.log')
+        self.log_path = Path(self.options.output_directory) / (self.options.jobname + '.log')
 
-        pre_run_required = self.options['upm'] is not None
+        pre_run_required = self.options.upm is not None
         if pre_run_required:
             self.run_mf(is_pre_run=True)
             self.extract_cmds_from_log()
             pre_run_results = self.process_pre_run_commands()
             # upm
             orig_upm = pre_run_results['ascent'] + pre_run_results['descent']
-            target_upm = self.options['upm']
-            target_ppi = self.ppi * target_upm / orig_upm
+            target_upm = self.options.upm
+            target_ppi = self.options.ppi * target_upm / orig_upm
             self.ppi = target_ppi
             upm_factor = 1
             while self.ppi > self.MF_INFINITY:
@@ -175,30 +112,30 @@ class Mf2ff():
         print('Some error messages below come directly from fontforge and cannot be muted.')
         print('Line is last known line from current file.')
 
-        if not self.fontname:
-            self.fontname = self.jobname
-        if not self.family_name:
-            self.family_name = self.fontname
-        if not self.fullname:
-            self.fullname = self.fontname
+        if not self.options.fontname:
+            self.options.fontname = self.options.jobname
+        if not self.options.family_name:
+            self.options.family_name = self.options.fontname
+        if not self.options.fullname:
+            self.options.fullname = self.options.fontname
 
         # set up font object to be filled with
         self.font = fontforge.font()
-        self.font.ascent = self.ascent
-        self.font.comment = self.comment
-        self.font.copyright = self.copyright
-        self.font.descent = self.descent
-        self.font.design_size = self.designsize
-        if self.input_encoding != 'None':
-            self.reencode(self.input_encoding)
-        self.font.familyname = self.family_name
-        self.font.fontlog = self.fontlog
-        self.font.fontname = self.fontname
-        self.font.version = self.font_version
-        self.font.fullname = self.fullname
-        self.font.italicangle = self.italicangle
-        self.font.upos = self.upos
-        self.font.uwidth = self.uwidth
+        self.font.ascent = self.options.ascent
+        self.font.comment = self.options.comment
+        self.font.copyright = self.options.copyright
+        self.font.descent = self.options.descent
+        self.font.design_size = self.options.designsize
+        if self.options.input_encoding is not None:
+            self.reencode(self.options.input_encoding)
+        self.font.familyname = self.options.family_name
+        self.font.fontlog = self.options.fontlog
+        self.font.fontname = self.options.fontname
+        self.font.version = self.options.font_version
+        self.font.fullname = self.options.fullname
+        self.font.italicangle = self.options.italicangle
+        self.font.upos = self.options.upos
+        self.font.uwidth = self.options.uwidth
 
         # picture variables are processed inside fontforge using layers.
         # A dict is used to keep track of the pictures
@@ -216,15 +153,15 @@ class Mf2ff():
         self.process_commands(start_time_ff)
 
         # rescale to match UPM
-        if self.options['upm'] is not None:
-            self.font.em = self.options['upm']
+        if self.options.upm is not None:
+            self.font.em = self.options.upm
 
         self.apply_font_options_and_save()
 
         print('')
 
         end_time_ff = time()
-        if self.options['time']:
+        if self.options.time:
             print('  (took ' + '%.2f' % (end_time_ff-start_time_ff) + 's)')
 
         pattern = re.sub(r'(\.|\*|\||\\|\(|\)|\+)', r'\\\1', '\n?'.join(self.mf_first_line), flags=re.DOTALL) \
@@ -232,7 +169,7 @@ class Mf2ff():
         start_time_log = time()
         clean_log = re.sub(pattern, '', self.orig_log_data, flags=re.DOTALL)
 
-        if self.options['debug']:
+        if self.options.debug:
             extension = '.clean.log'
         else:
             extension = '.log'
@@ -242,10 +179,10 @@ class Mf2ff():
                 outfile.write(clean_log)
         except IOError:
             print('! I can\'t find file: `' + log_path_str + '\'.')
-            sys.exit()
+            sys.exit(1)
         end_time_log = time()
         print('Log file cleaned up')
-        if self.options['time']:
+        if self.options.time:
             print('  (took ' + '%.2f' % (end_time_log-start_time_log) + 's)')
         print('Done.')
 
@@ -253,7 +190,7 @@ class Mf2ff():
         '''define self.mf_first_line based on options
         '''
         # load base file if defined
-        if self.base:
+        if self.options.base:
             input_base = 'input ' + self.base + ';'
         else:
             input_base = ''
@@ -261,7 +198,7 @@ class Mf2ff():
         # If option is_type is given, add the extra definitions is_pen and
         # is_picture.
         extra_defs = ''
-        if self.options['is_type']:
+        if self.options.is_type:
             extra_defs += 'let is_pen = __mfIIvec__orig_pen__;'
             extra_defs += 'let is_picture = __mfIIvec__orig_picture__;'
 
@@ -275,8 +212,8 @@ class Mf2ff():
             + self.get_redefinitions()
             + extra_defs
             + input_base
-            + self.first_line
-            + 'input ' + self.input_file
+            + self.options.first_line
+            + 'input ' + str(self.options.input_file)
         )
 
     def run_mf(self, is_pre_run=False):
@@ -289,12 +226,12 @@ class Mf2ff():
             print('running METAFONT...')
             start_time_mf = time()
         subprocess.call(
-            ['mf'] + self.mf_options + [self.mf_first_line],
+            ['mf'] + self.options.mf_options + [self.mf_first_line],
             stdout=subprocess.DEVNULL,
-            cwd=Path(self.cwd)
+            cwd=self.options.cwd
         )
         end_time_mf = time()
-        if self.options['time'] and not is_pre_run:
+        if self.options.time and not is_pre_run:
             print('  (took ' + '%.2f' % (end_time_mf-start_time_mf) + 's)')
 
     def extract_cmds_from_log(self):
@@ -308,7 +245,7 @@ class Mf2ff():
         except IOError as e:
             print('! I can\'t find file: `' + str(self.log_path) + '\'.')
             print(e)
-            sys.exit()
+            sys.exit(1)
 
         log_data = self.error_pattern.sub('', self.orig_log_data)
         log_data = re.sub('\n', '', log_data)
@@ -332,13 +269,13 @@ class Mf2ff():
             cmd_name = cmd[0]
             self.cmd_body = cmd[2]
 
-            if cmd_name == 'shipout' and self.ascent == 0 and self.descent == 0:
+            if cmd_name == 'shipout' and self.options.ascent == 0 and self.options.descent == 0:
                 shipout = self.shipout_pattern.search(self.cmd_body)
                 charht = int(float(shipout.group(4)))
                 chardp = int(float(shipout.group(5)))
-                if self.ascent == 0 and charht > pre_run_results['ascent']:
+                if self.options.ascent == 0 and charht > pre_run_results['ascent']:
                     pre_run_results['ascent'] = charht
-                if self.descent == 0 and chardp > pre_run_results['descent']:
+                if self.options.descent == 0 and chardp > pre_run_results['descent']:
                     pre_run_results['descent'] = chardp
             # else command not important in pre run
             i += 1
@@ -360,7 +297,7 @@ class Mf2ff():
 
         base_glyphs_of_variants = {}
 
-        if self.options['kerning-classes']:
+        if self.options.kerning_classes:
             kerning_list = {
                 'left-glyphs': [],
                 'right-glyphs': [],
@@ -534,9 +471,9 @@ class Mf2ff():
                             # glyph.stroke())
                             stroke_kwargs.update({'removeinternal': True})
 
-                        stroke_kwargs.update({'simplify': self.options['stroke-simplify']})
-                        if self.options['stroke-accuracy'] is not None: # None -> Fontforge's default value
-                            stroke_kwargs.update({'accuracy': self.options['stroke-accuracy']})
+                        stroke_kwargs.update({'simplify': self.options.stroke_simplify})
+                        if self.options.stroke_accuracy is not None: # None -> Fontforge's default value
+                            stroke_kwargs.update({'accuracy': self.options.stroke_accuracy})
 
                         pen_first_point = self.pair_pattern.search(pen) # TODO better with .groups ?
                         pen_joins = self.join_pattern.findall(pen[pen_first_point.end():])
@@ -777,13 +714,13 @@ class Mf2ff():
                 pic_name = self.cmds[i+1][2][1:-1] # clip quotes
                 pic = self.pictures[pic_name]
 
-                if self.options['fix-contours']:
+                if self.options.fix_contours:
                     self.fix_contours(pic)
 
-                if self.options['remove-artifacts']:
+                if self.options.remove_artifacts:
                     self.remove_artefacts(pic)
 
-                if self.options['cull-at-shipout']:
+                if self.options.cull_at_shipout:
                     # Above fixes are after actual cull-at-shipout so remove
                     # overlaps again.
                     self.remove_overlap(pic)
@@ -794,7 +731,7 @@ class Mf2ff():
                 glyph.width = charwd
                 glyph.texheight = charht
                 glyph.texdepth = chardp
-                if self.options['set-italic-correction']:
+                if self.options.set_italic_correction:
                     glyph.italicCorrection = charic
 
                 if xoffset != 0 or yoffset != 0:
@@ -807,9 +744,9 @@ class Mf2ff():
                     glyph.addAnchorPoint(attachment_point_class_name, lookup_type, x, y)
                 attachment_points = []
 
-                if self.ascent == 0 and charht > self.font.ascent:
+                if self.options.ascent == 0 and charht > self.font.ascent:
                     self.font.ascent = charht
-                if self.descent == 0 and chardp > self.font.descent:
+                if self.options.descent == 0 and chardp > self.font.descent:
                     self.font.descent = chardp
 
                 i += 1
@@ -965,7 +902,7 @@ class Mf2ff():
                         addLookup_args = ["gpos_mark2base"] # after_lookup_name
                     else:
                         addLookup_args = []
-                    self.font.addLookup(lookup_type, lookup_type, None, ((lookup_feature, self.scripts),), *addLookup_args)
+                    self.font.addLookup(lookup_type, lookup_type, None, ((lookup_feature, self.options.scripts),), *addLookup_args)
                     self.font.addLookupSubtable(lookup_type, lookup_type+'_subtable')
                 if attachment_point_class_name not in self.font.getLookupSubtableAnchorClasses(lookup_type+'_subtable'):
                     self.font.addAnchorClass(lookup_type+'_subtable', attachment_point_class_name)
@@ -993,7 +930,7 @@ class Mf2ff():
                 lookup_name = lookup_type + '_' + ot_feature
                 subtable_name = lookup_name + '_subtable'
                 if not lookup_name in self.font.gsub_lookups:
-                    self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.scripts),))
+                    self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.options.scripts),))
                     self.font.addLookupSubtable(lookup_name, subtable_name)
                 # Try to create the ligature. FontForge will
                 # raise a TypeError, if one of the
@@ -1009,7 +946,7 @@ class Mf2ff():
                     self.font.addLookupSubtable('gsub_single_after_' + char1, 'gsub_single_after_' + char1 + '_subtable')
                 self.font[char2].addPosSub('gsub_single_after_' + char1 + '_subtable', lig)
                 if not 'gsub_contextchain' in self.font.gsub_lookups:
-                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.scripts),))
+                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.options.scripts),))
                 self.font.addContextualSubtable(
                     'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
                     char1 + ' | ' + char2 + ' @<gsub_single_after_' + char1 + '> |'
@@ -1020,7 +957,7 @@ class Mf2ff():
                     self.font.addLookupSubtable('gsub_single_before_' + char2, 'gsub_single_before_' + char2 + '_subtable')
                 self.font[char1].addPosSub('gsub_single_before_' + char2 + '_subtable', lig)
                 if not 'gsub_contextchain' in self.font.gsub_lookups:
-                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.scripts),))
+                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.options.scripts),))
                 self.font.addContextualSubtable(
                     'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
                     '| ' + char1 + ' @<gsub_single_before_' + char2 + '> | ' + char2
@@ -1031,14 +968,14 @@ class Mf2ff():
                     self.font.addLookupSubtable('gsub_multiple_between_' + char1 + '_' + char2, 'gsub_multiple_between_' + char1 + '_' + char2 + '_subtable')
                 self.font[char2].addPosSub('gsub_multiple_between_' + char1 + '_' + char2 + '_subtable', (lig, char2))
                 if not 'gsub_contextchain' in self.font.gsub_lookups:
-                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.scripts),))
+                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.options.scripts),))
                 self.font.addContextualSubtable(
                     'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
                     char1 + ' | ' + char2 + ' @<gsub_multiple_between_' + char1 + '_' + char2 + '> |'
                 )
 
         if len(pos_list) > 0:
-            if self.options['kerning-classes']:
+            if self.options.kerning_classes:
                 leftGlyphs = kerning_list['left-glyphs']
                 rightGlyphs = kerning_list['right-glyphs']
                 offsets = kerning_list['offsets']
@@ -1067,7 +1004,7 @@ class Mf2ff():
             else:
                 # kerning pairs
                 if not 'gpos_pair' in self.font.gpos_lookups:
-                    self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.scripts),))
+                    self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.options.scripts),))
                     self.font.addLookupSubtable('gpos_pair', 'gpos_pair_subtable')
                 for pos in pos_list:
                     char1 = self.to_glyph_name(pos[0][0])
@@ -1093,7 +1030,7 @@ class Mf2ff():
                 for vc in vertical_components
             )
 
-        if self.options['kerning-classes'] and len(kerning_list['offsets']) > 0:
+        if self.options.kerning_classes and len(kerning_list['offsets']) > 0:
             # make every glyph a class
             leftClasses = [[glyph_name] for glyph_name in kerning_list['left-glyphs']]
             rightClasses = [[glyph_name] for glyph_name in kerning_list['right-glyphs']]
@@ -1134,29 +1071,29 @@ class Mf2ff():
             offsets = [[0]+row for row in offsets]
             offset_flattened = [offset for row in offsets for offset in row]
             if not 'gpos_pair' in self.font.gpos_lookups:
-                self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.scripts),))
+                self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.options.scripts),))
             self.font.addKerningClass('gpos_pair', 'gpos_pair_subtable', leftClasses, rightClasses, offset_flattened)
 
     def apply_font_options_and_save(self):
         '''apply self.options to self.font and generate font file
         '''
-        if self.options['quadratic']:
+        if self.options.quadratic:
             self.font.layers['Fore'].is_quadratic = True
-        if self.output_encoding != 'None':
-            self.reencode(self.output_encoding)
+        if self.options.output_encoding is not None:
+            self.reencode(self.options.output_encoding)
 
-        output_path = Path(self.output_directory) / self.jobname
-        if self.options['extrema']:
+        output_path = self.options.output_directory / self.options.jobname
+        if self.options.extrema:
             self.font.selection.all()
             self.font.addExtrema()
-        if self.options['hint']:
+        if self.options.hint:
             self.font.autoHint()
             self.font.autoInstr()
-        if self.options['sfd']:
+        if self.options.sfd:
             self.font.save(str(output_path) + '.sfd')
-        if self.options['otf']:
+        if self.options.otf:
             self.font.generate(str(output_path) + '.otf')
-        if self.options['ttf']:
+        if self.options.ttf:
             self.font.generate(str(output_path) + '.ttf', flags='opentype')
 
 
@@ -1196,15 +1133,15 @@ class Mf2ff():
                 r'|ligtable|:|::|pp:|kern|=:|p=:|p=:g|=:p|=:pg|p=:p|p=:pg|p=:pgg|skipto'
                 r'|fontdimen|charlist|extensible|end'
                 +(
-                    r'|'+self.options['extension-attachment-points-macro-prefix']+r'_(?:mark_(?:base|mark)|mkmk_(?:basemark|mark))'
-                    if self.options['extension-attachment-points'] else r''
+                    r'|'+self.options.extension_attachment_points_macro_prefix+r'_(?:mark_(?:base|mark)|mkmk_(?:basemark|mark))'
+                    if self.options.extension_attachment_points else r''
                 )
                 +(
                     r'|'+r'|'.join(
                         'ligtable_switch_' + ligtable_op_type + '_to_' + ligtable_ot_feature
                         for ligtable_op_type in self.supported_ligtable_ot_features
                         for ligtable_ot_feature in self.supported_ligtable_ot_features[ligtable_op_type]
-                    ) if self.options['extension-ligtable-switch'] else r''
+                    ) if self.options.extension_ligtable_switch else r''
                 )
                 +
             r')'
@@ -1370,15 +1307,15 @@ class Mf2ff():
             'enddef;'
 
             ## picture
-            # Variables of type \dl{picture} are the only ones which operations
-            # are not processed by mf but outsourced to FontForge. Every time
-            # new variables of type picture are declared, the declarations are
-            # sent to FontForge by `show`ing the names of the variables to the
-            # log file. Furthermore, the names of the variables are converted
-            # into definitions: Every time the name of the variable name is
+            # Variables of type picture are the only ones which operations are
+            # not processed by mf but outsourced to FontForge. Every time new
+            # variables of type picture are declared, the declarations are sent
+            # to FontForge by `show`ing the names of the variables to the log
+            # file. Furthermore, the names of the variables are converted into
+            # definitions: Every time the name of the variable name is
             # processed, its name should show up in the log file. Due to the
-            # fact that mf processes \dl{picture} expressions with the same
-            # operators as in other expression types and these \dl{picture}
+            # fact that mf processes picture expressions with the same
+            # operators as in other expression types and these picture
             # operations needs to be sent to the log file, all operators only
             # need to be redefined inside picture equations. The operations
             # which can occur in a picture equation are := = - + (see
@@ -1421,7 +1358,7 @@ class Mf2ff():
             #   keeping (1, infinity).\
             # TODO Why __mfIIvec__pic_eqn__ ?
             'def shipout text t='
-                +('cull currentpicture dropping(-infinity,0);' if self.options['cull-at-shipout'] else '')
+                +('cull currentpicture dropping(-infinity,0);' if self.options.cull_at_shipout else '')
                 +m_+'shipout";__mfIIvec__pic_eqn__:=true;'
                 'show charcode,charext,'
                      'charwd*hppp,charht*hppp,chardp*hppp,charic*hppp,'
@@ -1486,15 +1423,14 @@ class Mf2ff():
             # every pen is a path, penoffset needs to be redefined to
             # directionpoint and the definitions makepen and makepath are no
             # longer needed.\
-            # Note that \dl{fullcirlce} and \dl{directionpoint} are defined in
-            # plain mf.
+            # Note that fullcirlce and directionpoint are defined in plain mf.
             'let pen=path;def nullpen=((0,0)..cycle)enddef;def pencircle=fullcircle enddef;'
             'def penoffset=directionpoint enddef;' # TODO explain
             'let makepen=relax;'
             'let makepath=relax;'
             # mf is run in background, so don't display anything.
             'def display text t=enddef;'
-            # nullpicture should be a variables of type \dl{picture}.
+            # nullpicture should be a variables of type picture.
             'save nullpicture;picture nullpicture;'
             # The loading of plain.mf is preceded by some saves so there will be no errors.
             'save hide,blankpicture,unitpixel,pensquare,penrazor,mm,pt,dd,bp,cm,pc,cc,in,modesetup,mode_name,mode;'
@@ -1505,7 +1441,7 @@ class Mf2ff():
                 'proofing:=0;' # don't make proofs
                 'fontmaking:=0;' # mf itself should not make a font
                 'tracingtitles:=0;' # no titles (e.g. "The letter O") in stdout
-                'pixels_per_inch:=' + str(self.ppi) + ';'
+                'pixels_per_inch:=' + str(self.options.ppi) + ';'
                 'blacker:=0;' # no "special correction"
                 'fillin:=0;' # no pixels that could influence their neighbors
                 'o_correction:=1;' # no reduction in overshoot
@@ -1516,38 +1452,38 @@ class Mf2ff():
             # attachment points\
             +(
                 (
-                    'def ' + self.options['extension-attachment-points-macro-prefix'] + '_mark_base(text t)='
+                    'def ' + self.options.extension_attachment_points_macro_prefix + '_mark_base(text t)='
                         +m_+'attachment_point_mark_base";'
                         'show t;'
                         +m__+
                     'enddef;'
-                    'def ' + self.options['extension-attachment-points-macro-prefix'] + '_mark_mark(text t)='
+                    'def ' + self.options.extension_attachment_points_macro_prefix + '_mark_mark(text t)='
                         +m_+'attachment_point_mark_mark";'
                         'show t;'
                         +m__+
                     'enddef;'
-                    'def ' + self.options['extension-attachment-points-macro-prefix'] + '_mkmk_basemark(text t)='
+                    'def ' + self.options.extension_attachment_points_macro_prefix + '_mkmk_basemark(text t)='
                         +m_+'attachment_point_mkmk_basemark";'
                         'show t;'
                         +m__+
                     'enddef;'
-                    'def ' + self.options['extension-attachment-points-macro-prefix'] + '_mkmk_mark(text t)='
+                    'def ' + self.options.extension_attachment_points_macro_prefix + '_mkmk_mark(text t)='
                         +m_+'attachment_point_mkmk_mark";'
                         'show t;'
                         +m__+
                     'enddef;'
-                ) if self.options['extension-attachment-points'] else ''
+                ) if self.options.extension_attachment_points else ''
             )
             +(
                 (
                     ''.join(
-                        'def ' + self.options['extension-ligtable-switch-macro-prefix'] + '_' + ligtable_op_type + '_to_' + ligtable_ot_feature + '='
+                        'def ' + self.options.extension_ligtable_switch_macro_prefix + '_' + ligtable_op_type + '_to_' + ligtable_ot_feature + '='
                             +m_+'ligtable_switch_'+ ligtable_op_type + '_to_' + ligtable_ot_feature +'";'+m__+
                         'enddef;'
                         for ligtable_op_type in self.supported_ligtable_ot_features
                         for ligtable_ot_feature in self.supported_ligtable_ot_features[ligtable_op_type]
                     )
-                ) if self.options['extension-ligtable-switch'] else ''
+                ) if self.options.extension_ligtable_switch else ''
             )
         )
 
@@ -1713,14 +1649,14 @@ class Mf2ff():
             s (int or float, optional): scale factor to upscale before and
               downscale after removeOverlap(). Value should be much greater than
               1. Defaults to None. None will use
-              self.params['remove-overlap']['scale-factor'].
+              self.options.params['remove_overlap']['scale_factor'].
         '''
         if isinstance(pic, fontforge.layer):
             picture = pic
         else:
             picture = self.pictures[pic]
         if s is None:
-            s = self.params['remove-overlap']['scale-factor']
+            s = self.options.params['remove_overlap']['scale_factor']
         picture.transform((s, 0, 0, s, 0, 0))
         picture.removeOverlap()
         picture.transform((1/s, 0, 0, 1/s, 0, 0))
@@ -1758,7 +1694,7 @@ class Mf2ff():
                     continue # don't increase by 1 below
                 # check for collinearity of loops inside c
                 # search for points with same coords
-                point_threshold = self.params['remove-artefacts']['collinear']['point-threshold']
+                point_threshold = self.options.params['remove_artefacts']['collinear']['point_threshold']
                 while True:
                     for i_p1, i_p2 in permutations([i_p for i_p, p in enumerate(c) if p.on_curve], 2):
                         p1 = c[i_p1]
@@ -1819,281 +1755,18 @@ class Mf2ff():
         alpha = y_mean - (beta*x_mean)
         denominator = sqrt(beta**2 + 1)
         d_max = max(abs(-beta*x + 1*y - alpha)/denominator for x, y in xy)
-        return d_max < self.params['remove-artefacts']['collinear']['distance-threshold']
+        return d_max < self.options.params['remove_artefacts']['collinear']['distance_threshold']
 
 
 # __main__ part
 
-def parse_arguments(mf2ff):
-    '''Parse command line arguments and set them in the mf2ff object.
-
-    Args:
-        mf2ff (Mf2ff): an instance of the Mf2ff class
-    '''
-    args = sys.argv
-
-    # Arguments consists of two parts: the options starting with a \dl{-} and other arguments.
-    option_args = True # keep track if still parsing options
-
-    i = 1 # i == 0 is mf2ff
-    while i < len(args):
-        full_arg = args[i] # argument with leading -
-        if full_arg[0] == '-' and len(full_arg) > 1: # it is an option
-            if option_args: # options only before other arguments
-                arg = full_arg[1:]
-                # define groups of options
-                mf2ff_option_names_str = ('comment', 'copyright', 'familyname', 'fontlog', 'fontname', 'font-version', 'fullname', 'input-encoding', 'output-directory', 'output-encoding')
-                mf2ff_option_names_int = ('ascent', 'descent', 'ppi', 'uwidth', 'upos')
-                mf2ff_option_names_float = ('designsize', 'italicangle', 'upm')
-                negatable_options = [
-                    'cull-at-shipout', 'debug', 'extension-attachment-points',
-                    'extension-ligtable-switch', 'extrema', 'fix-contours',
-                    'hint', 'is_type', 'kerning-classes', 'otf', 'quadratic',
-                    'remove-artifacts', 'set-italic-correction', 'sfd',
-                    'stroke-simplify', 'time', 'ttf'
-                ]
-                # options and negatable options directly passed to mf.
-                if arg in ('file-line-error', 'no-file-line-error',
-                        'halt-on-error', 'ini', 'parse-first-line',
-                        'no-parse-first-line', 'recorder', '8bit'):
-                    mf2ff.mf_options.append(full_arg)
-                # name value pairs and passed to mf
-                # TODO separated by space support?
-                elif arg.split('=', 1)[0] in ('interaction', 'kpathsea-debug',
-                        'mktex', 'no-mktex', 'translate-file'):
-                    if '=' in arg:
-                        mf2ff.mf_options.append(full_arg)
-                    else:
-                        mf2ff.mf_options.extend([full_arg, args[i+1]])
-                        i += 1
-                # name value pairs which are passed to mf2ff and mf
-                elif arg.split('=', 1)[0] == 'jobname':
-                    if '=' in arg:
-                        mf2ff.jobname = arg.split('=', 1)[1]
-                        mf2ff.mf_options.append(full_arg)
-                    else: # the next argument is the value if no '=' is in this argument
-                        mf2ff.jobname = args[i+1]
-                        mf2ff.mf_options.extend([full_arg, args[i+1]])
-                        i += 1
-                elif arg.split('=', 1)[0] in ('base', 'progname'):
-                    # progname also sets base name in mf # TODO
-                    # TODO also mf_options?
-                    if '=' in arg:
-                        mf2ff.base = arg.split('=', 1)[1]
-                    else:
-                        mf2ff.base = args[i+1]
-                        i += 1
-                # negatable mf2ff options
-                elif arg in negatable_options:
-                    mf2ff.options[arg] = True
-                elif arg[:3] == 'no-' and arg[3:] in negatable_options:
-                    mf2ff.options[arg[3:]] = False
-                # name value option which don't need to be passed to mf (stored in options property)
-                elif arg.split('=', 1)[0] == 'stroke-accuracy':
-                    if '=' in arg:
-                        val = arg.split('=', 1)[1]
-                    else:
-                        val = args[i+1]
-                        i += 1
-                    mf2ff.options['stroke-accuracy'] = float(val)
-                elif (arg.split('=', 1)[0][:10] == 'extension-'
-                        and arg.split('=', 1)[0][10:-13] in ['attachment-points', 'ligtable-switch']
-                        and arg.split('=', 1)[0][-13:] == '-macro-prefix'
-                    ):
-                    if '=' in arg:
-                        val = arg.split('=', 1)[1]
-                    else:
-                        val = args[i+1]
-                        i += 1
-                    mf2ff.options['extension-' + arg.split('=', 1)[0][10:-13] + '-macro-prefix'] = val
-                # name value option which don't need to be passed to mf (stored as properties)
-                elif arg.split('=', 1)[0] in mf2ff_option_names_str + mf2ff_option_names_int + mf2ff_option_names_float:
-                    name = arg.split('=', 1)[0]
-                    if '=' in arg:
-                        val = arg.split('=', 1)[1]
-                    else:
-                        val = args[i+1]
-                        i += 1
-                    if name in mf2ff_option_names_int:
-                        val = int(val)
-                    elif name in mf2ff_option_names_float:
-                        val = float(val)
-                    name = name.replace('-', '_')
-                    mf2ff.__dict__[name] = val
-                elif arg.split('=', 1)[0] == 'scripts':
-                    if '=' in arg:
-                        val = arg.split('=', 1)[1]
-                    else:
-                        val = args[i+1]
-                        i += 1
-                    scripts = eval(val)
-                    if mf2ff.check_scripts(scripts):
-                        mf2ff.scripts = scripts
-                    else:
-                        print('! Option -scripts cannot be processed with value `' + full_arg + '\'.')
-                elif arg == 'version':
-                    print('mf2ff ' + __version__)
-                    print('Copyright (C) 2018--2023')
-                    sys.exit()
-                elif arg == 'help':
-                    if platform.system():
-                        python_name = 'ffpython'
-                    else:
-                        python_name = 'python3'
-                    help_text = (
-                        'Help on mf2ff\n'
-                        '=============\n'
-                        '\n'
-                        f'Usage: {python_name} mf2ff.py [options] myfont.mf\n'
-                        'Interactive usage with a prompt for input is not supported.\n'
-                        '\n'
-                        'Options:\n'
-                        '  -ascent=NUM       set font\'s ascent\n'
-                        '  -comment=STR      set font\'s comment\n'
-                        '  -copyright=STR    set font\'s copyright notice\n'
-                        '  -[no-]cull-at-shipout\n'
-                        '                    disable/enable extra culling at shipout.\n'
-                        '                      MF ships out only positive pixels which is\n'
-                        '                      equivalent to cullit before shipout. (default: disabled)\n'
-                        '  -[no-]debug       disable/enable debugging mode of mf2ff\n'
-                        '  -descent=NUM      set font\'s descent\n'
-                        '  -designsize=NUM   set font\'s design size\n'
-                        '  -[no-]extension-attachment-points\n'
-                        '                    enable/disable attachment point extension (default: disabled)\n'
-                        '  -extension-attachment-points-macro-prefix=STR\n'
-                        '                    set macro name prefix (default: \'attachment_point\')\n'
-                        '                      choose so that in mf files there are none of:\n'
-                        '                      <macro-prefix>_mark_base, <macro-prefix>_mark_mark, <macro-prefix>_mkmk_basemark, <macro-prefix>_mkmk_mark\n'
-                        '  -[no-]extension-ligtable-switch\n'
-                        '                    enable/disable ligtable switch extension (default: disabled)\n'
-                        '  -extension-ligtable-switch-macro-prefix=STR\n'
-                        '                    set macro name prefix (default: \'ligtable\')\n'
-                        '                      choose so that in mf files there are no ligtable switch commands.\n'
-                        '  -[no-]extrema     disable/enable extrema adding (default: disabled)\n'
-                        '  -familyname=STR   set font\'s family name\n'
-                        '  -[no-]fix-contours\n'
-                        '                    disable/enable contour fixing in FontForge (default: disabled)\n'
-                        '  -fontlog=STR      set font\'s log\n'
-                        '  -fontname=STR     set font\'s name\n'
-                        '  -font-version=STR set font\'s version\n'
-                        '  -fullname=STR     set font\'s full name\n'
-                        '  -help             display this help\n'
-                        '  -[no-]hint        disable/enable auto hinting and auto instructing (default: disabled)\n'
-                        '  -input-encoding=STR\n'
-                        '                    specify encoding of the input file.\n'
-                        '                      Set None to use Unicode. (default: None)\n'
-                        '  -[no-]is_type     disable/enable definition of is_pen and is_picture (default: disabled)\n'
-                        '                      as pen and picture, respectively\n'
-                        '  -italicangle=NUM  set font\'s italic angle\n'
-                        '  -[no-]kerning-classes\n'
-                        '                    disable/enable kerning classes instead of kerning pairs\n'
-                        '                      (default: disabled = kerning pairs)'
-                        '  -[no-]otf         disable/enable OpenType output generation (default: disabled)\n'
-                        '  -output-directory=DIR\n'
-                        '                    set existing directory DIR as output directory\n'
-                        '  -output-encoding=STR\n'
-                        '                    set encoding of the generated output.\n'
-                        '                      Set None to use same as input. (default: None)\n'
-                        '  -ppi=INT          set pixels per inch passed to METAFONT (default: 1000)\n'
-                        '  -[no-]quadratic   approximate cubic with quadratic Bézier curves\n'
-                        '  -[no-]remove-artifacts\n'
-                        '                    disable/enable removing of artifacts (default: disabled)\n'
-                        '  -scripts=TUPLE    set scripts for tables,\n'
-                        '                      e.g. ((\'latn\',(\'dflt\',)),)\n'
-                        '  -[no-]set-italic-correction\n'
-                        '                    disable/enable setting italic correction based on charic (default: enabled)\n'
-                        '  -[no-]sfd         disable/enable Spline Font Database (FontForge\n'
-                        '                      Project) output generation (default: enabled)\n'
-                        '  -stroke-accuracy=NUM\n'
-                        '                    set stroke accuracy, i.e. target for the allowed error in em-units\n'
-                        '                      for layer.simplify() during layer.stoke(). Has no effect if\n'
-                        '                      stroke-simplify is disabled. (default: 0.25)\n'
-                        '  -[no-]stroke-simplify\n'
-                        '                    disable/enable stroke simplification (default: enabled)\n'
-                        '  -[no-]time        disable/enable timing (default: disabled)\n'
-                        '  -[no-]ttf         disable/enable TrueType output generation (default: disabled)\n'
-                        '  -upm=NUM          desired UPM (units per em) or em size. If \'None`, UPM depends on ppi. (default: \'None`)\n'
-                        '  -upos=NUM         set the font\'s underline position in font units\n'
-                        '  -uwidth=NUM       set the font\'s underline width in font units\n'
-                        '  -version          output version information of mf2ff and exit\n'
-                        '\n'
-                        'The following options are also available and are passed to METAFONT:\n'
-                        '  -[no-]file-line-error\n'
-                        '  -halt-on-error\n'
-                        '  -ini\n'
-                        '  -[no-]parse-first-line\n'
-                        '  -recorder\n'
-                        '  -8bit\n'
-                        'METAFONT\'s -version option is not available here because it only outputs text\n'
-                        'to the terminal.\n'
-                        '\n'
-                        'Please see METAFONT\'s help (run \'mf -help\') to get more information about\n'
-                        'its options and for alternative usage patterns. Some of the METAFONT options\n'
-                        'may have no effect in mf2ff.\n'
-                        '\n'
-                        '\n'
-                        'It won\'t work!\n'
-                        '===============\n'
-                        '\n'
-                        'The problem may be a unloadable fontforge module.\n'
-                        'Try the following:\n'
-                        '- Please make sure fontforge and mf are installed.\n'
-                        '- On Windows, please run fontforge-console.bat once and make sure to use\n'
-                        '  ffpython.\n'
-                        '\n'
-                        '\n'
-                        'Copyright and license information\n'
-                        '=================================\n'
-                        '\n'
-                        '  MIT License\n'
-                        '  Copyright (C) 2018--2023\n'
-                        '\n'
-                        'For more information, please see LICENSE.txt.\n'
-                    )
-                    print(help_text)
-                    sys.exit()
-                else:
-                    # current option doesn't match any of the previous cases
-                    print('! Unrecognized option `' + full_arg + '\'')
-            else:
-                # If the argument starts with a - and options prcessing already
-                # finished, don't process any further arguments.
-                break
-        else:
-            # without - this argument is no option
-            option_args = False
-            if full_arg[0] == '&': # & introduces the name of the base
-                base = arg # TODO
-            elif full_arg[0] == '\\': # line starting with \ should be processed first.
-                mf2ff.first_line += arg + ' ' + ' '.join(mf2ff.args[i+1:])
-                break
-            else: # everything else is a filename
-                mf2ff.input_file = full_arg
-                if mf2ff.input_file[-3:] == '.mf':
-                    # remove file extension
-                    mf2ff.input_file = mf2ff.input_file[:-3]
-                # Open the file and if the first line starts with %&, take this
-                # as the name of the base file and tell mf to skip the first
-                # line.
-                try:
-                    with open(mf2ff.input_file + '.mf', 'r+') as f:
-                        first_line = f.readline().strip()
-                        if first_line[:2] == '%&':
-                            base = full_arg[2:] # TODO
-                            mf2ff.mf_options.append('-no-parse-first-line')
-                except IOError:
-                    print('! I can\'t find file: ' + mf2ff.input_file + '.mf.')
-                    sys.exit()
-                break
-        i += 1 # next argument
-
 def main():
     print('This is mf2ff, version ' + __version__ + '.')
-    print('Run with -help option for help with the use of mf2ff, license information and how to report bugs.')
+    print('Run with -help option for help on using mf2ff and license information.')
     print('This program is still under development. Bugs may occur.\n')
 
     mf2ff = Mf2ff()
-    parse_arguments(mf2ff)
+    mf2ff.options.parse_arguments(sys.argv)
     mf2ff.run()
 
 if __name__ == '__main__':

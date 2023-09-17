@@ -31,10 +31,11 @@ if __name__ == '__main__':
 
     start = time()
     mf2ff = Mf2ff()
-    mf2ff.input_file = str(input_file)
-    jobname = example_dir / 'jofa_logo'
-    mf2ff.jobname = str(jobname)
-    mf2ff.mf_options.append('-jobname=' + str(jobname))
-    mf2ff.options['cull-at-shipout'] = True
+    mf2ff.options.input_file = input_file
+    mf2ff.options.output_directory = example_dir
+    mf2ff.options.stroke_simplify = False
+    mf2ff.options.fix_contours = True
+    mf2ff.options.remove_artifacts = True
+    mf2ff.options.cull_at_shipout = True
     mf2ff.run()
     print(f'took {time()-start:.3f} sec')

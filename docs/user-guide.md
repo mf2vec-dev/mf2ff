@@ -22,8 +22,8 @@ You need to use `python3` or `ffpython` depending on your operating system and y
 from mf2ff import Mf2ff
 
 mf2ff = Mf2ff()
-mf2ff.options['remove-artifacts'] = True
-mf2ff.input_file = 'path/to/font.mf'
+mf2ff.options.remove_artifacts = True
+mf2ff.options.input_file = 'path/to/font.mf'
 mf2ff.run()
 ```
 
@@ -35,7 +35,7 @@ Here is an example:
 ```py
 import fontforge
 font = fontforge.open('path/to/font.sfd')
-glyph = font["A"]
+glyph = font['A']
 % etc.
 ```
 
@@ -46,9 +46,9 @@ Please refer to [FontForge's documentation](https://fontforge.org/docs/scripting
 
 There are different types of options:
 - negatable options / boolean options\
-  They can be enabled by providing the option `-<option-name>` or setting `mf2ff.options['<option-name>'] = True` or disabled by providing `-no-<option-name>` or setting `mf2ff.options['<option-name>'] = False`
+  They can be enabled by providing the option `-<option-name>` or setting `mf2ff.options.<option_name> = True` or disabled by providing `-no-<option-name>` or setting `mf2ff.options.<option_name> = False`
 - value options\
-  These can be given a value of a specific type (e.g. numeric or string) using `-<option-name>=VALUE` or setting `mf2ff.options['<option-name>'] = VALUE`
+  These can be given a value of a specific type (e.g. numeric or string) using `-<option-name>=VALUE` or setting `mf2ff.options.<option_name> = VALUE`
 
 
 ### `cull-at-shipout`
@@ -56,7 +56,7 @@ There are different types of options:
 |||
 |-|-|
 | CLI |`-`[`no-`]`cull-at-shipout` |
-| API | `mf2ff.options['cull-at-shipout'] = True` / `False` |
+| API | `mf2ff.options.cull_at_shipout = True` / `False` |
 | default | disabled |
 
 This option runs the cull command according to plain METAFONT's cullit macro before every shipout to remove remaining overlap. A similar operation is done by METAFONT during shipout [The METAFONTbook, pp. 220, 295].
@@ -69,7 +69,7 @@ Note that cull commands that are part of the definition of a glyph may result in
 |||
 |-|-|
 | CLI |`-`[`no-`]`kerning-classes` |
-| API | `mf2ff.options['kerning-classes'] = True` / `False` |
+| API | `mf2ff.options.kerning_classes = True` / `False` |
 | default | disabled (kerning pairs are used) |
 
 Enabling this option switches the `gpos` Lookup table `kern` (kerning table) from Format 0 (kerning pairs) to Format 2 (kerning classes).\
@@ -92,7 +92,7 @@ This should expand to a ligtable command which kerns all combinations of the fir
 |||
 |-|-|
 | CLI |`-`[`no-`]`quadratic` |
-| API | `mf2ff.options['quadratic'] = True` / `False` |
+| API | `mf2ff.options.quadratic = True` / `False` |
 | default | enabled |
 
 This option enables or disables the conversion of the contours on foreground layer to quadratic Bézier curves. It uses FontForge's algorithm. In most cases this is only an approximation.
@@ -103,7 +103,7 @@ This option enables or disables the conversion of the contours on foreground lay
 |||
 |-|-|
 | CLI |`-`[`no-`]`remove-artifacts` |
-| API | `mf2ff.options['remove-artifacts'] = True` / `False` |
+| API | `mf2ff.options.remove_artifacts = True` / `False` |
 | default | disabled |
 
 This option removes contours and parts of contours which are closed and collinear and thus don't have an influence on the shape of the glyph. Those artifacts can result from FontForge's "Overlap" commands.
@@ -114,7 +114,7 @@ This option removes contours and parts of contours which are closed and collinea
 |||
 |-|-|
 | CLI |`-`[`no-`]`set-italic-correction` |
-| API | `mf2ff.options['set-italic-correction'] = True` / `False` |
+| API | `mf2ff.options.set_italic_correction = True` / `False` |
 | default | enabled |
 
 This option enables or disables setting `glyph.italicCorrection` to the value of `charic` during `shipout`.
@@ -125,13 +125,13 @@ This option enables or disables setting `glyph.italicCorrection` to the value of
 |||
 |-|-|
 | CLI |`-`[`no-`]`stroke-simplify` |
-| API | `mf2ff.options['stroke-simplify'] = True` / `False` |
+| API | `mf2ff.options.stroke_simplify = True` / `False` |
 | default | enabled |
 
 |||
 |-|-|
-| CLI |`-stroke-accuracy=`number |
-| API | `mf2ff.options['stroke-accuracy'] = ` number |
+| CLI |`-stroke-accuracy=`*number* |
+| API | `mf2ff.options.stroke_accuracy = ` *number* |
 | default | 0.25 (FontForge's default) |
 
 FontForge's `layer.stroke()` function provides `simplify` and `accuracy` options. When enabled, `layer.simplify()` is called on the layer. The `error_bound` argument of `layer.simplify()` can be adjusted using `mf2ff`'s `stroke-accuracy` option.
@@ -143,8 +143,8 @@ FontForge's `layer.stroke()` function provides `simplify` and `accuracy` options
 
 |||
 |-|-|
-| CLI |`-upm=`number |
-| API | `mf2ff.options['upm'] = ` number / `None` |
+| CLI |`-upm=`*number* / `None`  |
+| API | `mf2ff.options.upm = ` *number* / `None` |
 | default | `None` |
 
 Specifying UPM (units per em or em size) triggers a preliminary run of METAFONT to estimate the correct ppi. Since METAFONT limits the numbers to `4095.99998`, anything above that is handled by using a fraction of the ideal ppi and scaling the font to the desired UPM in FontForge.
@@ -155,12 +155,12 @@ Since METAFONT was designed to generate generic font files and TeX font metric f
 
 
 ### Attachment points
-Attachment points (called anchors in FontForge) are used to precisely place diacritic marks on base characters. `mf2ff` provides a `-extension-attachment-points` / `mf2ff.options['extension-attachment-points'] = True` option to activate the attachment point extension.
+Attachment points (called anchors in FontForge) are used to precisely place diacritic marks on base characters. `mf2ff` provides a `-extension-attachment-points` / `mf2ff.options.extension_attachment_points = True` option to activate the attachment point extension.
 
 |||
 |-|-|
 | CLI |`-`[`no-`]`extension-attachment-points` |
-| API | `mf2ff.options['extension-attachment-points'] = True` / `False` |
+| API | `mf2ff.options.extension_attachment_points = True` / `False` |
 | default | disabled |
 
 If enabled, the following macros can be used in `mf2ff`'s input:
@@ -176,12 +176,12 @@ The arguments (`(...)`) should be comma separated list of:
 
 Example: `attachment_point_mark_base("Top", w/2, h);`
 
-If the name of one of the macros listed above is already used by the .mf file and you don't want to rename this existing variable or macro, you can use the option `-extension-attachment-points-macro-prefix=` string / `mf2ff.options['extension-attachment-points-macro-prefix'] =` string to replace `attachment_point` in the macro names.
+If the name of one of the macros listed above is already used by the .mf file and you don't want to rename this existing variable or macro, you can use the option `-extension-attachment-points-macro-prefix=`*string* / `mf2ff.options.extension_attachment_points_macro_prefix =`*string* to replace `attachment_point` in the macro names.
 
 |||
 |-|-|
-| CLI |`-extension-attachment-points-macro-prefix=` string |
-| API | `mf2ff.options['extension-attachment-points-macro-prefix'] = ` string |
+| CLI |`-extension-attachment-points-macro-prefix=`*string* |
+| API | `mf2ff.options.extension_attachment_points_macro_prefix = ` *string* |
 | default | `attachment_point` |
 
 Example: add `-extension-attachment-points-macro-prefix=customPrefix` to your options and use `customPrefix_mark_base("Top", w/2, h);`
@@ -192,7 +192,7 @@ While the `ligtable` command can be used to define ligatures, it doesn't allow s
 |||
 |-|-|
 | CLI |`-`[`no-`]`extension-ligtable-switch` |
-| API | `mf2ff.options['extension-ligtable-switch'] = True` / `False` |
+| API | `mf2ff.options.extension_ligtable_switch = True` / `False` |
 | default | disabled |
 
 If enabled, the following macros can be used in `mf2ff`'s input:
@@ -204,8 +204,8 @@ Similar to the attachment points extension, you can also change the prefix of th
 
 |||
 |-|-|
-| CLI |`-extension-ligtable-switch-macro-prefix=` string |
-| API | `mf2ff.options['extension-ligtable-switch-macro-prefix'] = ` string |
+| CLI |`-extension-ligtable-switch-macro-prefix=`*string* |
+| API | `mf2ff.options.extension_ligtable_switch_macro_prefix = ` *string* |
 | default | `ligtable_switch` |
 
 

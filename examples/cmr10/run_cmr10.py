@@ -49,17 +49,15 @@ if __name__ == '__main__':
 
     start = time()
     mf2ff = Mf2ff()
-    mf2ff.input_file = str(inputs_dir / 'cmr10')
-    jobname = example_dir / 'cmr10'
-    mf2ff.jobname = str(jobname)
-    mf2ff.mf_options.append('-jobname=' + str(jobname))
-    mf2ff.fontname = 'cmr10'
-    mf2ff.input_encoding = 'TeX-text'
-    mf2ff.options['stroke-simplify'] = False
-    mf2ff.options['fix-contours'] = True
-    mf2ff.options['remove-artifacts'] = True
-    mf2ff.options['cull-at-shipout'] = True
-    mf2ff.options['kerning-classes'] = True
-    mf2ff.options['upm'] = 1000
+    mf2ff.options.input_file = inputs_dir / 'cmr10'
+    mf2ff.options.output_directory = example_dir
+    mf2ff.options.fontname = 'cmr10'
+    mf2ff.options.input_encoding = 'TeX-text'
+    mf2ff.options.stroke_simplify = False
+    mf2ff.options.fix_contours = True
+    mf2ff.options.remove_artifacts = True
+    mf2ff.options.cull_at_shipout = True
+    mf2ff.options.kerning_classes = True
+    mf2ff.options.upm = 1000
     mf2ff.run()
     print(f'took {time()-start:.3f} sec')
