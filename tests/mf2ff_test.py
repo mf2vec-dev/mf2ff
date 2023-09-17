@@ -29,6 +29,7 @@ class Mf2ffTest(unittest.TestCase):
         test_file_path = cls.test_dir / 'test_inputs' / file_path
         cls.mf2ff.options.input_file = str(test_file_path)
         cls.mf2ff.options.output_directory = str(test_file_path.parent)
+        cls.mf2ff.options.quiet = True
         cls.mf2ff.options.debug = bool(debug)
         if options is not None:
             cls.mf2ff.options.update(options)

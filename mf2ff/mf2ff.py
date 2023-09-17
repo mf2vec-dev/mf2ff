@@ -108,9 +108,10 @@ class Mf2ff:
         start_time_ff = time()
         self.extract_cmds_from_log()
 
-        print('processing its output...')
-        print('Some error messages below come directly from fontforge and cannot be muted.')
-        print('Line is last known line from current file.')
+        if not self.options.quiet:
+            print('processing its output...')
+            print('Some error messages below come directly from fontforge and cannot be muted.')
+            print('Line is last known line from current file.')
 
         if not self.options.fontname:
             self.options.fontname = self.options.jobname
@@ -158,7 +159,8 @@ class Mf2ff:
 
         self.apply_font_options_and_save()
 
-        print('')
+        if not self.options.quiet:
+            print('')
 
         end_time_ff = time()
         if self.options.time:
@@ -181,10 +183,12 @@ class Mf2ff:
             print('! I can\'t find file: `' + log_path_str + '\'.')
             sys.exit(1)
         end_time_log = time()
-        print('Log file cleaned up')
+        if not self.options.quiet:
+            print('Log file cleaned up')
         if self.options.time:
             print('  (took ' + '%.2f' % (end_time_log-start_time_log) + 's)')
-        print('Done.')
+        if not self.options.quiet:
+            print('Done.')
 
     def define_mf_first_line(self):
         '''define self.mf_first_line based on options
@@ -221,9 +225,11 @@ class Mf2ff:
         stdout is devnull
         '''
         if is_pre_run:
-            print('running METAFONT (preliminary run) ...')
+            if not self.options.quiet:
+                print('running METAFONT (preliminary run) ...')
         else:
-            print('running METAFONT...')
+            if not self.options.quiet:
+                print('running METAFONT...')
             start_time_mf = time()
         subprocess.call(
             ['mf'] + self.options.mf_options + [self.mf_first_line],
@@ -1494,32 +1500,33 @@ class Mf2ff:
             start_time_ff (float): start time of fontforge from time.time()
             i (int): index of current command (0 based)
         '''
-        num_cmds = len(self.cmds)
-        # simple eta formula
-        eta = (time()-start_time_ff)*(num_cmds-(i+1))/(i+1)
-        # find appropriate unit
-        # dot and extra space to separate from FontForge warnings
-        if eta < 60:
-            eta_unit = 's.   '
-        elif eta < 60*60:
-            eta_unit = 'min. '
-            eta /= 60
-        elif eta < 60*60*24:
-            eta_unit = 'h.   '
-            eta /= 60*60
-        else:
-            eta_unit = 'd.   '
-            eta /= 60*60*24
+        if not self.options.quiet:
+            num_cmds = len(self.cmds)
+            # simple eta formula
+            eta = (time()-start_time_ff)*(num_cmds-(i+1))/(i+1)
+            # find appropriate unit
+            # dot and extra space to separate from FontForge warnings
+            if eta < 60:
+                eta_unit = 's.   '
+            elif eta < 60*60:
+                eta_unit = 'min. '
+                eta /= 60
+            elif eta < 60*60*24:
+                eta_unit = 'h.   '
+                eta /= 60*60
+            else:
+                eta_unit = 'd.   '
+                eta /= 60*60*24
 
-        n = 10 # width of progress bar (max number of '=')
-        sys.stdout.write(
-            '\r[{:{n}}'.format('='*int(n*((i+1)/num_cmds)), n=n)
-            + '] {:>3d}'.format(int(((i+1)/num_cmds)*100)) + '%, '
-            + '{:>{len_cmds}d}'.format(i+1, len_cmds=len(str(num_cmds))) + '/{:d}'.format(num_cmds) + ', '
-            + 'line ' + str(self.last_known_line) + ', '
-            + 'ETA: {:6.3f}'.format(eta) + ' ' + eta_unit
-        )
-        sys.stdout.flush()
+            n = 10 # width of progress bar (max number of '=')
+            sys.stdout.write(
+                '\r[{:{n}}'.format('='*int(n*((i+1)/num_cmds)), n=n)
+                + '] {:>3d}'.format(int(((i+1)/num_cmds)*100)) + '%, '
+                + '{:>{len_cmds}d}'.format(i+1, len_cmds=len(str(num_cmds))) + '/{:d}'.format(num_cmds) + ', '
+                + 'line ' + str(self.last_known_line) + ', '
+                + 'ETA: {:6.3f}'.format(eta) + ' ' + eta_unit
+            )
+            sys.stdout.flush()
 
     def to_glyph_name(self, g):
         '''converts name or code point g to FontForge glyph name
@@ -1761,12 +1768,14 @@ class Mf2ff:
 # __main__ part
 
 def main():
-    print('This is mf2ff, version ' + __version__ + '.')
-    print('Run with -help option for help on using mf2ff and license information.')
-    print('This program is still under development. Bugs may occur.\n')
-
     mf2ff = Mf2ff()
     mf2ff.options.parse_arguments(sys.argv)
+
+    if not mf2ff.options.quiet:
+        print('This is mf2ff, version ' + __version__ + '.')
+        print('Run with -help option for help on using mf2ff and license information.')
+        print('This program is still under development. Bugs may occur.\n')
+
     mf2ff.run()
 
 if __name__ == '__main__':

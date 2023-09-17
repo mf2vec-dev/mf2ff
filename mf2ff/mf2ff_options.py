@@ -51,6 +51,7 @@ class Mf2ffOptions:
             'output_encoding': {'type': str | None, 'default': None},
             'ppi': {'type': float, 'default': 1000},
             'quadratic': {'type': bool, 'default': False},
+            'quiet': {'type': bool, 'default': False},
             'remove_artifacts': {'type': bool, 'default': False},
             'scripts': {'type': tuple, 'default': (
                 ('cyrl', ('dflt',)),
@@ -220,7 +221,7 @@ class Mf2ffOptions:
         mf2ff_options_negatable = [
             'cull-at-shipout', 'debug', 'extension-attachment-points',
             'extension-ligtable-switch', 'extrema', 'fix-contours','hint',
-            'is_type', 'kerning-classes', 'otf', 'quadratic',
+            'is_type', 'kerning-classes', 'otf', 'quadratic', 'quiet',
             'remove-artifacts', 'set-italic-correction', 'sfd',
             'stroke-simplify', 'time', 'ttf'
         ]
