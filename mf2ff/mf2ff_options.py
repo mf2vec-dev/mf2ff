@@ -17,15 +17,15 @@ class Mf2ffOptions:
 
         # set default values
         self.__dict__['_OPTION_DEFS'] = {
-            'ascent': {'type': int, 'default': 0},
+            'ascent': {'type': int | None, 'default': None},
             'base': {'type': str, 'default': ''},
             'comment': {'type': str, 'default': ''},
             'copyright': {'type': str, 'default': ''},
             'cull_at_shipout': {'type': bool, 'default': False},
             'cwd': {'type': Path, 'default': Path.cwd()},
             'debug': {'type': bool, 'default': False},
-            'descent': {'type': int, 'default': 0},
-            'designsize': {'type': float, 'default': 0.0},
+            'descent': {'type': int | None, 'default': None},
+            'designsize': {'type': float | None, 'default': None},
             'extension_attachment_points_macro_prefix': {'type': str, 'default': 'attachment_point'},
             'extension_attachment_points': {'type': bool, 'default': False},
             'extension_ligtable_switch_macro_prefix': {'type': str, 'default': 'ligtable_switch'},
@@ -65,8 +65,8 @@ class Mf2ffOptions:
             'time': {'type': bool, 'default': False},
             'ttf': {'type': bool, 'default': False},
             'upm': {'type': int | None, 'default': None},
-            'upos': {'type': float, 'default': -10.0},
-            'uwidth': {'type': float, 'default': 2.0},
+            'upos': {'type': float | None, 'default': None},
+            'uwidth': {'type': float | None, 'default': None},
         }
         self.__dict__['_options'] = {}
         for option_name, option_def in self._OPTION_DEFS.items():

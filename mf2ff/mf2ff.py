@@ -84,7 +84,7 @@ class Mf2ff:
         self.define_patterns()
         self.log_path = Path(self.options.output_directory) / (self.options.jobname + '.log')
 
-        pre_run_required = self.options.upm is not None and (self.options.ascent == 0 or self.options.descent == 0)
+        pre_run_required = self.options.upm is not None and (self.options.ascent is None or self.options.descent is None)
         if pre_run_required:
             self.run_mf(is_pre_run=True)
             self.extract_cmds_from_log()
@@ -122,11 +122,18 @@ class Mf2ff:
 
         # set up font object to be filled with
         self.font = fontforge.font()
-        self.font.ascent = self.options.ascent
+        if self.options.ascent is None:
+            self.font.ascent = 0
+        else:
+            self.font.ascent = self.options.ascent
         self.font.comment = self.options.comment
         self.font.copyright = self.options.copyright
-        self.font.descent = self.options.descent
-        self.font.design_size = self.options.designsize
+        if self.options.descent is None:
+            self.font.descent = 0
+        else:
+            self.font.descent = self.options.descent
+        if self.options.designsize is not None:
+            self.font.design_size = self.options.designsize
         if self.options.input_encoding is not None:
             self.reencode(self.options.input_encoding)
         self.font.familyname = self.options.family_name
@@ -135,8 +142,10 @@ class Mf2ff:
         self.font.version = self.options.font_version
         self.font.fullname = self.options.fullname
         self.font.italicangle = self.options.italicangle
-        self.font.upos = self.options.upos
-        self.font.uwidth = self.options.uwidth
+        if self.options.upos is not None:
+            self.font.upos = self.options.upos
+        if self.options.uwidth is not None:
+            self.font.uwidth = self.options.uwidth
 
         # picture variables are processed inside fontforge using layers.
         # A dict is used to keep track of the pictures
@@ -275,13 +284,13 @@ class Mf2ff:
             cmd_name = cmd[0]
             self.cmd_body = cmd[2]
 
-            if cmd_name == 'shipout' and (self.options.ascent == 0 or self.options.descent == 0):
+            if cmd_name == 'shipout' and (self.options.ascent is None or self.options.descent is None):
                 shipout = self.shipout_pattern.search(self.cmd_body)
                 charht = int(float(shipout.group(4)))
                 chardp = int(float(shipout.group(5)))
-                if self.options.ascent == 0 and charht > pre_run_results['ascent']:
+                if self.options.ascent is None and charht > pre_run_results['ascent']:
                     pre_run_results['ascent'] = charht
-                if self.options.descent == 0 and chardp > pre_run_results['descent']:
+                if self.options.descent is None and chardp > pre_run_results['descent']:
                     pre_run_results['descent'] = chardp
             # else command not important in pre run
             i += 1
@@ -750,9 +759,9 @@ class Mf2ff:
                     glyph.addAnchorPoint(attachment_point_class_name, lookup_type, x, y)
                 attachment_points = []
 
-                if self.options.ascent == 0 and charht > self.font.ascent:
+                if self.options.ascent is None and charht > self.font.ascent:
                     self.font.ascent = charht
-                if self.options.descent == 0 and chardp > self.font.descent:
+                if self.options.descent is None and chardp > self.font.descent:
                     self.font.descent = chardp
 
                 i += 1
@@ -888,7 +897,7 @@ class Mf2ff:
 
             elif cmd_name == 'end':
                 design_size = float(self.cmd_body)
-                if design_size != 0:
+                if design_size != 0: # 0 is default/unset
                     self.font.design_size = design_size
 
             # extension
