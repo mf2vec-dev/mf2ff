@@ -84,7 +84,7 @@ class Mf2ff:
         self.define_patterns()
         self.log_path = Path(self.options.output_directory) / (self.options.jobname + '.log')
 
-        pre_run_required = self.options.upm is not None
+        pre_run_required = self.options.upm is not None and (self.options.ascent == 0 or self.options.descent == 0)
         if pre_run_required:
             self.run_mf(is_pre_run=True)
             self.extract_cmds_from_log()
@@ -275,7 +275,7 @@ class Mf2ff:
             cmd_name = cmd[0]
             self.cmd_body = cmd[2]
 
-            if cmd_name == 'shipout' and self.options.ascent == 0 and self.options.descent == 0:
+            if cmd_name == 'shipout' and (self.options.ascent == 0 or self.options.descent == 0):
                 shipout = self.shipout_pattern.search(self.cmd_body)
                 charht = int(float(shipout.group(4)))
                 chardp = int(float(shipout.group(5)))
