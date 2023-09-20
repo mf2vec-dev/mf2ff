@@ -66,52 +66,9 @@ class Mf2ff:
 
         M = self.MARKER
 
-        if not self.options.input_file and not self.options.first_line:
+        if not self.options.input_file and not self.options.inputs and not self.options.first_line:
             print('! No input')
             sys.exit(1)
-
-        if not self.options.jobname:
-            if self.options.input_file:
-                self.options.jobname = self.options.input_file.with_suffix('').name
-            else:
-                # use mfput since it's used as the jobname by mf in this case
-                self.jobname = 'mfput'
-        self.options.mf_options.append('-jobname=' + self.options.jobname)
-        self.options.mf_options.append('-output-directory=' + str(self.options.output_directory))
-
-        self.define_mf_first_line()
-
-        self.define_patterns()
-        self.log_path = Path(self.options.output_directory) / (self.options.jobname + '.log')
-
-        pre_run_required = self.options.upm is not None and (self.options.ascent is None or self.options.descent is None)
-        if pre_run_required:
-            self.run_mf(is_pre_run=True)
-            self.extract_cmds_from_log()
-            pre_run_results = self.process_pre_run_commands()
-            # upm
-            orig_upm = pre_run_results['ascent'] + pre_run_results['descent']
-            target_upm = self.options.upm
-            target_ppi = self.options.ppi * target_upm / orig_upm
-            self.ppi = target_ppi
-            upm_factor = 1
-            while self.ppi > self.MF_INFINITY:
-                # create font with lower UPM to not exceed METAFONT's infinity with pixels_per_inch value
-                upm_factor += 1
-                self.ppi = target_ppi/upm_factor
-            # redefine self.mf_first_line with new ppi value
-            self.define_mf_first_line()
-
-        self.run_mf()
-
-        # open and process log file
-        start_time_ff = time()
-        self.extract_cmds_from_log()
-
-        if not self.options.quiet:
-            print('processing its output...')
-            print('Some error messages below come directly from fontforge and cannot be muted.')
-            print('Line is last known line from current file.')
 
         if not self.options.fontname:
             self.options.fontname = self.options.jobname
@@ -134,8 +91,6 @@ class Mf2ff:
             self.font.descent = self.options.descent
         if self.options.designsize is not None:
             self.font.design_size = self.options.designsize
-        if self.options.input_encoding is not None:
-            self.reencode(self.options.input_encoding)
         self.font.familyname = self.options.family_name
         self.font.fontlog = self.options.fontlog
         self.font.fontname = self.options.fontname
@@ -147,20 +102,97 @@ class Mf2ff:
         if self.options.uwidth is not None:
             self.font.uwidth = self.options.uwidth
 
-        # picture variables are processed inside fontforge using layers.
-        # A dict is used to keep track of the pictures
-        self.pictures = {}
-        self.pictures['nullpicture'] = fontforge.layer() # predefined empty picture
+        for self.input_options in self.options.iterinputs():
+            if not self.input_options.jobname:
+                if self.input_options.input_file:
+                    self.input_options.jobname = self.input_options.input_file.with_suffix('').name
+                else:
+                    # use mfput since it's used as the jobname by mf in this case
+                    self.jobname = 'mfput'
+            if not self.options.jobname:
+                self.options.jobname = self.input_options.jobname
+            self.input_options.mf_options.append('-jobname=' + self.input_options.jobname)
+            self.input_options.mf_options.append('-output-directory=' + str(self.input_options.output_directory))
 
-        # a separate font object with a dedicated glyph is used for
-        # processing
-        internal_font = fontforge.font()
-        self.proc_glyph = internal_font.createChar(-1, 'proc_glyph')
+            self.define_patterns()
+            self.log_path = Path(self.input_options.output_directory) / (self.input_options.jobname + '.log')
 
-        # keep a record of ligtable's skipto labels
-        self.skiptos = {}
+            pre_run_required = self.input_options.upm is not None and (self.input_options.ascent is None or self.input_options.descent is None)
+            if pre_run_required:
+                self.define_mf_first_line()
+                self.run_mf(is_pre_run=True)
+                self.extract_cmds_from_log()
+                pre_run_results = self.process_pre_run_commands()
+                # upm
+                orig_upm = pre_run_results['ascent'] + pre_run_results['descent']
+                target_upm = self.input_options.upm
+                target_ppi = self.input_options.ppi * target_upm / orig_upm
+                self.ppi = target_ppi
+                upm_factor = 1
+                while self.ppi > self.MF_INFINITY:
+                    # create font with lower UPM to not exceed METAFONT's infinity with pixels_per_inch value
+                    upm_factor += 1
+                    self.ppi = target_ppi/upm_factor
+                # redefine self.mf_first_line with new ppi value
 
-        self.process_commands(start_time_ff)
+            self.define_mf_first_line()
+            self.run_mf()
+
+            # open and process log file
+            start_time_ff = time()
+            self.extract_cmds_from_log()
+
+            if not self.input_options.quiet:
+                print('processing its output...')
+                print('Some error messages below come directly from fontforge and cannot be muted.')
+                print('Line is last known line from current file.')
+
+            if self.input_options.input_encoding is not None:
+                self.reencode(self.input_options.input_encoding)
+
+            # picture variables are processed inside fontforge using layers.
+            # A dict is used to keep track of the pictures
+            self.pictures = {}
+            self.pictures['nullpicture'] = fontforge.layer() # predefined empty picture
+
+            # a separate font object with a dedicated glyph is used for
+            # processing
+            internal_font = fontforge.font()
+            self.proc_glyph = internal_font.createChar(-1, 'proc_glyph')
+
+            # keep a record of ligtable's skipto labels
+            self.skiptos = {}
+
+            self.process_commands(start_time_ff)
+
+            if not self.input_options.quiet:
+                print('')
+
+            end_time_ff = time()
+            if self.input_options.time:
+                print('  (took ' + '%.2f' % (end_time_ff-start_time_ff) + 's)')
+
+            pattern = re.sub(r'(\.|\*|\||\\|\(|\)|\+)', r'\\\1', '\n?'.join(self.mf_first_line), flags=re.DOTALL) \
+                + '\n|\n' + '\n?'.join(M) + '.*?\n' + '\n?'.join(M)
+            start_time_log = time()
+            clean_log = re.sub(pattern, '', self.orig_log_data, flags=re.DOTALL)
+
+            if self.input_options.debug:
+                extension = '.clean.log'
+            else:
+                extension = '.log'
+            log_path_str = str(self.log_path.with_suffix('')) + extension
+            try:
+                with open(log_path_str, 'w') as outfile:
+                    outfile.write(clean_log)
+            except IOError:
+                print('! I can\'t find file: `' + log_path_str + '\'.')
+                sys.exit(1)
+            end_time_log = time()
+            if not self.input_options.quiet:
+                print('Log file cleaned up')
+            if self.input_options.time:
+                print('  (took ' + '%.2f' % (end_time_log-start_time_log) + 's)')
 
         # rescale to match UPM
         if self.options.upm is not None:
@@ -169,41 +201,13 @@ class Mf2ff:
         self.apply_font_options_and_save()
 
         if not self.options.quiet:
-            print('')
-
-        end_time_ff = time()
-        if self.options.time:
-            print('  (took ' + '%.2f' % (end_time_ff-start_time_ff) + 's)')
-
-        pattern = re.sub(r'(\.|\*|\||\\|\(|\)|\+)', r'\\\1', '\n?'.join(self.mf_first_line), flags=re.DOTALL) \
-            + '\n|\n' + '\n?'.join(M) + '.*?\n' + '\n?'.join(M)
-        start_time_log = time()
-        clean_log = re.sub(pattern, '', self.orig_log_data, flags=re.DOTALL)
-
-        if self.options.debug:
-            extension = '.clean.log'
-        else:
-            extension = '.log'
-        log_path_str = str(self.log_path.with_suffix('')) + extension
-        try:
-            with open(log_path_str, 'w') as outfile:
-                outfile.write(clean_log)
-        except IOError:
-            print('! I can\'t find file: `' + log_path_str + '\'.')
-            sys.exit(1)
-        end_time_log = time()
-        if not self.options.quiet:
-            print('Log file cleaned up')
-        if self.options.time:
-            print('  (took ' + '%.2f' % (end_time_log-start_time_log) + 's)')
-        if not self.options.quiet:
             print('Done.')
 
     def define_mf_first_line(self):
         '''define self.mf_first_line based on options
         '''
         # load base file if defined
-        if self.options.base:
+        if self.input_options.base:
             input_base = 'input ' + self.base + ';'
         else:
             input_base = ''
@@ -211,7 +215,7 @@ class Mf2ff:
         # If option is_type is given, add the extra definitions is_pen and
         # is_picture.
         extra_defs = ''
-        if self.options.is_type:
+        if self.input_options.is_type:
             extra_defs += 'let is_pen = __mfIIvec__orig_pen__;'
             extra_defs += 'let is_picture = __mfIIvec__orig_picture__;'
 
@@ -225,8 +229,8 @@ class Mf2ff:
             + self.get_redefinitions()
             + extra_defs
             + input_base
-            + self.options.first_line
-            + 'input ' + str(self.options.input_file)
+            + self.input_options.first_line
+            + 'input ' + str(self.input_options.input_file)
         )
 
     def run_mf(self, is_pre_run=False):
@@ -234,19 +238,19 @@ class Mf2ff:
         stdout is devnull
         '''
         if is_pre_run:
-            if not self.options.quiet:
+            if not self.input_options.quiet:
                 print('running METAFONT (preliminary run) ...')
         else:
-            if not self.options.quiet:
+            if not self.input_options.quiet:
                 print('running METAFONT...')
             start_time_mf = time()
         subprocess.call(
-            ['mf'] + self.options.mf_options + [self.mf_first_line],
+            ['mf'] + self.input_options.mf_options + [self.mf_first_line],
             stdout=subprocess.DEVNULL,
-            cwd=self.options.cwd
+            cwd=self.input_options.cwd
         )
         end_time_mf = time()
-        if self.options.time and not is_pre_run:
+        if self.input_options.time and not is_pre_run:
             print('  (took ' + '%.2f' % (end_time_mf-start_time_mf) + 's)')
 
     def extract_cmds_from_log(self):
@@ -284,13 +288,13 @@ class Mf2ff:
             cmd_name = cmd[0]
             self.cmd_body = cmd[2]
 
-            if cmd_name == 'shipout' and (self.options.ascent is None or self.options.descent is None):
+            if cmd_name == 'shipout' and (self.input_options.ascent is None or self.input_options.descent is None):
                 shipout = self.shipout_pattern.search(self.cmd_body)
                 charht = int(float(shipout.group(4)))
                 chardp = int(float(shipout.group(5)))
-                if self.options.ascent is None and charht > pre_run_results['ascent']:
+                if self.input_options.ascent is None and charht > pre_run_results['ascent']:
                     pre_run_results['ascent'] = charht
-                if self.options.descent is None and chardp > pre_run_results['descent']:
+                if self.input_options.descent is None and chardp > pre_run_results['descent']:
                     pre_run_results['descent'] = chardp
             # else command not important in pre run
             i += 1
@@ -312,7 +316,7 @@ class Mf2ff:
 
         base_glyphs_of_variants = {}
 
-        if self.options.kerning_classes:
+        if self.input_options.kerning_classes:
             kerning_list = {
                 'left-glyphs': [],
                 'right-glyphs': [],
@@ -486,9 +490,9 @@ class Mf2ff:
                             # glyph.stroke())
                             stroke_kwargs.update({'removeinternal': True})
 
-                        stroke_kwargs.update({'simplify': self.options.stroke_simplify})
-                        if self.options.stroke_accuracy is not None: # None -> Fontforge's default value
-                            stroke_kwargs.update({'accuracy': self.options.stroke_accuracy})
+                        stroke_kwargs.update({'simplify': self.input_options.stroke_simplify})
+                        if self.input_options.stroke_accuracy is not None: # None -> Fontforge's default value
+                            stroke_kwargs.update({'accuracy': self.input_options.stroke_accuracy})
 
                         pen_first_point = self.pair_pattern.search(pen) # TODO better with .groups ?
                         pen_joins = self.join_pattern.findall(pen[pen_first_point.end():])
@@ -729,13 +733,13 @@ class Mf2ff:
                 pic_name = self.cmds[i+1][2][1:-1] # clip quotes
                 pic = self.pictures[pic_name]
 
-                if self.options.fix_contours:
+                if self.input_options.fix_contours:
                     self.fix_contours(pic)
 
-                if self.options.remove_artifacts:
+                if self.input_options.remove_artifacts:
                     self.remove_artefacts(pic)
 
-                if self.options.cull_at_shipout:
+                if self.input_options.cull_at_shipout:
                     # Above fixes are after actual cull-at-shipout so remove
                     # overlaps again.
                     self.remove_overlap(pic)
@@ -746,7 +750,7 @@ class Mf2ff:
                 glyph.width = charwd
                 glyph.texheight = charht
                 glyph.texdepth = chardp
-                if self.options.set_italic_correction:
+                if self.input_options.set_italic_correction:
                     glyph.italicCorrection = charic
 
                 if xoffset != 0 or yoffset != 0:
@@ -759,9 +763,9 @@ class Mf2ff:
                     glyph.addAnchorPoint(attachment_point_class_name, lookup_type, x, y)
                 attachment_points = []
 
-                if self.options.ascent is None and charht > self.font.ascent:
+                if self.input_options.ascent is None and charht > self.font.ascent:
                     self.font.ascent = charht
-                if self.options.descent is None and chardp > self.font.descent:
+                if self.input_options.descent is None and chardp > self.font.descent:
                     self.font.descent = chardp
 
                 i += 1
@@ -911,16 +915,20 @@ class Mf2ff:
                     lookup_type = 'gpos_mark2base'
                 if lookup_feature == 'mkmk':
                     lookup_type = 'gpos_mark2mark'
+                subtable_name = lookup_type+'_subtable'
+                if self.input_options.index is not None:
+                    subtable_name += f'_{self.input_options.index}'
                 if lookup_type not in self.font.gpos_lookups:
                     if lookup_type == 'gpos_mark2mark' and 'gpos_mark2base' in self.font.gpos_lookups:
                         # make sure mark2mark lookup is after mark2base lookup, not first lookup (default)
                         addLookup_args = ["gpos_mark2base"] # after_lookup_name
                     else:
                         addLookup_args = []
-                    self.font.addLookup(lookup_type, lookup_type, None, ((lookup_feature, self.options.scripts),), *addLookup_args)
-                    self.font.addLookupSubtable(lookup_type, lookup_type+'_subtable')
-                if attachment_point_class_name not in self.font.getLookupSubtableAnchorClasses(lookup_type+'_subtable'):
-                    self.font.addAnchorClass(lookup_type+'_subtable', attachment_point_class_name)
+                    self.font.addLookup(lookup_type, lookup_type, None, ((lookup_feature, self.input_options.scripts),), *addLookup_args)
+                if subtable_name not in self.font.getLookupSubtables(lookup_type):
+                    self.font.addLookupSubtable(lookup_type, subtable_name)
+                if attachment_point_class_name not in self.font.getLookupSubtableAnchorClasses(subtable_name):
+                    self.font.addAnchorClass(subtable_name, attachment_point_class_name)
                 attachment_points.append((attachment_point_class_name, attachment_point_type, x, y))
 
             elif cmd_name[:16] == 'ligtable_switch_':
@@ -944,8 +952,11 @@ class Mf2ff:
                 lookup_type = 'gsub_ligature'
                 lookup_name = lookup_type + '_' + ot_feature
                 subtable_name = lookup_name + '_subtable'
-                if not lookup_name in self.font.gsub_lookups:
-                    self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.options.scripts),))
+                if self.input_options.index is not None:
+                    subtable_name += f'_{self.input_options.index}'
+                if lookup_name not in self.font.gsub_lookups:
+                    self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.input_options.scripts),))
+                if subtable_name not in self.font.getLookupSubtables(lookup_name):
                     self.font.addLookupSubtable(lookup_name, subtable_name)
                 # Try to create the ligature. FontForge will
                 # raise a TypeError, if one of the
@@ -956,41 +967,62 @@ class Mf2ff:
                 except TypeError as e:
                     print('! Error while adding ligature:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
             elif lig_type[0] == '|' and lig_type[3] == ' ':
-                if not 'gsub_single_after_' + char1 in self.font.gsub_lookups:
-                    self.font.addLookup('gsub_single_after_' + char1, 'gsub_single', (), ())
-                    self.font.addLookupSubtable('gsub_single_after_' + char1, 'gsub_single_after_' + char1 + '_subtable')
-                self.font[char2].addPosSub('gsub_single_after_' + char1 + '_subtable', lig)
-                if not 'gsub_contextchain' in self.font.gsub_lookups:
-                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.options.scripts),))
+                lookup_type = 'gsub_single'
+                lookup_name = lookup_type + '_after_' + char1
+                subtable_name = lookup_name + '_subtable'
+                if self.input_options.index is not None:
+                    subtable_name += f'_{self.input_options.index}'
+                if lookup_name not in self.font.gsub_lookups:
+                    self.font.addLookup(lookup_name, lookup_type, (), ())
+                if subtable_name not in self.font.getLookupSubtables(lookup_name):
+                    self.font.addLookupSubtable(lookup_name, subtable_name)
+                self.font[char2].addPosSub(subtable_name, lig)
+                if 'gsub_contextchain' not in self.font.gsub_lookups:
+                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.input_options.scripts),))
+                contextchain_subtable_name = 'gsub_contextchain_subtable_' + char1 + '_' + char2
                 self.font.addContextualSubtable(
-                    'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
-                    char1 + ' | ' + char2 + ' @<gsub_single_after_' + char1 + '> |'
+                    'gsub_contextchain', contextchain_subtable_name, 'glyph',
+                    char1 + ' | ' + char2 + ' @<' + lookup_name + '> |'
                 )
             elif lig_type[0] == ' ' and lig_type[3] == '|':
-                if not 'gsub_single_before_' + char2 in self.font.gsub_lookups:
-                    self.font.addLookup('gsub_single_before_' + char2, 'gsub_single', (), ())
-                    self.font.addLookupSubtable('gsub_single_before_' + char2, 'gsub_single_before_' + char2 + '_subtable')
-                self.font[char1].addPosSub('gsub_single_before_' + char2 + '_subtable', lig)
-                if not 'gsub_contextchain' in self.font.gsub_lookups:
-                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.options.scripts),))
+                lookup_type = 'gsub_single'
+                lookup_name = lookup_type + '_before_' + char2
+                subtable_name = lookup_name + '_subtable'
+                if self.input_options.index is not None:
+                    subtable_name += f'_{self.input_options.index}'
+                if lookup_name not in self.font.gsub_lookups:
+                    self.font.addLookup(lookup_name, lookup_type, (), ())
+                if subtable_name not in self.font.getLookupSubtables(lookup_name):
+                    self.font.addLookupSubtable(lookup_name, subtable_name)
+                self.font[char1].addPosSub(subtable_name, lig)
+                if 'gsub_contextchain' not in self.font.gsub_lookups:
+                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.input_options.scripts),))
+                contextchain_subtable_name = 'gsub_contextchain_subtable_' + char1 + '_' + char2
                 self.font.addContextualSubtable(
-                    'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
-                    '| ' + char1 + ' @<gsub_single_before_' + char2 + '> | ' + char2
+                    'gsub_contextchain', contextchain_subtable_name, 'glyph',
+                    '| ' + char1 + ' @<' + lookup_name + '> | ' + char2
                 )
             elif lig_type[0] == '|' and lig_type[3] == '|':
-                if not 'gsub_multiple_between_' + char1 + '_' + char2 in self.font.gsub_lookups:
-                    self.font.addLookup('gsub_multiple_between_' + char1 + '_' + char2, 'gsub_multiple', (), ())
-                    self.font.addLookupSubtable('gsub_multiple_between_' + char1 + '_' + char2, 'gsub_multiple_between_' + char1 + '_' + char2 + '_subtable')
-                self.font[char2].addPosSub('gsub_multiple_between_' + char1 + '_' + char2 + '_subtable', (lig, char2))
-                if not 'gsub_contextchain' in self.font.gsub_lookups:
-                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.options.scripts),))
+                lookup_type = 'gsub_multiple'
+                lookup_name = lookup_type + '_between_' + char1
+                subtable_name = lookup_name + '_' + char2 + '_subtable'
+                if self.input_options.index is not None:
+                    subtable_name += f'_{self.input_options.index}'
+                if lookup_name + '_' + char2 not in self.font.gsub_lookups:
+                    self.font.addLookup(lookup_name + '_' + char2, lookup_type, (), ())
+                if subtable_name not in self.font.getLookupSubtables(lookup_name + '_' + char2):
+                    self.font.addLookupSubtable(lookup_name + '_' + char2, subtable_name)
+                self.font[char2].addPosSub(subtable_name, (lig, char2))
+                if 'gsub_contextchain' not in self.font.gsub_lookups:
+                    self.font.addLookup('gsub_contextchain', 'gsub_contextchain', (), (('calt', self.input_options.scripts),))
+                contextchain_subtable_name = 'gsub_contextchain_subtable_' + char1 + '_' + char2
                 self.font.addContextualSubtable(
-                    'gsub_contextchain', 'gsub_contextchain_subtable_' + char1 + '_' + char2, 'glyph',
-                    char1 + ' | ' + char2 + ' @<gsub_multiple_between_' + char1 + '_' + char2 + '> |'
+                    'gsub_contextchain', contextchain_subtable_name, 'glyph',
+                    char1 + ' | ' + char2 + ' @<' + lookup_name + '_' + char2 + '> |'
                 )
 
         if len(pos_list) > 0:
-            if self.options.kerning_classes:
+            if self.input_options.kerning_classes:
                 leftGlyphs = kerning_list['left-glyphs']
                 rightGlyphs = kerning_list['right-glyphs']
                 offsets = kerning_list['offsets']
@@ -1018,34 +1050,24 @@ class Mf2ff:
                     # combination of glyphs to classes will be done at the end
             else:
                 # kerning pairs
-                if not 'gpos_pair' in self.font.gpos_lookups:
-                    self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.options.scripts),))
-                    self.font.addLookupSubtable('gpos_pair', 'gpos_pair_subtable')
+                lookup_type = 'gpos_pair'
+                subtable_name = lookup_type + '_subtable'
+                if self.input_options.index is not None:
+                    subtable_name += f'_{self.input_options.index}'
+                if lookup_type not in self.font.gpos_lookups:
+                    self.font.addLookup(lookup_type, lookup_type, (), (('kern', self.input_options.scripts),))
+                if subtable_name not in self.font.getLookupSubtables(lookup_type):
+                    self.font.addLookupSubtable(lookup_type, subtable_name)
                 for pos in pos_list:
                     char1 = self.to_glyph_name(pos[0][0])
                     char2 = self.to_glyph_name(pos[0][1])
                     kern = pos[1]
                     try:
-                        self.font[char1].addPosSub('gpos_pair_subtable', char2, 0, 0, kern, 0, 0, 0, 0, 0)
+                        self.font[char1].addPosSub(subtable_name, char2, 0, 0, kern, 0, 0, 0, 0, 0)
                     except TypeError as e:
                         print('! Error while adding kerning pair:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
 
-        for base_glyph_code, charlist in charlist_list:
-            charlist = [self.to_glyph_name(c) for c in charlist]
-            vertical_variants_str = ' '.join(charlist)
-            base_glyph_name = self.to_glyph_name(base_glyph_code)
-            base_glyph = self.font[base_glyph_name]
-            base_glyph.verticalVariants = vertical_variants_str
-
-        for base_glyph_code, vertical_components in extensible_list:
-            base_glyph_name = self.to_glyph_name(base_glyph_code)
-            base_glyph = self.font[base_glyph_name]
-            base_glyph.verticalComponents = (
-                tuple([self.to_glyph_name(vc[0]), vc[1]] + [self.font[vc[0]].texdepth if p == 'texdepth' else p for p in vc[2:]])
-                for vc in vertical_components
-            )
-
-        if self.options.kerning_classes and len(kerning_list['offsets']) > 0:
+        if self.input_options.kerning_classes and len(kerning_list['offsets']) > 0:
             # make every glyph a class
             leftClasses = [[glyph_name] for glyph_name in kerning_list['left-glyphs']]
             rightClasses = [[glyph_name] for glyph_name in kerning_list['right-glyphs']]
@@ -1085,9 +1107,28 @@ class Mf2ff:
             rightClasses = [None]+rightClasses
             offsets = [[0]+row for row in offsets]
             offset_flattened = [offset for row in offsets for offset in row]
-            if not 'gpos_pair' in self.font.gpos_lookups:
-                self.font.addLookup('gpos_pair', 'gpos_pair', (), (('kern', self.options.scripts),))
-            self.font.addKerningClass('gpos_pair', 'gpos_pair_subtable', leftClasses, rightClasses, offset_flattened)
+            lookup_type = 'gpos_pair'
+            subtable_name = 'gpos_pair_subtable'
+            if lookup_type not in self.font.gpos_lookups:
+                self.font.addLookup(lookup_type, lookup_type, (), (('kern', self.input_options.scripts),))
+            if self.input_options.index is not None:
+                subtable_name += f'_{self.input_options.index}'
+            self.font.addKerningClass(lookup_type, subtable_name, leftClasses, rightClasses, offset_flattened)
+
+        for base_glyph_code, charlist in charlist_list:
+            charlist = [self.to_glyph_name(c) for c in charlist]
+            vertical_variants_str = ' '.join(charlist)
+            base_glyph_name = self.to_glyph_name(base_glyph_code)
+            base_glyph = self.font[base_glyph_name]
+            base_glyph.verticalVariants = vertical_variants_str
+
+        for base_glyph_code, vertical_components in extensible_list:
+            base_glyph_name = self.to_glyph_name(base_glyph_code)
+            base_glyph = self.font[base_glyph_name]
+            base_glyph.verticalComponents = (
+                tuple([self.to_glyph_name(vc[0]), vc[1]] + [self.font[vc[0]].texdepth if p == 'texdepth' else p for p in vc[2:]])
+                for vc in vertical_components
+            )
 
     def apply_font_options_and_save(self):
         '''apply self.options to self.font and generate font file
@@ -1148,15 +1189,15 @@ class Mf2ff:
                 r'|ligtable|:|::|pp:|kern|=:|p=:|p=:g|=:p|=:pg|p=:p|p=:pg|p=:pgg|skipto'
                 r'|fontdimen|charlist|extensible|end'
                 +(
-                    r'|'+self.options.extension_attachment_points_macro_prefix+r'_(?:mark_(?:base|mark)|mkmk_(?:basemark|mark))'
-                    if self.options.extension_attachment_points else r''
+                    r'|'+self.input_options.extension_attachment_points_macro_prefix+r'_(?:mark_(?:base|mark)|mkmk_(?:basemark|mark))'
+                    if self.input_options.extension_attachment_points else r''
                 )
                 +(
                     r'|'+r'|'.join(
                         'ligtable_switch_' + ligtable_op_type + '_to_' + ligtable_ot_feature
                         for ligtable_op_type in self.supported_ligtable_ot_features
                         for ligtable_ot_feature in self.supported_ligtable_ot_features[ligtable_op_type]
-                    ) if self.options.extension_ligtable_switch else r''
+                    ) if self.input_options.extension_ligtable_switch else r''
                 )
                 +
             r')'
@@ -1373,7 +1414,7 @@ class Mf2ff:
             #   keeping (1, infinity).\
             # TODO Why __mfIIvec__pic_eqn__ ?
             'def shipout text t='
-                +('cull currentpicture dropping(-infinity,0);' if self.options.cull_at_shipout else '')
+                +('cull currentpicture dropping(-infinity,0);' if self.input_options.cull_at_shipout else '')
                 +m_+'shipout";__mfIIvec__pic_eqn__:=true;'
                 'show charcode,charext,'
                      'charwd*hppp,charht*hppp,chardp*hppp,charic*hppp,'
@@ -1456,7 +1497,7 @@ class Mf2ff:
                 'proofing:=0;' # don't make proofs
                 'fontmaking:=0;' # mf itself should not make a font
                 'tracingtitles:=0;' # no titles (e.g. "The letter O") in stdout
-                'pixels_per_inch:=' + str(self.options.ppi) + ';'
+                'pixels_per_inch:=' + str(self.input_options.ppi) + ';'
                 'blacker:=0;' # no "special correction"
                 'fillin:=0;' # no pixels that could influence their neighbors
                 'o_correction:=1;' # no reduction in overshoot
@@ -1467,38 +1508,38 @@ class Mf2ff:
             # attachment points\
             +(
                 (
-                    'def ' + self.options.extension_attachment_points_macro_prefix + '_mark_base(text t)='
+                    'def ' + self.input_options.extension_attachment_points_macro_prefix + '_mark_base(text t)='
                         +m_+'attachment_point_mark_base";'
                         'show t;'
                         +m__+
                     'enddef;'
-                    'def ' + self.options.extension_attachment_points_macro_prefix + '_mark_mark(text t)='
+                    'def ' + self.input_options.extension_attachment_points_macro_prefix + '_mark_mark(text t)='
                         +m_+'attachment_point_mark_mark";'
                         'show t;'
                         +m__+
                     'enddef;'
-                    'def ' + self.options.extension_attachment_points_macro_prefix + '_mkmk_basemark(text t)='
+                    'def ' + self.input_options.extension_attachment_points_macro_prefix + '_mkmk_basemark(text t)='
                         +m_+'attachment_point_mkmk_basemark";'
                         'show t;'
                         +m__+
                     'enddef;'
-                    'def ' + self.options.extension_attachment_points_macro_prefix + '_mkmk_mark(text t)='
+                    'def ' + self.input_options.extension_attachment_points_macro_prefix + '_mkmk_mark(text t)='
                         +m_+'attachment_point_mkmk_mark";'
                         'show t;'
                         +m__+
                     'enddef;'
-                ) if self.options.extension_attachment_points else ''
+                ) if self.input_options.extension_attachment_points else ''
             )
             +(
                 (
                     ''.join(
-                        'def ' + self.options.extension_ligtable_switch_macro_prefix + '_' + ligtable_op_type + '_to_' + ligtable_ot_feature + '='
+                        'def ' + self.input_options.extension_ligtable_switch_macro_prefix + '_' + ligtable_op_type + '_to_' + ligtable_ot_feature + '='
                             +m_+'ligtable_switch_'+ ligtable_op_type + '_to_' + ligtable_ot_feature +'";'+m__+
                         'enddef;'
                         for ligtable_op_type in self.supported_ligtable_ot_features
                         for ligtable_ot_feature in self.supported_ligtable_ot_features[ligtable_op_type]
                     )
-                ) if self.options.extension_ligtable_switch else ''
+                ) if self.input_options.extension_ligtable_switch else ''
             )
         )
 
@@ -1678,11 +1719,11 @@ class Mf2ff:
         picture.transform((1/s, 0, 0, 1/s, 0, 0))
 
     def fix_contours(self, layer):
-        """fixes contours by closing open contours if first and last point have the same coordinates
+        '''fixes contours by closing open contours if first and last point have the same coordinates
 
         Args:
             layer (fontforge.layer): layers whose contours should be fixed
-        """
+        '''
         for i_c in range(len(layer)):
             c = layer[i_c]
             if c.closed:

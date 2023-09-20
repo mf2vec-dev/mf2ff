@@ -2,6 +2,7 @@ import platform
 import re
 import sys
 from collections import namedtuple
+from copy import deepcopy
 from pathlib import Path
 
 
@@ -72,6 +73,8 @@ class Mf2ffOptions:
         for option_name, option_def in self._OPTION_DEFS.items():
             self._options[option_name] = option_def['default']
         self.__dict__['_OPTIONS_NAMEDTUPLE'] = namedtuple('options', list(self._OPTION_DEFS))
+        self.__dict__['_inputs'] = []
+        self.__dict__['_index'] = None
         self.__dict__['_params'] = {
             'remove_artefacts': {
                 'collinear': {
@@ -96,7 +99,11 @@ class Mf2ffOptions:
         Returns:
             Any: value of option
         '''
-        if name == 'params':
+        if name == 'index':
+            return self._index
+        elif name == 'inputs':
+            return self._inputs
+        elif name == 'params':
             return self._params
         try:
             return self._options[name]
@@ -114,7 +121,16 @@ class Mf2ffOptions:
             AttributeError: mf2ff doesn't has an option
             TypeError: value has wrong type for option
         '''
-        if name not in self._options:
+        if name == 'inputs':
+            self.__dict__['_inputs'] = value
+            return
+        if name == 'index':
+            self.__dict__['_index'] = value
+            return
+        elif name == 'params':
+            self.__dict__['_params'] = value
+            return
+        elif name not in self._options:
             raise AttributeError(f'mf2ff has no option `{name}\'', name=name, obj=self._OPTIONS_NAMEDTUPLE)
 
         option_type = self._OPTION_DEFS[name]['type']
@@ -134,6 +150,17 @@ class Mf2ffOptions:
             self._validate_list_of_strings(value, name)
 
         self._options[name] = value
+
+        if name == 'jobname':
+            self._options['mf_options'].append('-jobname=' + value)
+
+    def __deepcopy__(self, memo):
+        mf2ff_options_deepcopy = Mf2ffOptions(deepcopy(self._mf2ff_version))
+        mf2ff_options_deepcopy.__dict__['_options'] = deepcopy(self._options)
+        mf2ff_options_deepcopy.__dict__['_inputs'] = deepcopy(self._inputs)
+        mf2ff_options_deepcopy.__dict__['_params'] = deepcopy(self._params)
+        memo[id(self)] = mf2ff_options_deepcopy
+        return mf2ff_options_deepcopy
 
     def _validate_mf_alphabetic_token(self, value, name=None):
         if not re.match(r'[A-Za-z_]+', value):
@@ -228,7 +255,7 @@ class Mf2ffOptions:
         mf2ff_options_values = [
             'ascent', 'comment', 'copyright', 'descent', 'designsize',
             'familyname', 'fontlog', 'fontname', 'font-version', 'fullname',
-            'input-encoding', 'italicangle', 'output-directory',
+            'input-encoding', 'input-file', 'italicangle', 'output-directory',
             'output-encoding', 'ppi', 'stroke-accuracy', 'upm', 'upos',
             'uwidth'
         ]
@@ -245,6 +272,14 @@ class Mf2ffOptions:
                     arg = full_arg[1:]
                     arg_split = arg.split('=', 1)
                     option_name = arg_split[0]
+                    if ':' in option_name:
+                        option_name, option_index = option_name.split(':', 1)
+                        try:
+                            option_index = int(option_index)
+                        except ValueError:
+                            print(f'! Invalid option index `{option_index}\'. Option ignored.')
+                    else:
+                        option_index = None
                     try:
                         option_value = arg_split[1]
                     except IndexError:
@@ -256,22 +291,27 @@ class Mf2ffOptions:
                         ):
                             option_value = args[i+1]
                             i += 1
-                        option_value = None
+                        else:
+                            option_value = None
                     # options and negatable options directly passed to mf.
                     if option_name in mf_options:
-                        self.mf_options.append(full_arg)
-                    # name value options passed to mf (jobname also to mf2ff)
-                    elif option_name in mf_options_values + ['jobname']:
-                        if option_name == 'jobname':
-                            self.jobname = option_value
+                        # since mf_options is an array, it's get by reference
+                        self._get_option('mf_options', option_index, []).append(full_arg)
+                    elif option_name == 'jobname':
+                        self._set_option('jobname', option_value, option_index)
+                        # mf_options is appended by self.__setattr__()
+                    # name value options passed to mf
+                    elif option_name in mf_options_values:
                         if '=' in arg:
-                            self.mf_options.append(full_arg)
+                            # since mf_options is an array, it's get by reference
+                            self._get_option('mf_options', option_index, []).append(full_arg)
                         else:
-                            self.mf_options.extend([full_arg, args[i]]) # i was increased already
+                            # since mf_options is an array, it's get by reference
+                            self._get_option('mf_options', option_index, []).extend([full_arg, args[i]]) # i was increased already
                     elif option_name in ['base', 'progname']:
                         # progname also sets base name in mf # TODO
                         # TODO also mf_options?
-                        self.base = option_value
+                        self._set_option('base', option_value, option_index)
                     # negatable mf2ff options
                     elif option_name in mf2ff_options_negatable:
                         name = option_name.replace('-', '_')
@@ -285,7 +325,7 @@ class Mf2ffOptions:
                             and option_name[-13:] == '-macro-prefix'
                         ):
                         name = ('extension_' + option_name[10:-13].replace('-', '_') + '_macro_prefix')
-                        self.__setattr__(name, option_value)
+                        self._set_option(name, option_value, option_index)
                     # name value option which don't need to be passed to mf (stored as properties)
                     elif option_name in mf2ff_options_values:
                         val = option_value
@@ -300,17 +340,17 @@ class Mf2ffOptions:
                                 val = float(val)
                         except ValueError:
                             raise ValueError(f'invalid value `{val}\' for option `{option_name}\', cannot be converted to `{option_type}\'')
-                        self.__setattr__(name, val)
+                        self._set_option(name, val, option_index)
                     elif option_name == 'scripts':
                         scripts = self._tuple_str_to_scripts(option_value)
-                        self.scripts = scripts
+                        self._set_option('scripts', scripts, option_index)
                     elif option_name == 'version':
                         self._print_version_and_exit()
                     elif option_name == 'help':
                         self._print_help_and_exit()
                     else:
                         # current option doesn't match any of the previous cases
-                        print('! Unrecognized option `' + full_arg + '\'. Ignored.')
+                        print('! Unrecognized option `' + full_arg + '\'. Option ignored.')
                 else:
                     # If the argument starts with a - and options prcessing already
                     # finished, don't process any further arguments.
@@ -340,6 +380,26 @@ class Mf2ffOptions:
                     break
             i += 1 # next argument
 
+    def _set_option(self, option_name, option_value, option_index=None):
+        if option_index is None:
+            self.__setattr__(option_name, option_value)
+        else:
+            # ensure _inputs has enough elements. If already enough, following
+            # loop is skipped automatically
+            for _ in range(len(self._inputs), option_index+1):
+                self._inputs.append({})
+            self._inputs[option_index][option_name] = option_value
+
+    def _get_option(self, option_name, option_index=None, default=None):
+        if option_index is None:
+            return self.__getattr__(option_name)
+        else:
+            # ensure _inputs has enough elements. If already enough, following
+            # loop is skipped automatically
+            for _ in range(len(self._inputs), option_index+1):
+                self._inputs.append({})
+            return self._inputs[option_index].get(option_name, default)
+
     def update(self, new_options):
         '''Update mf2ff options
 
@@ -349,12 +409,36 @@ class Mf2ffOptions:
         for option_name, option_value in new_options.items():
             self.__setattr__(option_name.replace('-', '_'), option_value)
 
+    def iterinputs(self):
+        '''generator yielding instances of Mf2ffOptions updates with the options of self.inputs
+
+        Yields:
+            Mf2ffOptions: instances of Mf2ffOptions corresponding to self and self.inputs
+        '''
+        if len(self._inputs) == 0:
+            yield self
+            return
+        i = 0
+        if self._options['input_file'] is not None:
+            options = deepcopy(self)
+            options.inputs = []
+            options.index = i
+            yield options
+            i += 1
+        for input_options in self._inputs:
+            options = deepcopy(self)
+            options.inputs = []
+            options.index = i
+            options.update(input_options)
+            yield options
+            i += 1
+
     def _tuple_str_to_scripts(self, s):
         str_pattern = r'((?:\'\w*\'|\"\w*\"))'
         script_tuple_pattern = (
             r'\(\s*' + str_pattern + r'\s*,\s*\(\s*' # ('latn',(
             r'((?:|' # can be empty
-            r'' + str_pattern + r'\s*,\s*' # 'dflt', 
+            r'' + str_pattern + r'\s*,\s*' # 'dflt',
             + r'|' + str_pattern + r'(?:\s*,\s*' + str_pattern + r')+\s*,?' # 'dflt', 'ENG' # 'dflt', 'ENG', 'FRA'
             r'))'
             r'\s*\)\s*,?\s*\)' # ))
@@ -465,6 +549,12 @@ class Mf2ffOptions:
             '  -uwidth=NUM       set the font\'s underline width in font units\n'
             '  -version          output version information of mf2ff and exit\n'
             '\n'
+            'All options that affect the processing of .mf files can be suffixed with `:N\',\n'
+            'where N is an integer, to process multiple .mf files and combine the results\n'
+            'into a single font, e.g -input_file:0=font0.mf\n'
+            '-input_encoding:0=TeX-math-italic -input_file:1=font1.mf\n'
+            '-input_encoding:1=TeX-math-symbols [...]\n'
+            '\n'
             'The following options are also available and are passed to METAFONT:\n'
             '  -[no-]file-line-error\n'
             '  -halt-on-error\n'
@@ -475,7 +565,7 @@ class Mf2ffOptions:
             'METAFONT\'s -version option is not available here because it only outputs text\n'
             'to the terminal.\n'
             '\n'
-            'Please see METAFONT\'s help (run \'mf -help\') to get more information about\n'
+            'Please see METAFONT\'s help (run `mf -help\') to get more information about\n'
             'its options and for alternative usage patterns. Some of the METAFONT options\n'
             'may have no effect in mf2ff.\n'
             '\n'
