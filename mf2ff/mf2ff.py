@@ -1134,7 +1134,8 @@ class Mf2ff:
         '''apply self.options to self.font and generate font file
         '''
         if self.options.quadratic:
-            self.font.layers['Fore'].is_quadratic = True
+            for layer_name in self.font.layers:
+                self.font.layers[layer_name].is_quadratic = True
         if self.options.output_encoding is not None:
             self.reencode(self.options.output_encoding)
 
