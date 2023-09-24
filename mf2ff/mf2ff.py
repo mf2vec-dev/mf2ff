@@ -848,7 +848,12 @@ class Mf2ff:
                 i += 1
                 for j, k in enumerate(range(first_fontdimen, first_fontdimen + len(params))):
                     if k == 1:
-                        self.font.italicangle = -atan(params[j])*180/pi
+                        slant = params[j]
+                        if slant == 0:
+                            # prevent -0
+                            self.font.italicangle = 0.0
+                        else:
+                            self.font.italicangle = -atan(slant)*180/pi
                     elif k == 2:
                         self.font.createChar(32).width = int(hppp*params[j])
                     elif k == 5:
