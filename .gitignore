@@ -2,6 +2,8 @@ __pycache__/
 
 *.log
 *.sfd
+*.[0-9][0-9][0-9]gf
 *.[0-9][0-9][0-9][0-9]gf
+*.tfm
 
 examples/example_inputs/
