@@ -50,7 +50,7 @@ class Mf2ffOptions:
             'otf': {'type': bool, 'default': False},
             'output_directory': {'type': Path, 'default': Path.cwd()},
             'output_encoding': {'type': str | None, 'default': None},
-            'ppi': {'type': float, 'default': 1000},
+            'ppi': {'type': float, 'default': 1000.0},
             'quadratic': {'type': bool, 'default': False},
             'quiet': {'type': bool, 'default': False},
             'remove_artifacts': {'type': bool, 'default': False},
@@ -526,7 +526,7 @@ class Mf2ffOptions:
             '  -output-encoding=STR\n'
             '                    set encoding of the generated output.\n'
             '                      Set None to use same as input. (default: None)\n'
-            '  -ppi=INT          set pixels per inch passed to METAFONT (default: 1000)\n'
+            '  -ppi=NUM          set pixels per inch (default: 1000.0)\n'
             '  -[no-]quadratic   approximate cubic with quadratic Bézier curves\n'
             '  -[no-]remove-artifacts\n'
             '                    disable/enable removing of artifacts (default: disabled)\n'
