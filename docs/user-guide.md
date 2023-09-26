@@ -55,7 +55,7 @@ There are different types of options:
 
 |||
 |-|-|
-| CLI |`-`[`no-`]`cull-at-shipout` |
+| CLI | `-`[`no-`]`cull-at-shipout` |
 | API | `mf2ff.options.cull_at_shipout = True` / `False` |
 | default | disabled |
 
@@ -64,11 +64,24 @@ This option runs the cull command according to plain METAFONT's cullit macro bef
 Note that cull commands that are part of the definition of a glyph may result in the `cull-at-shipout` option not making any further changes for some glyphs.
 
 
+### `input-file:`*N* and the `:`*N* syntax
+
+|||
+|-|-|
+| CLI | `-input-file:`*N*`=path/to/font.mf` |
+| API | `mf2ff.options.inputs = [{'input_file': 'path/to/font.mf'}]` |
+| default | not used |
+
+This option provides the ability to specify multiple `.mf` files for `mf2ff`. Input files specified with `-input-file:`*N* (where *N* is an integer) will be processed after the (optional) input file specified after the options. To specify different options for different input files, append the option name with `:`*N* where *N* is the integer of the corresponding input file, e.g. `-input-encoding:0=TeX-math-symbols`. If an option is not specified using the `:`*N* syntax, options without `:`*N* are used as a fallback.
+
+The API equivalent is to specify a list of dicts. Each dict contains an `input_file` key and optionally other options, e.g. `mf2ff.options.inputs = [{'input_file': 'path/to/font.mf', 'input_encoding: 'TeX-math-symbols'}]`.
+
+
 ### `kerning-classes`
 
 |||
 |-|-|
-| CLI |`-`[`no-`]`kerning-classes` |
+| CLI | `-`[`no-`]`kerning-classes` |
 | API | `mf2ff.options.kerning_classes = True` / `False` |
 | default | disabled (kerning pairs are used) |
 
@@ -91,7 +104,7 @@ This should expand to a ligtable command which kerns all combinations of the fir
 
 |||
 |-|-|
-| CLI |`-`[`no-`]`quadratic` |
+| CLI | `-`[`no-`]`quadratic` |
 | API | `mf2ff.options.quadratic = True` / `False` |
 | default | enabled |
 
@@ -102,7 +115,7 @@ This option enables or disables the conversion of the contours on foreground lay
 
 |||
 |-|-|
-| CLI |`-`[`no-`]`remove-artifacts` |
+| CLI | `-`[`no-`]`remove-artifacts` |
 | API | `mf2ff.options.remove_artifacts = True` / `False` |
 | default | disabled |
 
@@ -113,7 +126,7 @@ This option removes contours and parts of contours which are closed and collinea
 
 |||
 |-|-|
-| CLI |`-`[`no-`]`set-italic-correction` |
+| CLI | `-`[`no-`]`set-italic-correction` |
 | API | `mf2ff.options.set_italic_correction = True` / `False` |
 | default | enabled |
 
@@ -124,13 +137,13 @@ This option enables or disables setting `glyph.italicCorrection` to the value of
 
 |||
 |-|-|
-| CLI |`-`[`no-`]`stroke-simplify` |
+| CLI | `-`[`no-`]`stroke-simplify` |
 | API | `mf2ff.options.stroke_simplify = True` / `False` |
 | default | enabled |
 
 |||
 |-|-|
-| CLI |`-stroke-accuracy=`*number* |
+| CLI | `-stroke-accuracy=`*number* |
 | API | `mf2ff.options.stroke_accuracy = ` *number* |
 | default | 0.25 (FontForge's default) |
 
@@ -143,11 +156,23 @@ FontForge's `layer.stroke()` function provides `simplify` and `accuracy` options
 
 |||
 |-|-|
-| CLI |`-upm=`*number* / `None`  |
+| CLI | `-upm=`*number* / `None`  |
 | API | `mf2ff.options.upm = ` *number* / `None` |
 | default | `None` |
 
-Specifying UPM (units per em or em size) triggers a preliminary run of METAFONT to estimate the correct ppi. Since METAFONT limits the numbers to `4095.99998`, anything above that is handled by using a fraction of the ideal ppi and scaling the font to the desired UPM in FontForge.
+Specifying UPM (units per em or em size) triggers a preliminary run of METAFONT to estimate the correct ppi. Since METAFONT limits numbers to `4095.99998`, anything above that is handled by using a fraction of the ideal ppi. The left over scaling to the desired UPM is either done by FontForge or using an additional factor in METAFONT (see [`use-ppi-factor`](#use-ppi-factor)).
+
+
+### `use-ppi-factor`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`use-ppi-factor`  |
+| API | `mf2ff.options.use_ppi_factor = True` / `False` |
+| default | `False` |
+
+If the pixels per inch value to reach the desired UPM exceeds METAFONT's infinity, this option will multiply the pixels per inch value by a factor to reach values above METAFONT's infinity. METAFONT tries to cope with this, but it might be dangerous.\
+If this feature is not active, FontForge will scale the font to the desired UPM, which may magnify rounding errors.
 
 
 ## Extensions
