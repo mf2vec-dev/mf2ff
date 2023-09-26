@@ -41,6 +41,7 @@ class Mf2ff:
     SIMPLE_PENS = ('(0,0) .. cycle', '(0,0)..controls (0,0) and (0,0) ..cycle')
 
     MF_INFINITY = 4095.99998
+    MF_OVERFLOW = 32767.99998
 
     def __init__(self):
         self.MARKER = '@mf2vec@'
@@ -130,11 +131,17 @@ class Mf2ff:
                 orig_upm = pre_run_results['ascent'] + pre_run_results['descent']
                 target_upm = self.input_options.upm
                 target_ppi = self.input_options.ppi * target_upm / orig_upm
-                self.ppi = target_ppi
+                mf_target_ppi = target_ppi
+                ppi_overflow_factor = 1
+                while mf_target_ppi > self.MF_OVERFLOW:
+                    # reduce mf_target_ppi to prevent arithmetic overflow in METAFONT
+                    ppi_overflow_factor += 1
+                    mf_target_ppi = target_ppi/ppi_overflow_factor
+                self.ppi = mf_target_ppi
                 while self.ppi > self.MF_INFINITY:
                     # create font with lower UPM to not exceed METAFONT's infinity with pixels_per_inch value
                     self.ppi_factor += 1
-                    self.ppi = target_ppi/self.ppi_factor
+                    self.ppi = mf_target_ppi/self.ppi_factor
                 # redefine self.mf_first_line with new self.ppi value
                 self.define_mf_first_line()
 
