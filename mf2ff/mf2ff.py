@@ -118,6 +118,7 @@ class Mf2ff:
             self.log_path = Path(self.input_options.output_directory) / (self.input_options.jobname + '.log')
 
             self.ppi = self.input_options.ppi
+            self.ppi_factor = 1
             self.define_mf_first_line()
 
             pre_run_required = self.input_options.upm is not None and (self.input_options.ascent is None or self.input_options.descent is None)
@@ -130,11 +131,10 @@ class Mf2ff:
                 target_upm = self.input_options.upm
                 target_ppi = self.input_options.ppi * target_upm / orig_upm
                 self.ppi = target_ppi
-                upm_factor = 1
                 while self.ppi > self.MF_INFINITY:
                     # create font with lower UPM to not exceed METAFONT's infinity with pixels_per_inch value
-                    upm_factor += 1
-                    self.ppi = target_ppi/upm_factor
+                    self.ppi_factor += 1
+                    self.ppi = target_ppi/self.ppi_factor
                 # redefine self.mf_first_line with new self.ppi value
                 self.define_mf_first_line()
 
@@ -1506,6 +1506,8 @@ class Mf2ff:
                 'fontmaking:=0;' # mf itself should not make a font
                 'tracingtitles:=0;' # no titles (e.g. "The letter O") in stdout
                 'pixels_per_inch:=' + str(self.ppi) + ';'
+                +('pixels_per_inch:=pixels_per_inch*' + str(self.ppi_factor) + ';' if self.input_options.use_ppi_factor else '')
+                +
                 'blacker:=0;' # no "special correction"
                 'fillin:=0;' # no pixels that could influence their neighbors
                 'o_correction:=1;' # no reduction in overshoot

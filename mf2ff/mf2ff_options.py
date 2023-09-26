@@ -67,6 +67,7 @@ class Mf2ffOptions:
             'ttf': {'type': bool, 'default': False},
             'upm': {'type': int | None, 'default': None},
             'upos': {'type': float | None, 'default': None},
+            'use_ppi_factor': {'type': bool, 'default': False},
             'uwidth': {'type': float | None, 'default': None},
         }
         self.__dict__['_options'] = {}
@@ -250,7 +251,7 @@ class Mf2ffOptions:
             'extension-ligtable-switch', 'extrema', 'fix-contours','hint',
             'is_type', 'kerning-classes', 'otf', 'quadratic', 'quiet',
             'remove-artifacts', 'set-italic-correction', 'sfd',
-            'stroke-simplify', 'time', 'ttf'
+            'stroke-simplify', 'time', 'ttf', 'use-ppi-factor'
         ]
         mf2ff_options_values = [
             'ascent', 'comment', 'copyright', 'descent', 'designsize',
@@ -546,6 +547,10 @@ class Mf2ffOptions:
             '  -[no-]ttf         disable/enable TrueType output generation (default: disabled)\n'
             '  -upm=NUM          desired UPM (units per em) or em size. If \'None`, UPM depends on ppi. (default: \'None`)\n'
             '  -upos=NUM         set the font\'s underline position in font units\n'
+            '  -[no-]use-ppi-factor\n'
+            '                      use a factor for the pixels per inch to reach target upm (default: disabled)\n'
+            '                      Note: This can result in values greater than MF\'s infinity.\n'
+            '                            MF tries to cope with it, but it might be dangerous.\n'
             '  -uwidth=NUM       set the font\'s underline width in font units\n'
             '  -version          output version information of mf2ff and exit\n'
             '\n'
