@@ -724,19 +724,20 @@ class Mf2ff:
 
             elif cmd_name == 'shipout':
                 shipout = self.shipout_pattern.search(self.cmd_body)
+                hppp = float(shipout.group(1))
 
                 # "The values of xoffset, yoffset, charcode, and charext are
                 # first rounded to integers, if necessary." (The METAFONTbook,
                 # p. 220)
-                charcode = round(float(shipout.group(1)))
-                charext = round(float(shipout.group(2)))
-                charwd = int(float(shipout.group(3)))
-                charht = int(float(shipout.group(4)))
-                chardp = int(float(shipout.group(5)))
-                charic = int(float(shipout.group(6)))
-                # 7 and 8 are chardx, chardy
-                xoffset = round(float(shipout.group(9)))
-                yoffset = round(float(shipout.group(10)))
+                charcode = round(float(shipout.group(2)))
+                charext = round(float(shipout.group(3)))
+                charwd = round(float(shipout.group(4))*hppp)
+                charht = round(float(shipout.group(5))*hppp)
+                chardp = round(float(shipout.group(6))*hppp)
+                charic = round(float(shipout.group(7))*hppp)
+                # 8 and 9 are chardx, chardy
+                xoffset = round(float(shipout.group(10)))
+                yoffset = round(float(shipout.group(11)))
 
                 glyph_code = charcode + charext*256
                 pic_name = self.cmds[i+1][2][1:-1] # clip quotes
@@ -1225,7 +1226,7 @@ class Mf2ff:
         self.pair_pattern = re.compile(r'\((.*?),(.*?)\)')
         self.join_pattern = re.compile(r'\.\.controls \((.*?),(.*?)\) and \((.*?),(.*?)\) \.\.(?:\((.*?),(.*?)\)|(cycle))')
         # all information given at the shipout of a character.
-        self.shipout_pattern = re.compile(r'(.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)$')
+        self.shipout_pattern = re.compile(r'(.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)>> (.*?)$')
         # all information in a metafont error
         self.error_pattern = re.compile(r'^! (?:.|\n)*?^l.(?:.|\n)*?\n\n', re.MULTILINE)
         # extension: attachment_point
@@ -1431,9 +1432,10 @@ class Mf2ff:
             'def shipout text t='
                 +('cull currentpicture dropping(-infinity,0);' if self.input_options.cull_at_shipout else '')
                 +m_+'shipout";__mfIIvec__pic_eqn__:=true;'
-                'show charcode,charext,'
-                     'charwd*hppp,charht*hppp,chardp*hppp,charic*hppp,'
-                     'chardx*hppp,chardy*hppp,xoffset,yoffset;'
+                'show hppp,'
+                    'charcode,charext,'
+                    'charwd,charht,chardp,charic,'
+                    'chardx,chardy,xoffset,yoffset;'
                 't;__mfIIvec__pic_eqn__:=false;'
                 +m__+
             'enddef;'
