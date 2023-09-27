@@ -757,17 +757,21 @@ class Mf2ff:
                 glyph = self.font.createMappedChar(glyph_code)
                 glyph.layers[1] = pic
 
+                # transform before setting glyph.width\
+                # glyph.transform has no 'noWidth' flag. This is strange
+                # because font.transform supports this flag and the GUI glyph
+                # transform dialog has a 'Transform Width Too' checkbox that
+                # can be unchecked.
+                if xoffset != 0 or yoffset != 0:
+                    # "The pixels of v are shifted by (xoffset, yoffset) as
+                    # they are shipped out." (The METAFONTbook, p. 220)
+                    glyph.transform((1.0, 0.0, 0.0, 1.0, xoffset, yoffset))
+
                 glyph.width = charwd
                 glyph.texheight = charht
                 glyph.texdepth = chardp
                 if self.input_options.set_italic_correction:
                     glyph.italicCorrection = charic
-
-                if xoffset != 0 or yoffset != 0:
-                    # "The pixels of v are shifted by (xoffset, yoffset) as they
-                    # are shipped out." (The METAFONTbook, p. 220)
-                    glyph.transform((1.0, 0.0, 0.0, 1.0, xoffset, yoffset))
-                    pass
 
                 for attachment_point_class_name, lookup_type, x, y in attachment_points:
                     glyph.addAnchorPoint(attachment_point_class_name, lookup_type, x, y)
