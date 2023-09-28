@@ -804,7 +804,10 @@ class Mf2ff:
                     self.last_cmd_body = self.cmds[j-1][2].split('>> ')[-1]
 
                     if cmd_name == ':':
-                        tmp_list.append([[self.last_cmd_body.split('"')[1] if self.last_cmd_body[0] == '"' else int(float(self.last_cmd_body))]])
+                        # "[...] after having been rounded to the nearest
+                        # integer; or it should be a string [...]" (The
+                        # METAFONTbook, p. 317)
+                        tmp_list.append([[self.last_cmd_body[1:-1] if self.last_cmd_body[0] == '"' else round(float(self.last_cmd_body))]])
                     elif cmd_name == '::':
                         if self.last_cmd_body in self.skiptos:
                             tmp_list += self.skiptos[self.last_cmd_body]
@@ -813,7 +816,7 @@ class Mf2ff:
                     elif cmd_name == 'kern':
                         char = self.last_cmd_body
                         kern = self.cmd_body
-                        char = char[1:-1] if char[0] == '"' else int(float(char))
+                        char = char[1:-1] if char[0] == '"' else round(float(char))
                         kern = int(float(kern)*hppp)
                         tmp_pos_list += deepcopy(tmp_list)
                         for k in range(len(tmp_pos_list)-len(tmp_list),len(tmp_pos_list)):
@@ -842,8 +845,8 @@ class Mf2ff:
 
                         char = self.last_cmd_body
                         lig = self.cmd_body
-                        char = char[1:-1] if char[0] == '"' else int(float(char))
-                        lig = lig [1:-1] if lig [0] == '"' else int(float(lig ))
+                        char = char[1:-1] if char[0] == '"' else round(float(char))
+                        lig = lig [1:-1] if lig [0] == '"' else round(float(lig ))
                         tmp_sub_list += deepcopy(tmp_list)
                         for i in range(len(tmp_sub_list)-len(tmp_list), len(tmp_sub_list)):
                             tmp_sub_list[i] = [lig, lig_type] + [tmp_sub_list[i][0] + [char]] + [current_ligtable_to_feature['lig']]
