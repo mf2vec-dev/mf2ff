@@ -187,37 +187,41 @@ In addition to that, a process needs to be implemented to make it easy to find a
 ## Background
 METAFONT, developed by D. E. Knuth since 1977, is a program that generates bitmap fonts from files written in the METAFONT language. Bitmap fonts have the disadvantage that they become blurred under magnification. METAFONT was developed so that for the particular resolution of the printer a separate font was generated. Nowadays, vector fonts are standard, and do not have this problem under magnification. Therefore, they are more suitable for use on displays. Moreover, they can be used with every printer without any restrictions.
 
-Besides the mf2vec approach with the `mf2ff` presented here, the following scripts for converting METAFONT files to vector fonts are available:
+Besides the mf2vec approach with the `mf2ff` implementation presented here, the following scripts for converting METAFONT files to vector fonts have been developed:
 
 | Name | Method |
 | - | - |
-| [MetaType1](https://ctan.org/pkg/metatype1) | METAPOST |
-| [mf2pt1](https://ctan.org/pkg/mf2pt1) | METAPOST |
-| [mftrace](http://lilypond.org/mftrace/) | Bitmap tracing |
-| [TeXtrace](https://pts.50.hu/textrace/) | Bitmap tracing |
+| <a href="https://github.com/linusromer/mf2outline" target="_blank" title="mf2outline, GitHub">mf2outline</a> | METAPOST |
+| <a href="https://tug.org/TUGboat/tb16-3/tb48kinc.pdf" target="_blank" title="MetaFog, PDF">MetaFog</a> | METAPOST |
+| <a href="https://ctan.org/pkg/metatype1" target="_blank" title="MetaType1, CTAN">MetaType1</a> | METAPOST |
+| <a href="https://ctan.org/pkg/mf2pt1" target="_blank" title="mf2pt1, CTAN">mf2pt1</a> | METAPOST |
+| <a href="http://lilypond.org/mftrace/" target="_blank" title="mftrace, Website">mftrace</a> | Bitmap tracing |
+| <a href="https://pts.50.hu/textrace/" target="_blank" title="TeXtrace, Website">TeXtrace</a> | Bitmap tracing |
 
-In this context, METAPOST means that the program METAPOST is used to convert every single character of the METAFONT file to a vector graphic. After that, the vector graphics are put together to get a vector font. This method has the disadvantage that METAPOST only can process a part of the METAFONT language.
+In this context, the METAPOST method refers to the use of METAPOST to convert each character of the METAFONT file into a vector graphic. After that, the vector graphics are put together to get a vector font. The disadvantage of this method is that METAPOST can only process a part of the METAFONT language; kerning, ligatures and culling are not implemented in METAPOST.
 
-Bitmap tracing means that METAFONT generates a bitmap font first. In a separate program, the bitmap of every glyph is traced and then put together to get a vector font.
+Bitmap tracing means that METAFONT generates a bitmap font first. In a separate program, the bitmap of each glyph is traced and then put together to get a vector font. Approximate outlines and therefore lost on-curve and control point information may result in rounded corners or straightened out curves.
 
-Each of the methods has specific downsides. Please take a look at the comparison below for more details.
+Each of the methods has specific downsides. Please take a look at [Karel Píška's *Comparison of Tools, Techniques and Results*](https://tug.org/TUGboat/tb25-0/piska.pdf) as well as the comparison below for more details.
 
 
 ### Comparison
-The following table shows a comparison of the available scripts to convert METAFONT files to vector fonts.
+The following table shows a comparison of the tools available for converting METAFONT files to vector fonts.
 
-| Characteristic | <a href="https://ctan.org/pkg/metafont" target="_blank" title="METAFONT, CTAN">METAFONT</a> | `mf2ff` | <a href="https://ctan.org/pkg/metatype1" target="_blank" title="MetaType1, CTAN">MetaType1</a> | <a href="https://ctan.org/pkg/mf2pt1" target="_blank" title="mf2pt1, CTAN">mf2pt1</a> | <a href="http://lilypond.org/mftrace/" target="_blank" title="mftrace, Website">mftrace</a> | <a href="https://pts.50.hu/textrace/" target="_blank" title="TeXtrace, Website">TeXtrace</a> |
-| - | - | - | - | - | - | - |
-| **Script is written in** | – | Python&nbsp;3 | Perl | Perl | Python&nbsp;2 | Perl |
-| **METAFONT file processing** | METAFONT | METAFONT | METAPOST | METAPOST | METAFONT | METAFONT |
-| **Subsequent processing** | – | FontForge | AWK&nbsp;/&nbsp;t1asm | t1asm | autotrace or Potrace&nbsp;/ t1asm | autotrace |
-| **Output format** | ❌ GF&nbsp;/ TFM | ✅ TTF, OTF, SFD | 🤔 PFB | 🤔 PFB | ✅ AFM&nbsp;/ PFA&nbsp;/ PFB&nbsp;/ TTF&nbsp;/ SVG | 🤔 PFB |
-| **Output quality** | ❌ bitmap | ✅ vector graphic | ✅ vector graphic | ✅ vector graphic | 🤔 traced bitmap | 🤔 traced bitmap |
-| **Redefines non-primitives&nbsp;/ requires non-primitives** | ✅ No | ✅ No | ❌ Yes | ❌ Yes | ✅ No | ✅ No |
-| **Unicode support** | ❌ No | ✅ Yes | ❔ | ❌ No | ❌ No | ❌ No |
-| **Supports pen-commands** | ✅ Yes | 🤔 Limited | ❌ No | 🤔 Limited | ✅ Yes | ✅ Yes |
-| **Supports ligature and kerning commands** | ✅ Yes | 🤔 Limited | ❔ | ❔ | ❔ | ❌ No |
-| **Supports variable fonts** | ❌ No | ❌ No, possibly in the future | ❌ No | ❌ No | ❔ | ❌ No |
+| Characteristic | <a href="https://ctan.org/pkg/metafont" target="_blank" title="METAFONT, CTAN">METAFONT</a> | `mf2ff` | <a href="https://github.com/linusromer/mf2outline" target="_blank" title="mf2outline, GitHub">mf2outline</a> | <a href="https://tug.org/TUGboat/tb16-3/tb48kinc.pdf" target="_blank" title="MetaFog, PDF">MetaFog</a> | <a href="https://ctan.org/pkg/metatype1" target="_blank" title="MetaType1, CTAN">MetaType1</a> | <a href="https://ctan.org/pkg/mf2pt1" target="_blank" title="mf2pt1, CTAN">mf2pt1</a> | <a href="http://lilypond.org/mftrace/" target="_blank" title="mftrace, Website">mftrace</a> | <a href="https://pts.50.hu/textrace/" target="_blank" title="TeXtrace, Website">TeXtrace</a> |
+| - | - | - | - | - | - | - | - | - |
+| **Script is written in** | – | Python&nbsp;3 | Python&nbsp;3 | ❔ | Perl | Perl | Python&nbsp;2 | Perl |
+| **METAFONT file processing** | META&shy;FONT | META&shy;FONT | META&shy;POST | META&shy;POST | META&shy;POST | META&shy;POST | META&shy;FONT | META&shy;FONT |
+| **Subsequent processing** | – | FontForge | FontForge | –&nbsp;/ ❔ | AWK&nbsp;/&nbsp;t1asm | t1asm | auto&shy;trace or potrace&nbsp;/ t1asm | auto&shy;trace |
+| **Output format** | ❌&nbsp;GF&nbsp;/ TFM | ✅&nbsp;TTF, OTF, SFD | ✅&nbsp;TTF, OTF, SFD | 🤔&nbsp;"a PostScript format" | 🤔&nbsp;PFB | 🤔&nbsp;PFB | ✅&nbsp;AFM&nbsp;/ PFA&nbsp;/ PFB&nbsp;/ TTF&nbsp;/ SVG | 🤔&nbsp;PFB |
+| **Output quality** | ❌&nbsp;bitmap | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | 🤔&nbsp;traced bitmap | 🤔&nbsp;traced bitmap |
+| **Redefines non-primitives&nbsp;/ requires non-primitives** | ✅&nbsp;No | ✅&nbsp;No | ❌&nbsp;Yes | ❔ | ❌&nbsp;Yes | ❌&nbsp;Yes | ✅&nbsp;No | ✅&nbsp;No |
+| **Unicode support** | ❌&nbsp;No | ✅&nbsp;Yes | ✅&nbsp;Yes | ❔ | ❔ | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No |
+| **Supports pen-commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | 🤔&nbsp;Limited | 🤔&nbsp;ellip&shy;tical only (?) | ❌&nbsp;No | 🤔&nbsp;Limited (polygon, discouraged) | ✅&nbsp;Yes | ✅&nbsp;Yes |
+| **Supports ligature and kerning commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | 🤔&nbsp;New commands | ❔ | ❔ | ❔ | ❔ | ❌&nbsp;No |
+| **Supports cull commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | ❌&nbsp;No | ❔ | ❌&nbsp;No | ❌&nbsp;No | ✅&nbsp;Yes | ✅&nbsp;Yes |
+| **Supports variable fonts** | ❌&nbsp;No | ❌&nbsp;No, maybe in the future | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❔ | ❌&nbsp;No |
+
 
 ## Examples
 The following are some examples created with `mf2ff`. The outlines and filled characters are shown as they are displayed in FontForge. Note that the results are not perfect yet.
