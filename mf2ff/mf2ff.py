@@ -299,8 +299,9 @@ class Mf2ff:
 
             if cmd_name == 'shipout' and (self.input_options.ascent is None or self.input_options.descent is None):
                 shipout = self.shipout_pattern.search(self.cmd_body)
-                charht = int(float(shipout.group(4)))
-                chardp = int(float(shipout.group(5)))
+                hppp = float(shipout.group(1))
+                charht = round(float(shipout.group(5))*hppp)
+                chardp = round(float(shipout.group(6))*hppp)
                 if self.input_options.ascent is None and charht > pre_run_results['ascent']:
                     pre_run_results['ascent'] = charht
                 if self.input_options.descent is None and chardp > pre_run_results['descent']:
