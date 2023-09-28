@@ -156,7 +156,9 @@ class Mf2ff:
                 print('Some error messages below come directly from fontforge and cannot be muted.')
                 print('Line is last known line from current file.')
 
-            if self.input_options.input_encoding is not None:
+            if self.input_options.input_encoding is None:
+                self.reencode('UnicodeFull')
+            else:
                 self.reencode(self.input_options.input_encoding)
 
             # picture variables are processed inside fontforge using layers.
