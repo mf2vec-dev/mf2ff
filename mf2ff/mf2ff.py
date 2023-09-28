@@ -328,6 +328,9 @@ class Mf2ff:
 
         base_glyphs_of_variants = {}
 
+        if self.input_options.charcode_from_last_ASCII_hex_arg:
+            last_ASCII_hex_arg_value = None
+
         if self.input_options.kerning_classes:
             kerning_list = {
                 'left-glyphs': [],
@@ -350,14 +353,23 @@ class Mf2ff:
 
             self.show_progress(start_time_ff, i)
 
+            if cmd_name == 'ASCII' and self.input_options.charcode_from_last_ASCII_hex_arg:
+                ascii_str_arg = self.cmd_body[1:-1]
+                if (len(ascii_str_arg) % 2) == 0: # only even number of characters
+                    try:
+                        # int(x, 16) allows upper, lower case and 0x/0X prefix
+                        last_ASCII_hex_arg_value = int(ascii_str_arg, 16)
+                    except ValueError:
+                        # ignore if it's not a valid hex string
+                        pass
+
             # addto\
             # TODO This section needs to be tested and maybe reworked! mf only
             # makes one line with each pen stroke so doublepath is needed for a
             # full stroke. Using contour with a pen results in an offset line,
             # left or right depending on the direction of the path. One of the
             # flags removeinternal or removeexternal might be useful to do this.
-
-            if cmd_name == 'addto':
+            elif cmd_name == 'addto':
                 addto = self.cmd_body[1:-1] # clip quotes
                 if self.cmds[i+1][0] == 'turningcheck':
                     # turningcheck is always followed by turningnumber
@@ -742,7 +754,14 @@ class Mf2ff:
                 xoffset = round(float(shipout.group(10)))
                 yoffset = round(float(shipout.group(11)))
 
-                glyph_code = charcode + charext*256
+                if self.input_options.charcode_from_last_ASCII_hex_arg and last_ASCII_hex_arg_value is not None:
+                    # This assumes that the last use of ASCII with a valid hex
+                    # string was to set charcode, e.g. no use of ASCII with a
+                    # valid hex string between beginchar ... endchar (if used).
+                    glyph_code = last_ASCII_hex_arg_value
+                    last_ASCII_hex_arg_value = None
+                else:
+                    glyph_code = charcode + charext*256
                 pic_name = self.cmds[i+1][2][1:-1] # clip quotes
                 pic = self.pictures[pic_name]
 
@@ -1215,6 +1234,10 @@ class Mf2ff:
                 r'|ligtable|:|::|pp:|kern|=:|p=:|p=:g|=:p|=:pg|p=:p|p=:pg|p=:pgg|skipto'
                 r'|fontdimen|charlist|extensible|end'
                 +(
+                    r'|ASCII'
+                    if self.input_options.charcode_from_last_ASCII_hex_arg else r''
+                )
+                +(
                     r'|'+self.input_options.extension_attachment_points_macro_prefix+r'_(?:mark_(?:base|mark)|mkmk_(?:basemark|mark))'
                     if self.input_options.extension_attachment_points else r''
                 )
@@ -1256,7 +1279,7 @@ class Mf2ff:
         return (
             'if unknown __mfIIvec__:boolean __mfIIvec__;__mfIIvec__:=true;fi '
             # First, some mf primitives are saved, so they are accessible even
-            # after redefining them.
+            # after redefining them or loading a different base file.
             'let __mfIIvec__orig_colon__= :;'
             'let __mfIIvec__orig_else__=else;'
             'let __mfIIvec__orig_elseif__=elseif;'
@@ -1532,6 +1555,20 @@ class Mf2ff:
                 'o_correction:=1;' # no reduction in overshoot
             'enddef;'
             'mode:=mfIIvec;'
+
+            ## ASCII
+            # In order to support glyph encoding values above 4095 or even
+            # above 32767, the argument is shown so mf2ff knows the original
+            # value. The original ASCII operation is carried out to support use
+            # cases like `ASCII"a" - ASCII"A"' or `ASCII"A"+i'.
+            +(
+                'let __mfIIvec__orig_ASCII__=ASCII;'
+                'vardef ASCII primary s='+m_+'ASCII";'
+                    'show s;'+m__+
+                    '__mfIIvec__orig_ASCII__ s '
+                'enddef;'
+                if self.input_options.charcode_from_last_ASCII_hex_arg else ''
+            )
 
             # extension\
             # attachment points\

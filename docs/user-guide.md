@@ -51,6 +51,22 @@ There are different types of options:
   These can be given a value of a specific type (e.g. numeric or string) using `-<option-name>=VALUE` or setting `mf2ff.options.<option_name> = VALUE`
 
 
+### `charcode-from-last-ASCII-hex-arg`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`charcode-from-last-ASCII-hex-arg` |
+| API | `mf2ff.options.charcode_from_last_ASCII_hex_arg = True` / `False` |
+| default | disabled |
+
+This option uses the last hexadecimal string of even length passed as an argument to `ASCII` since the last shipout command as the encoding value during shipout of the current character, ignoring charcode and charext. This is especially useful when using plain METAFONT's `beginchar` macro. 
+
+This option breaks backwards compatibility with METAFONT.
+
+Example:\
+`beginchar("20AC", ...); ... endchar;` will create the glyph at `0x20AC` (Euro sign, `€`) if this option is enabled (assuming Unicode input encoding). If this option is disabled, it will create (or overwrite) the glyph at `U+0032` (digit two, `2`) since it's the first character in the string.
+
+
 ### `cull-at-shipout`
 
 |||
@@ -169,7 +185,7 @@ Specifying UPM (units per em or em size) triggers a preliminary run of METAFONT 
 |-|-|
 | CLI | `-`[`no-`]`use-ppi-factor`  |
 | API | `mf2ff.options.use_ppi_factor = True` / `False` |
-| default | `False` |
+| default | disabled |
 
 If the pixels per inch value to reach the desired UPM exceeds METAFONT's infinity, this option will multiply the pixels per inch value by a factor to reach values above METAFONT's infinity. METAFONT tries to cope with this, but it might be dangerous.\
 If this feature is not active, FontForge will scale the font to the desired UPM, which may magnify rounding errors.

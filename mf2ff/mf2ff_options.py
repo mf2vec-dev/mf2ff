@@ -20,6 +20,7 @@ class Mf2ffOptions:
         self.__dict__['_OPTION_DEFS'] = {
             'ascent': {'type': int | None, 'default': None},
             'base': {'type': str, 'default': ''},
+            'charcode_from_last_ASCII_hex_arg': {'type': bool, 'default': False},
             'comment': {'type': str, 'default': ''},
             'copyright': {'type': str, 'default': ''},
             'cull_at_shipout': {'type': bool, 'default': False},
@@ -247,11 +248,12 @@ class Mf2ffOptions:
             'translate-file'
         ]
         mf2ff_options_negatable = [
-            'cull-at-shipout', 'debug', 'extension-attachment-points',
-            'extension-ligtable-switch', 'extrema', 'fix-contours','hint',
-            'is_type', 'kerning-classes', 'otf', 'quadratic', 'quiet',
-            'remove-artifacts', 'set-italic-correction', 'sfd',
-            'stroke-simplify', 'time', 'ttf', 'use-ppi-factor'
+            'charcode-from-last-ASCII-hex-arg', 'cull-at-shipout', 'debug',
+            'extension-attachment-points', 'extension-ligtable-switch',
+            'extrema', 'fix-contours','hint', 'is_type', 'kerning-classes',
+            'otf', 'quadratic', 'quiet', 'remove-artifacts',
+            'set-italic-correction', 'sfd', 'stroke-simplify', 'time', 'ttf',
+            'use-ppi-factor'
         ]
         mf2ff_options_values = [
             'ascent', 'comment', 'copyright', 'descent', 'designsize',
@@ -482,6 +484,11 @@ class Mf2ffOptions:
             '\n'
             'Options:\n'
             '  -ascent=NUM       set font\'s ascent\n'
+            '  -[no-]charcode-from-last-ASCII-hex-arg\n'
+            '                    disable/enable use of last hex string argument of ASCII primitive for encoding slot\n'
+            '                      In plain MF, this enables interpretation of first argument of beginchar as hex encoding value.\n'
+            '                      This breaks backwards compatibility with MF.\n'
+            '                      If disabled, the ASCII code of the first string character (i.e. first hex digit) is used.\n'
             '  -comment=STR      set font\'s comment\n'
             '  -copyright=STR    set font\'s copyright notice\n'
             '  -[no-]cull-at-shipout\n'
@@ -515,8 +522,8 @@ class Mf2ffOptions:
             '  -input-encoding=STR\n'
             '                    specify encoding of the input file.\n'
             '                      Set None to use Unicode. (default: None)\n'
-            '  -[no-]is_type     disable/enable definition of is_pen and is_picture (default: disabled)\n'
-            '                      as pen and picture, respectively\n'
+            '  -[no-]is_type     disable/enable definition of is_pen and is_picture\n'
+            '                      as pen and picture, respectively (default: disabled)\n'
             '  -italicangle=NUM  set font\'s italic angle\n'
             '  -[no-]kerning-classes\n'
             '                    disable/enable kerning classes instead of kerning pairs\n'
