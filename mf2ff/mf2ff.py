@@ -358,7 +358,8 @@ class Mf2ff:
                 if (len(ascii_str_arg) % 2) == 0: # only even number of characters
                     try:
                         # int(x, 16) allows upper, lower case and 0x/0X prefix
-                        last_ASCII_hex_arg_value = int(ascii_str_arg, 16)
+                        # second tuple element is the int that MF sees and uses for offsets
+                        last_ASCII_hex_arg_value = (int(ascii_str_arg, 16), ord(ascii_str_arg[0]))
                     except ValueError:
                         # ignore if it's not a valid hex string
                         pass
@@ -758,7 +759,9 @@ class Mf2ff:
                     # This assumes that the last use of ASCII with a valid hex
                     # string was to set charcode, e.g. no use of ASCII with a
                     # valid hex string between beginchar ... endchar (if used).
-                    glyph_code = last_ASCII_hex_arg_value
+                    glyph_code = last_ASCII_hex_arg_value[0]
+                    # Support offsets offsets based on hex codes.
+                    glyph_code += charcode - last_ASCII_hex_arg_value[1]
                     last_ASCII_hex_arg_value = None
                 else:
                     glyph_code = charcode + charext*256
