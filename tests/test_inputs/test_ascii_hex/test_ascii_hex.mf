@@ -1,0 +1,9 @@
+mode_setup;
+
+beginchar("0000", 100, 100, 0); % Gamma
+endchar;
+
+beginchar("U+03A0", 100, 100, 0); % Pi
+endchar;
+
+end

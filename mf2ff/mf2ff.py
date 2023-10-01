@@ -330,6 +330,7 @@ class Mf2ff:
 
         if self.input_options.charcode_from_last_ASCII_hex_arg:
             last_ASCII_hex_arg_value = None
+            last_ASCII_hex_arg_is_unicode = False
 
         if self.input_options.kerning_classes:
             kerning_list = {
@@ -343,9 +344,10 @@ class Mf2ff:
             for ligtable_op_type, ligtable_ot_features in self.supported_ligtable_ot_features.items()
         }
 
+        if self.input_options.extension_glyph or self.input_options.charcode_from_last_ASCII_hex_arg:
+            glyph_unicode = None
         if self.input_options.extension_glyph:
             glyph_name = None
-            glyph_unicode = None
             glyph_comment = None
             glyph_build = False
             glyph_references = []
@@ -373,9 +375,16 @@ class Mf2ff:
                 ascii_str_arg = self.cmd_body[1:-1]
                 if (len(ascii_str_arg) % 2) == 0: # only even number of characters
                     try:
+                        ascii_arg_first_char = ascii_str_arg[0]
+                        if ascii_str_arg[:2].lower() == 'u+':
+                            # remove U+ or u+ which is not supported by int()
+                            ascii_str_arg = ascii_str_arg[2:]
+                            last_ASCII_hex_arg_is_unicode = True
+                        else:
+                            last_ASCII_hex_arg_is_unicode = False
                         # int(x, 16) allows upper, lower case and 0x/0X prefix
                         # second tuple element is the int that MF sees and uses for offsets
-                        last_ASCII_hex_arg_value = (int(ascii_str_arg, 16), ord(ascii_str_arg[0]))
+                        last_ASCII_hex_arg_value = (int(ascii_str_arg, 16), ord(ascii_arg_first_char))
                     except ValueError:
                         # ignore if it's not a valid hex string
                         pass
@@ -779,6 +788,19 @@ class Mf2ff:
                     # Support offsets offsets based on hex codes.
                     glyph_code += charcode - last_ASCII_hex_arg_value[1]
                     last_ASCII_hex_arg_value = None
+                    if last_ASCII_hex_arg_is_unicode:
+                        # If it's a unicode value, reset glyph_code (glyph_code
+                        # is ASCII value of U or u). If no glyph_unicode was
+                        # defined using the glyph extension, use the unicode
+                        # value from ASCII. This means a unicode value from
+                        # ASCII is discarded if glyph_unicode is used.
+                        if (
+                            not self.input_options.extension_glyph
+                            or (self.input_options.extension_glyph and glyph_unicode is None)
+                        ):
+                            glyph_unicode = glyph_code
+                        glyph_code = -1
+                    last_ASCII_hex_arg_is_unicode = False
                 else:
                     glyph_code = charcode + charext*256
                 pic_name = self.cmds[i+1][2][1:-1] # clip quotes
@@ -795,14 +817,14 @@ class Mf2ff:
                     # overlaps again.
                     self.remove_overlap(pic)
 
-                if self.input_options.extension_glyph and glyph_unicode is not None and glyph_code == -1:
-                    # If no glyph_name is defined, use the unicode name instead
-                    # of a default name.
-                    if glyph_name is None:
+                if (self.input_options.extension_glyph or self.input_options.charcode_from_last_ASCII_hex_arg) and glyph_unicode is not None and glyph_code == -1:
+                    # If no glyph_name is defined, use the unicode default name
+                    # instead.
+                    if not self.input_options.extension_glyph or glyph_name is None:
                         # TODO Better check with actual code point of current
                         # encoding. How to get it?
                         glyph_name = fontforge.nameFromUnicode(glyph_unicode)
-                    elif glyph_name[0] == '"':
+                    elif self.input_options.extension_glyph and glyph_name[0] == '"':
                         glyph_name = glyph_name[1:-1]
                     glyph = self.font.createChar(glyph_unicode, glyph_name)
                 elif self.input_options.extension_glyph and glyph_unicode is None and glyph_code == -1 and glyph_name is not None:

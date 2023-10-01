@@ -96,10 +96,10 @@ Because using multiple fonts and having to switch between them is not practical 
   The value `charcode + charext*256` determines the code point in the input encoding.\
   The values of `charcode` and `charext` should not exceed 4095.99998 and can not exceed 32767.99998.\
   This is compatible to METAFONT as long as $0 \le{}$`charext`${}\le 255$ and the restrictions of METAFONT are kept in mind for glyphs with same `charcode` but different `charext`.
-- Define `charcode` and passing a hexadecimal string to `ASCII`:\
+- Passing a hexadecimal string to `ASCII`:\
   In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as a hexadecimal string.\
   The option `charcode-from-last-ASCII-hex-arg` needs to be active.\
-  The value of the hexadecimal string passed to `ASCII` determines the code point in the input encoding.\
+  The value of the hexadecimal string passed to `ASCII` determines either the unicode value if the string starts with `U+`, or the code point in the input encoding otherwise.\
   This is *not* compatible to METAFONT, `ASCII` evaluates to the ASCII value of the first character in the argument.
 - Define `charcode` as `-1` and `glyph_unicode` (optionally define `glyph_name`):\
   In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as `-1` or an empty string (`""`) and defining `glyph_unicode`.\
@@ -342,7 +342,8 @@ The following macros are available when this extension is active:
 - `glyph_auto_instruct;` to automatically add TrueType instructions to the glyph.
 - `glyph_add_horizontal_hint(y_start, y_end);` to add a custom PostScript horizontal (stem) hint to the glyph.
 - `glyph_add_vertical_hint(x_start, x_end);` to add a custom PostScript vertical (stem) hint to the glyph.
-- `glyph_add_diagonal_hint(p, q, d);` to add a custom diagonal (stem) hint to the glyph as three pairs representing two points `p`, `q` and a direction `d`, e.g. to improve automatic TrueType instructions.
+- `glyph_add_diagonal_hint(p, q, d);` to add a custom diagonal (stem) hint to the glyph as three pairs representing two points `p`, `q` and a direction `d`, e.g. to improve automatic TrueType instructions.\
+  The direction `d` can be omitted. In this case d is computed from `p` and `q`.
 - `glyph_replaced_by(g_name, opentype_feature);` to associate the referenced glyph as a replacement glyph with an OpenType single substitution feature to the current glyph.
 - `glyph_replacement_of(g_name, opentype_feature);` to associate the current glyph as a replacement glyph with an OpenType single substitution feature to the specified glyph.
 
