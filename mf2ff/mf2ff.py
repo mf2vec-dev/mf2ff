@@ -343,6 +343,22 @@ class Mf2ff:
             for ligtable_op_type, ligtable_ot_features in self.supported_ligtable_ot_features.items()
         }
 
+        if self.input_options.extension_glyph:
+            glyph_name = None
+            glyph_unicode = None
+            glyph_comment = None
+            glyph_build = False
+            glyph_references = []
+            glyph_add_extrema = False
+            glyph_add_inflections = False
+            glyph_auto_hint = False
+            glyph_auto_instruct = False
+            glyph_replacements = []
+            glyph_hints = []
+
+            self.glyph_references = []
+            self.glyph_replacements = []
+
         i = 0
         while i < len(self.cmds):
             cmd = self.cmds[i]
@@ -779,7 +795,20 @@ class Mf2ff:
                     # overlaps again.
                     self.remove_overlap(pic)
 
-                glyph = self.font.createMappedChar(glyph_code)
+                if self.input_options.extension_glyph and glyph_unicode is not None and glyph_code == -1:
+                    # If no glyph_name is defined, use the unicode name instead
+                    # of a default name.
+                    if glyph_name is None:
+                        # TODO Better check with actual code point of current
+                        # encoding. How to get it?
+                        glyph_name = fontforge.nameFromUnicode(glyph_unicode)
+                    elif glyph_name[0] == '"':
+                        glyph_name = glyph_name[1:-1]
+                    glyph = self.font.createChar(glyph_unicode, glyph_name)
+                elif self.input_options.extension_glyph and glyph_unicode is None and glyph_code == -1 and glyph_name is not None:
+                    glyph = self.font.createChar(-1, glyph_name)
+                else:
+                    glyph = self.font.createMappedChar(glyph_code)
                 glyph.layers[1] = pic
 
                 # transform before setting glyph.width\
@@ -801,6 +830,90 @@ class Mf2ff:
                 for attachment_point_class_name, lookup_type, x, y in attachment_points:
                     glyph.addAnchorPoint(attachment_point_class_name, lookup_type, x, y)
                 attachment_points = []
+
+                if self.input_options.extension_glyph:
+                    # Setting glyph.glyphname or glyph.unicode after creation
+                    # somehow messes up the encoding.
+                    if glyph_comment is not None:
+                        if glyph_comment[0] == '"':
+                            glyph_comment = glyph_comment[1:-1]
+                        glyph.comment = glyph_comment
+                    if glyph_build:
+                        glyph.build()
+                    if len(glyph_references) > 0:
+                        for referenced_name, transform_str in glyph_references:
+                            transform_str = transform_str[1:-1] # remove '(' and ')'
+                            mf_transform = [float(t) for t in transform_str.split(',')]
+                            ps_matrix = tuple(mf_transform[2:] + mf_transform[:2]) # move translate parts to end
+                            if referenced_name[0] == '"':
+                                referenced_name = referenced_name[1:-1]
+                            self.glyph_references.append((glyph.glyphname, self.to_glyph_name(referenced_name), ps_matrix))
+                    if glyph_add_extrema:
+                        glyph.addExtrema()
+                    if glyph_add_inflections:
+                        glyph.addInflections()
+                    if glyph_auto_hint:
+                        glyph.autoHint()
+                    # do manual hints after autoHint since autoHint clears hints
+                    # do manual hints before autoInstr since autoInstr is based on hints
+                    if len(glyph_hints) > 0:
+                        for hint_type, *args in glyph_hints:
+                            if hint_type == 'diagonal':
+                                # args are 2 to 3 strings of a pair each
+                                args = [a[1:-1].split(',') for a in args] # remove '(', ')' and split x and y parts
+                                args = [(round(float(a[0]), 6), round(float(a[1]), 6)) for a in args]
+                                dhints = list(glyph.dhints)
+                                p0 = args[0]
+                                p1 = args[1]
+                                if len(args) == 3:
+                                    unit_vec = args[2]
+                                else:
+                                    unit_vec = (p1[1]-p0[1], p1[0]-p0[0]) # perpendicular to vector p0 -> p1
+                                    # The unit vector passed to FontForge
+                                    # doesn't need to have length 1. FontForge
+                                    # will do it's own normalization. No need
+                                    # to do it here.
+                                dhints.append((p0, p1, unit_vec))
+                                # TODO Why aren't they displayed in the GUI?
+                                # dhints created in the gui are. The only
+                                # difference is that the numbers of dhints
+                                # created in the GUI are rounded to 6 digits,
+                                # but FontForge's normalization of unit_vec
+                                # makes this impossible from the Python API.
+                                glyph.dhints = tuple(dhints)
+                            else:
+                                # glyph.addHint() hangs, using hhints/vhints
+                                args = [float(a) for a in args]
+                                if hint_type == 'horizontal':
+                                    hints = glyph.hhints
+                                else:
+                                    hints = glyph.vhints
+                                start = min(args)
+                                width = max(args) - min(args)
+                                hints = tuple(list(hints) + [(start, width)])
+                                if hint_type == 'horizontal':
+                                    glyph.hhints = hints
+                                else:
+                                    glyph.vhints = hints
+                    if glyph_auto_instruct:
+                        glyph.autoInstr()
+                    if len(glyph_replacements) > 0:
+                        # replace None by glyph name
+                        glyph_replacements = [tuple(glyph.glyphname if r is None else r for r in gr) for gr in glyph_replacements]
+                        self.glyph_replacements.extend(glyph_replacements)
+
+                    # reset everything for next glyph
+                    glyph_name = None
+                    glyph_unicode = None
+                    glyph_comment = None
+                    glyph_build = False
+                    glyph_references = []
+                    glyph_add_extrema = False
+                    glyph_add_inflections = False
+                    glyph_auto_hint = False
+                    glyph_auto_instruct = False
+                    glyph_hints = []
+                    glyph_replacements = []
 
                 if self.input_options.ascent is None and charht > self.font.ascent:
                     self.font.ascent = charht
@@ -977,6 +1090,58 @@ class Mf2ff:
                 if attachment_point_class_name not in self.font.getLookupSubtableAnchorClasses(subtable_name):
                     self.font.addAnchorClass(subtable_name, attachment_point_class_name)
                 attachment_points.append((attachment_point_class_name, attachment_point_type, x, y))
+
+            elif cmd_name[:6] == 'glyph_':
+                glyph_cmd = cmd_name[6:]
+                cmd_body_parts = self.cmd_body.split('>> ')
+                if glyph_cmd in ['name', 'unicode', 'comment']:
+                    if len(cmd_body_parts) != 1:
+                        raise TypeError(f'{self.input_options.extension_glyph_macro_prefix}_{glyph_cmd} takes exactly one argument ({len(cmd_body_parts)} given)')
+                    arg = cmd_body_parts[0]
+                    if glyph_cmd in ['name', 'comment']:
+                        if arg[0] == '"':
+                            arg = arg[1:-1]
+                        else:
+                            raise TypeError(f'argument of {self.input_options.extension_glyph_macro_prefix}_{glyph_cmd} needs to be a string')
+                        if glyph_cmd == 'name':
+                            glyph_name = arg
+                        elif glyph_cmd == 'comment':
+                            glyph_comment = arg
+                    else: # 'unicode'
+                        if arg[0] == '"':
+                            arg = arg[1:-1]
+                            if arg.lower()[:2] == 'u+':
+                                # remove U+ or u+ which is not supported by int()
+                                arg = arg[2:]
+                            arg = int(arg, 16)
+                        else:
+                            arg = round(float(arg))
+                        glyph_unicode = arg
+                elif glyph_cmd == 'build':
+                    glyph_build = True
+                elif glyph_cmd == 'add_reference':
+                    if len(cmd_body_parts) != 2:
+                        raise TypeError(f'{self.input_options.extension_glyph_macro_prefix}_{glyph_cmd} takes exactly two arguments ({len(cmd_body_parts)} given)')
+                    glyph_references.append(cmd_body_parts)
+                elif glyph_cmd == 'add_extrema':
+                    glyph_auto_hint = True
+                elif glyph_cmd == 'add_inflections':
+                    glyph_auto_instruct = True
+                elif glyph_cmd == 'auto_hint':
+                    glyph_auto_hint = True
+                elif glyph_cmd == 'auto_instruct':
+                    glyph_auto_instruct = True
+                elif glyph_cmd in ['add_horizontal_hint', 'add_vertical_hint', 'add_diagonal_hint']:
+                    glyph_hints.append([glyph_cmd[4:-5]] + cmd_body_parts)
+                elif glyph_cmd in ['replaced_by', 'replacement_of']:
+                    if len(cmd_body_parts) != 2:
+                        raise TypeError(f'{self.input_options.extension_glyph_macro_prefix}_{glyph_cmd} takes exactly two arguments ({len(cmd_body_parts)} given)')
+                    # cmd_body_parts is [other_glyph_name, ot_feature]
+                    cmd_body_parts = [p[1:-1] if p[0] == '"' else p for p in cmd_body_parts] # remove "
+                    replacement = cmd_body_parts + [None] # None will be replaced by current glyph's name
+                    if glyph_cmd == 'replaced_by':
+                        replacement.reverse() # current glyph always first
+                    glyph_replacements.append(replacement)
 
             elif cmd_name[:16] == 'ligtable_switch_':
                 ligtable_op_type, ot_feature = cmd_name[16:].split('_to_')
@@ -1177,6 +1342,19 @@ class Mf2ff:
                 for vc in vertical_components
             )
 
+        if self.input_options.extension_glyph:
+            for glyph_name, reference_name, reference_ps_matrix in self.glyph_references:
+                self.font[glyph_name].addReference(reference_name, reference_ps_matrix)
+
+            for glyph_name, ot_feature, replacement_glyph_name in self.glyph_replacements:
+                lookup_type = 'gsub_single'
+                lookup_name = lookup_type + '_' + ot_feature
+                subtable_name = lookup_name + '_subtable'
+                if lookup_name not in self.font.gsub_lookups:
+                    self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.input_options.scripts),))
+                    self.font.addLookupSubtable(lookup_name, subtable_name)
+                self.font[glyph_name].addPosSub(subtable_name, replacement_glyph_name)
+
     def apply_font_options_and_save(self):
         '''apply self.options to self.font and generate font file
         '''
@@ -1243,6 +1421,13 @@ class Mf2ff:
                 +(
                     r'|'+self.input_options.extension_attachment_points_macro_prefix+r'_(?:mark_(?:base|mark)|mkmk_(?:basemark|mark))'
                     if self.input_options.extension_attachment_points else r''
+                )
+                +(
+                    r'|glyph_(?:'
+                        r'name|unicode|comment|build|add_reference|add_(?:extrema|inflections)|auto_(?:hint|instruct)'
+                        r'|add_(?:horizontal|vertical|diagonal)_hint|replaced_by|replacement_of'
+                    r')'
+                    if self.input_options.extension_glyph else r''
                 )
                 +(
                     r'|'+r'|'.join(
@@ -1599,6 +1784,42 @@ class Mf2ff:
                     'enddef;'
                 ) if self.input_options.extension_attachment_points else ''
             )
+            # glyph
+            +(
+                (
+                    ''.join(
+                        'def ' + self.input_options.extension_glyph_macro_prefix + '_' + glyph_cmd + '='
+                            +m_+'glyph_'+ glyph_cmd +'";'+m__+
+                        'enddef;'
+                        for glyph_cmd in [
+                            'build',
+                            'add_extrema', 'add_inflections',
+                            'auto_hint', 'auto_instruct'
+                        ]
+                    )
+                    +''.join(
+                        'def ' + self.input_options.extension_glyph_macro_prefix + '_' + glyph_cmd + ' expr e='
+                            +m_+'glyph_'+ glyph_cmd +'";'
+                            'show e;'
+                            +m__+
+                        'enddef;'
+                        for glyph_cmd in ['name', 'unicode', 'comment']
+                    )
+                    +''.join(
+                        'def ' + self.input_options.extension_glyph_macro_prefix + '_' + glyph_cmd + '(text t)='
+                            +m_+'glyph_'+ glyph_cmd +'";'
+                            'show t;'
+                            +m__+
+                        'enddef;'
+                        for glyph_cmd in [
+                            'add_reference',
+                            'add_horizontal_hint', 'add_vertical_hint', 'add_diagonal_hint',
+                            'replaced_by', 'replacement_of'
+                        ]
+                    )
+                ) if self.input_options.extension_glyph else ''
+            )
+            # ligtable switch
             +(
                 (
                     ''.join(

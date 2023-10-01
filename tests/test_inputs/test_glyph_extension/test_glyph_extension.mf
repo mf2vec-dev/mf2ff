@@ -1,0 +1,66 @@
+mode_setup;
+
+beginchar("A", 100, 100, 0);
+    glyph_comment("comment on A");
+endchar;
+
+beginchar("", 100, 100, 0);
+    glyph_unicode("0393");
+endchar;
+
+beginchar("", 100, 100, 0);
+    glyph_unicode("0394");
+    glyph_name("Delta"); % default is uni0394 (Adobe Glyph List's Delta is U+2206)
+endchar;
+
+beginchar("", 100, 100, 0);
+    glyph_unicode("00F1");
+endchar;
+
+beginchar("", 100, 100, 0);
+    glyph_name("b.sc");
+endchar;
+
+beginchar("f", 50, 100, 0);
+    fill (10, 0) -- (10, 70) -- (40, 70) -- (30, 60) -- (20, 60) -- (20, 40) -- (30, 40) -- (30, 30) -- (20, 30) -- (20, 0) -- cycle;
+    glyph_auto_hint;
+    glyph_auto_instruct;
+endchar;
+
+beginchar(hex"0b", 100, 100, 0);
+    % ff ligature
+    glyph_build;
+endchar;
+
+beginchar("?", 100, 100, 0);
+endchar;
+
+beginchar(hex"3e", 100, 100, 0);
+    % questiondown
+    glyph_add_reference("?", identity rotated 180 shifted (0, -20));
+endchar;
+
+beginchar("b", 100, 100, 0);
+    glyph_replaced_by("b.sc", "smcp");
+endchar;
+
+beginchar("", 100, 100, 0);
+    glyph_name("b.sc");
+endchar;
+
+beginchar("c", 100, 100, 0);
+endchar;
+
+beginchar("", 100, 100, 0);
+    glyph_name("c.sc");
+    glyph_replacement_of("c", "smcp");
+endchar;
+
+beginchar("h", 100, 100, 0);
+    glyph_add_horizontal_hint(10, 20);
+    glyph_add_vertical_hint(30, 40);
+    glyph_add_diagonal_hint((50, 60), (70,80));
+    glyph_add_diagonal_hint((90, 100), (110,120), up rotated 30);
+endchar;
+
+end

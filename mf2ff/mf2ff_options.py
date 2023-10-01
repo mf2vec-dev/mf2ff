@@ -30,6 +30,8 @@ class Mf2ffOptions:
             'designsize': {'type': float | None, 'default': None},
             'extension_attachment_points_macro_prefix': {'type': str, 'default': 'attachment_point'},
             'extension_attachment_points': {'type': bool, 'default': False},
+            'extension_glyph_macro_prefix': {'type': str, 'default': 'glyph'},
+            'extension_glyph': {'type': bool, 'default': False},
             'extension_ligtable_switch_macro_prefix': {'type': str, 'default': 'ligtable_switch'},
             'extension_ligtable_switch': {'type': bool, 'default': False},
             'extrema': {'type': bool, 'default': False},
@@ -262,7 +264,9 @@ class Mf2ffOptions:
             'output-encoding', 'ppi', 'stroke-accuracy', 'upm', 'upos',
             'uwidth'
         ]
-        extension_names_macro_prefix = ['attachment-points', 'ligtable-switch']
+        extension_names_macro_prefix = [
+            'attachment-points', 'glyph', 'ligtable-switch'
+        ]
 
         i = 1 # i == 0 is mf2ff
         while i < len(args):
@@ -506,9 +510,14 @@ class Mf2ffOptions:
             '                      <macro-prefix>_mark_base, <macro-prefix>_mark_mark, <macro-prefix>_mkmk_basemark, <macro-prefix>_mkmk_mark\n'
             '  -[no-]extension-ligtable-switch\n'
             '                    enable/disable ligtable switch extension (default: disabled)\n'
+            '  -extension-glyph-macro-prefix=STR\n'
+            '                    set macro name prefix (default: \'glyph\')\n'
+            '                      choose so that in mf files there are no glyph macros.\n'
+            '  -[no-]extension-glyph\n'
+            '                    enable/disable glyph extension (default: disabled)\n'
             '  -extension-ligtable-switch-macro-prefix=STR\n'
             '                    set macro name prefix (default: \'ligtable\')\n'
-            '                      choose so that in mf files there are no ligtable switch commands.\n'
+            '                      choose so that in mf files there are no ligtable switch macros.\n'
             '  -[no-]extrema     disable/enable extrema adding (default: disabled)\n'
             '  -familyname=STR   set font\'s family name\n'
             '  -[no-]fix-contours\n'

@@ -10,6 +10,7 @@ class Mf2ffTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.test_dir = Path(__file__).parent
+        cls.fontforge = fontforge
         try:
             cls.set_up_class() # test case specific class setup
         except AttributeError:

@@ -8,6 +8,29 @@ You can use mf2ff in two ways:
 
 This tutorial should provide an introduction to both ways. Afterward, useful options are explained which can be used in both. The last section describes extensions to the METAFONT language that are supported by `mf2ff`.
 
+- [User Guide](#user-guide)
+  - [Run `mf2ff` on the command line](#run-mf2ff-on-the-command-line)
+  - [Use `mf2ff` from a Python script](#use-mf2ff-from-a-python-script)
+  - [Unicode support](#unicode-support)
+  - [Specifying encoding point, Unicode value and glyph name](#specifying-encoding-point-unicode-value-and-glyph-name)
+  - [Options](#options)
+    - [`charcode-from-last-ASCII-hex-arg`](#charcode-from-last-ascii-hex-arg)
+    - [`cull-at-shipout`](#cull-at-shipout)
+    - [`input-encoding`](#input-encoding)
+    - [`input-file:`*N* and the `:`*N* syntax](#input-filen-and-the-n-syntax)
+    - [`kerning-classes`](#kerning-classes)
+    - [`quadratic`](#quadratic)
+    - [`remove-artifacts`](#remove-artifacts)
+    - [`set-italic-correction`](#set-italic-correction)
+    - [`stroke-simplify` \& `stroke-accuracy`](#stroke-simplify--stroke-accuracy)
+    - [`upm`](#upm)
+    - [`use-ppi-factor`](#use-ppi-factor)
+  - [Extensions](#extensions)
+    - [Attachment points](#attachment-points)
+    - [Glyph extension](#glyph-extension)
+    - [Ligtable switch](#ligtable-switch)
+    - [General note on extensions](#general-note-on-extensions)
+
 
 ## Run `mf2ff` on the command line
 ```sh
@@ -42,13 +65,66 @@ glyph = font['A']
 Please refer to [FontForge's documentation](https://fontforge.org/docs/scripting/python.html#trivial-example) for an introduction and a reference to [all supported features](https://fontforge.org/docs/scripting/python/fontforge.html).
 
 
+## Unicode support
+
+> `mf2ff` supports two different basic alternatives to create fonts that exceed METAFONT's character limit:
+> - combination of multiple independent `.mf` inputs into one font,
+> - processing of `.mf` input that exceeds METAFONT's character limit.
+
+The difficulty of designing a Unicode with METAFONT is not the definition of non-ASCII characters. The Computer Modern fonts define greek letters, mathematical operators, etc. without any problem, just using a non-ASCII encoding. The main problem is the number of characters will most likely exceed METAFONT's limit of 256 character per font. Computer Modern deals with this by using multiple fonts that are to be used alongside each other (e.g. `cmmi10`, `cmsy10`, `cmex10`). 
+
+Because using multiple fonts and having to switch between them is not practical for today's font applications, the characters from multiple `.mf` inputs need to be combined in a single font. `mf2ff` supports this with the [`:`*N* command line option syntax described below](#input-filen-and-the-n-syntax) and with the `inputs` option in the API shown in the `cm_math_10` example. The following aspects need to be considered when working with this approach:
+- Code point definition:\
+  Either [input encodings](#input-encoding) must be available for each input or the [`glyph_unicode`](#glyph-extension) macro from the [glyph extension](#glyph-extension) needs to be used [deactivating it for the use without `mf2ff`](#general-note-on-extensions).
+- Kerning and ligatures:\
+  Either combine certain glyphs that should be kerned or used in a ligature definition in one input or deactivating ligature definitions and kerning pairs that work across multiple input for the use without `mf2ff` using an approach [similar to the commands of extensions](#general-note-on-extensions).
+
+`mf2ff` also supports the processing of inputs with more characters than METAFONT's limit. This is possible since from METAFONT's perspective only many contours are compute. They are never drawn to pictures and no picture is shipped out. In accordance with the mf2vec concept, everything is just written to the log file. This approach has one major downside:
+- `.mf` input that exceeds METAFONT's character limit produces different output in METAFONT (glyph metrics or glyphs are overwritten). This is no problem for `mf2ff` but for debugging the `.mf` input with METAFONT some glyph definitions / `shipout`s and maybe other commands like `ligtable`, `charlist` and `extensible` need to be commented out or deactivated using an approach [similar to the commands of extensions](#general-note-on-extensions).
+
+
+## Specifying encoding point, Unicode value and glyph name
+
+`mf2ff` provides the following ways to set the encoding point, Unicode value and glyph name. The relevant definition of variables or use of macros are the last between two shipout (between `beginchar` and `endchar`).
+- Only define `charcode`:\
+  In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as usual.\
+  The value of `charcode` determines the code point in the input encoding .\
+  The value of `charcode` should not exceed 4095.99998 and can not exceed 32767.99998.\
+  This is compatible to METAFONT as long as $0\le{}$`charext`${}\le255$.
+- Only define `charcode` and `charext`:\
+  In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as usual and defining `charext`.\
+  The value `charcode + charext*256` determines the code point in the input encoding.\
+  The values of `charcode` and `charext` should not exceed 4095.99998 and can not exceed 32767.99998.\
+  This is compatible to METAFONT as long as $0 \le{}$`charext`${}\le 255$ and the restrictions of METAFONT are kept in mind for glyphs with same `charcode` but different `charext`.
+- Define `charcode` and passing a hexadecimal string to `ASCII`:\
+  In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as a hexadecimal string.\
+  The option `charcode-from-last-ASCII-hex-arg` needs to be active.\
+  The value of the hexadecimal string passed to `ASCII` determines the code point in the input encoding.\
+  This is *not* compatible to METAFONT, `ASCII` evaluates to the ASCII value of the first character in the argument.
+- Define `charcode` as `-1` and `glyph_unicode` (optionally define `glyph_name`):\
+  In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as `-1` or an empty string (`""`) and defining `glyph_unicode`.\
+  The value of `glyph_unicode` determines the unicode value.\
+  This is *not* compatible to METAFONT, METAFONT will use the code point 255 for those glyphs.\
+  `glyph_unicode` must be defined as explained [below](#general-note-on-extensions) to work with METAFONT.
+  If `glyph_name` is used, the default name of the glyph is overwritten. `glyph_name` must be defined as explained [below](#general-note-on-extensions) to work with METAFONT.
+- Define `charcode` as `-1` and `glyph_name`:\
+  In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as `-1` or an empty string (`""`).\
+  The option `extension-glyph` needs to be active.\
+  A glyph without a Unicode value is created and given the name defined by `glyph_name`.\
+  This is useful for creating characters for the `glyph_replacement_of` or `glyph_replaced_by` macros from the [glyph extension](#glyph-extension).\
+  This is *not* compatible to METAFONT, METAFONT will use the code point 255 for those glyphs.\
+  `glyph_name` must be defined as explained [below](#general-note-on-extensions) to work with METAFONT.
+
+Other combinations of `charcode`, `charext`, `glyph_unicode` and `glyph_name` are not implemented or not tested and may have unexpected behavior.
+
+
 ## Options
 
 There are different types of options:
 - negatable options / boolean options\
   They can be enabled by providing the option `-<option-name>` or setting `mf2ff.options.<option_name> = True` or disabled by providing `-no-<option-name>` or setting `mf2ff.options.<option_name> = False`
 - value options\
-  These can be given a value of a specific type (e.g. numeric or string) using `-<option-name>=VALUE` or setting `mf2ff.options.<option_name> = VALUE`
+  These can be given a value of a specific type (e.g. numeric, string, file path or directory) using `-<option-name>=VALUE` or setting `mf2ff.options.<option_name> = VALUE`
 
 
 ### `charcode-from-last-ASCII-hex-arg`
@@ -78,6 +154,23 @@ Example:\
 This option runs the cull command according to plain METAFONT's cullit macro before every shipout to remove remaining overlap. A similar operation is done by METAFONT during shipout [The METAFONTbook, pp. 220, 295].
 
 Note that cull commands that are part of the definition of a glyph may result in the `cull-at-shipout` option not making any further changes for some glyphs.
+
+
+### `input-encoding`
+
+|||
+|-|-|
+| CLI | `-input-encoding=`*encoding* |
+| API | `mf2ff.options.input_encoding = ` *encoding* |
+| default | `UnicodeFull` |
+
+This option specifies the input encoding. Besides FontForge's default encodings, the following encodings are supported:
+- `TeX-text`
+- `TeX-typewriter-text`
+- `TeX-math-italic`
+- `TeX-math-symbols`
+- `TeX-math-extension`
+- `TeX-extended-ASCII`
 
 
 ### `input-file:`*N* and the `:`*N* syntax
@@ -172,7 +265,7 @@ FontForge's `layer.stroke()` function provides `simplify` and `accuracy` options
 
 |||
 |-|-|
-| CLI | `-upm=`*number* / `None`  |
+| CLI | `-upm=`*number* / `None` |
 | API | `mf2ff.options.upm = ` *number* / `None` |
 | default | `None` |
 
@@ -228,6 +321,40 @@ If the name of one of the macros listed above is already used by the .mf file an
 Example: add `-extension-attachment-points-macro-prefix=customPrefix` to your options and use `customPrefix_mark_base("Top", w/2, h);`
 
 
+### Glyph extension
+The glyph extension provides more several options to control the code point, glyph references, hinting and OpenType single substitutions.
+
+|||
+|-|-|
+| CLI |`-`[`no-`]`extension-glyph` |
+| API | `mf2ff.options.extension_glyph = True` / `False` |
+| default | disabled |
+
+The following macros are available when this extension is active:
+- `glyph_name(g_name);` to specify the name of a glyph as a string, e.g. `"a.sc"`
+- `glyph_unicode(g_unicode);` to specify the unicode value of a glyph as an integer or a hexadecimal string.
+- `glyph_comment(g_comment);` to define a comment for the glyph as a string.
+- `glyph_build;` to build the glyph from references to other glyphs, e.g. ligatures, composite glyphs or accented glyphs.
+- `glyph_add_reference(g_name, g_transform)` to add a reference to another character, e.g. add a base glyph and a diacritic mark with custom positioning (e.g. `g_transform = identity shifted (w/2, 0);` with plain METAFONT).
+- `glyph_add_extrema;` to automatically add extremes to the glyph's contours. This is recommended for automatic hinting (see below).
+- `glyph_add_inflections;` to automatically add inflection points to the glyph's contours.
+- `glyph_auto_hint;` to automatically add PostScript hints to the glyph.
+- `glyph_auto_instruct;` to automatically add TrueType instructions to the glyph.
+- `glyph_add_horizontal_hint(y_start, y_end);` to add a custom PostScript horizontal (stem) hint to the glyph.
+- `glyph_add_vertical_hint(x_start, x_end);` to add a custom PostScript vertical (stem) hint to the glyph.
+- `glyph_add_diagonal_hint(p, q, d);` to add a custom diagonal (stem) hint to the glyph as three pairs representing two points `p`, `q` and a direction `d`, e.g. to improve automatic TrueType instructions.
+- `glyph_replaced_by(g_name, opentype_feature);` to associate the referenced glyph as a replacement glyph with an OpenType single substitution feature to the current glyph.
+- `glyph_replacement_of(g_name, opentype_feature);` to associate the current glyph as a replacement glyph with an OpenType single substitution feature to the specified glyph.
+
+Similar to the other extensions, the prefix of the glyph extension macros can be changed:
+
+|||
+|-|-|
+| CLI |`-extension-glyph-macro-prefix=`*string* |
+| API | `mf2ff.options.extension_glyph_macro_prefix = ` *string* |
+| default | `glyph` |
+
+
 ### Ligtable switch
 While the `ligtable` command can be used to define ligatures, it doesn't allow selection of which OpenType feature to use. The ligtable switch commands provide an interface to switch the used OpenType feature for following ligtable commands. Currently, only ligatures (`=:`) are supported.
 |||
@@ -241,7 +368,7 @@ If enabled, the following macros can be used in `mf2ff`'s input:
 - `ligtable_switch_lig_to_dlig` to switch to the `dlig` feature for following ligatures in ligtable commands
 - `ligtable_switch_lig_to_hlig` to switch to the `hlig` feature for following ligatures in ligtable commands
 
-Similar to the attachment points extension, you can also change the prefix of the ligtable switch macros:
+Similar to the other extensions, the prefix of the ligtable switch macros can be changed:
 
 |||
 |-|-|
