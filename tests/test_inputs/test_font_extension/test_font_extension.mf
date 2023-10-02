@@ -1,0 +1,8 @@
+mode_setup;
+
+font_name("test-font");
+font_ascent(8pt#);
+font_math_constant("ScriptPercentScaleDown", 70);
+font_postscript_private_dictionary("BlueValues", "[-10 0 100 110]");
+
+end

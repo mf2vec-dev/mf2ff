@@ -77,5 +77,6 @@ if __name__ == '__main__':
     mf2ff.options.cull_at_shipout = True
     mf2ff.options.kerning_classes = False
     mf2ff.options.upm = 1000
+    mf2ff.options.set_math_defaults = True
     mf2ff.run()
     print(f'took {time()-start:.3f} sec')

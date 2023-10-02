@@ -71,6 +71,18 @@ class Mf2ff:
             print('! No input')
             sys.exit(1)
 
+        self.font_add_extrema = False
+        self.font_add_inflections = False
+        self.font_auto_hint = False
+        self.font_auto_instruct = False
+
+        if self.options.set_math_defaults:
+            self.fontdimens = {
+                'family2': [None]*(1+22), # sigma_5, ..., sigma_22
+                'family3': [None]*(1+13) # xia_8, ..., xi_13
+            }
+            self.specified_math_constants = []
+
         if not self.options.fontname:
             self.options.fontname = self.options.jobname
         if not self.options.family_name:
@@ -209,6 +221,9 @@ class Mf2ff:
         if self.options.upm is not None:
             self.font.em = self.options.upm
 
+        if self.input_options.set_math_defaults:
+            self.set_default_math_constants()
+
         self.apply_font_options_and_save()
 
         if not self.options.quiet:
@@ -293,21 +308,43 @@ class Mf2ff:
             'descent': 0,
         }
 
+        ascent_specified = False
+        descent_specified = False
+
         i = 0
         while i < len(self.cmds):
             cmd = self.cmds[i]
             cmd_name = cmd[0]
             self.cmd_body = cmd[2]
 
-            if cmd_name == 'shipout' and (self.input_options.ascent is None or self.input_options.descent is None):
+            if (cmd_name == 'shipout'
+                and (self.input_options.ascent is None or self.input_options.descent is None)
+                and (not ascent_specified or not descent_specified)
+            ):
                 shipout = self.shipout_pattern.search(self.cmd_body)
                 hppp = float(shipout.group(1))
                 charht = round(float(shipout.group(5))*hppp)
                 chardp = round(float(shipout.group(6))*hppp)
-                if self.input_options.ascent is None and charht > pre_run_results['ascent']:
+                if (
+                    self.input_options.ascent is None
+                    and not ascent_specified
+                    and charht > pre_run_results['ascent']
+                ):
                     pre_run_results['ascent'] = charht
-                if self.input_options.descent is None and chardp > pre_run_results['descent']:
+                if (
+                    self.input_options.descent is None
+                    and not descent_specified
+                    and chardp > pre_run_results['descent']
+                ):
                     pre_run_results['descent'] = chardp
+            elif cmd_name[:5] == 'font_':
+                font_cmd = cmd_name[5:]
+                if font_cmd == 'ascent':
+                    pre_run_results['ascent'] = round(float(self.cmd_body))
+                    ascent_specified = True
+                elif font_cmd == 'descent':
+                    pre_run_results['descent'] = round(float(self.cmd_body))
+                    descent_specified = True
             # else command not important in pre run
             i += 1
         return pre_run_results
@@ -1032,10 +1069,14 @@ class Mf2ff:
                         else:
                             self.font.italicangle = -atan(slant)*180/pi
                     elif k == 2:
-                        self.font.createChar(32).width = int(hppp*params[j])
+                        self.font.createChar(32).width = round(params[j]*hppp)
                     elif k == 5:
                         # font.os2_xheight not in FontForge docs
-                        self.font.os2_xheight = int(hppp*params[j])
+                        self.font.os2_xheight = round(params[j]*hppp)
+                    if self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-symbols' and 5 <= k <= 22:
+                        self.fontdimens['family2'][k] = round(params[j]*hppp)
+                    elif self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-extension' and 8 <= k <= 13:
+                        self.fontdimens['family3'][k] = round(params[j]*hppp)
 
             elif cmd_name == 'charlist':
                 base_glyph_code = int(self.cmd_body)
@@ -1113,6 +1154,105 @@ class Mf2ff:
                     self.font.addAnchorClass(subtable_name, attachment_point_class_name)
                 attachment_points.append((attachment_point_class_name, attachment_point_type, x, y))
 
+            elif cmd_name[:5] == 'font_':
+                font_cmd = cmd_name[5:]
+                cmd_body_parts = self.cmd_body.split('>> ')
+                if font_cmd in ['name', 'family_name', 'full_name', 'weight', 'version', 'copyright', 'comment', 'fontlog']:
+                    val = self.cmd_body
+                    if val[0] == '"':
+                        val = val[1:-1]
+                    if font_cmd == 'name':
+                        self.font.fontname = val
+                    elif font_cmd == 'family_name':
+                        self.font.familyname = val
+                    elif font_cmd == 'full_name':
+                        self.font.fullname = val
+                    elif font_cmd == 'weight':
+                        self.font.weight = val
+                    elif font_cmd == 'version':
+                        self.font.version = val
+                    elif font_cmd == 'copyright':
+                        self.font.copyright = val
+                    elif font_cmd == 'comment':
+                        self.font.comment = val
+                    elif font_cmd == 'fontlog':
+                        self.font.fontlog = val
+                elif font_cmd == 'ascent':
+                    self.font.ascent = round(float(self.cmd_body))
+                elif font_cmd == 'descent':
+                    self.font.descent = round(float(self.cmd_body))
+                elif font_cmd == 'cap_height':
+                    self.font.os2_capheight = round(float(self.cmd_body))
+                elif font_cmd == 'underline_position':
+                    self.font.upos = round(float(self.cmd_body))
+                elif font_cmd == 'underline_width':
+                    self.font.uwidth = round(float(self.cmd_body))
+                elif font_cmd == 'add_extrema':
+                    self.font_add_extrema = True
+                elif font_cmd == 'add_inflections':
+                    self.font_add_inflections = True
+                elif font_cmd == 'auto_hint':
+                    self.font_auto_hint = True
+                elif font_cmd == 'auto_instruct':
+                    self.font_auto_instruct = True
+                elif font_cmd == 'math_constant':
+                    # FontForge doesn't provide Python access to the device
+                    # tables.
+                    if len(cmd_body_parts) != 2:
+                        raise TypeError(f'{self.input_options.extension_font_macro_prefix}_{font_cmd} takes exactly two argument ({len(cmd_body_parts)} given)')
+                    const_name, const_value = cmd_body_parts
+                    if const_name[0] == '"':
+                        const_name = const_name[1:-1]
+                    const_value = round(float(const_value))
+                    self.font.math.__setattr__(const_name, const_value)
+                    self.specified_math_constants.append(const_name)
+                elif font_cmd == 'postscript_private_dictionary':
+                    if len(cmd_body_parts) != 2:
+                        raise TypeError(f'{self.input_options.extension_font_macro_prefix}_{font_cmd} takes exactly two argument ({len(cmd_body_parts)} given)')
+                    private_name, private_value = cmd_body_parts
+                    if private_name[0] == '"':
+                        private_name = private_name[1:-1]
+                    if private_value[0] == '"':
+                        private_value = private_value[1:-1]
+                    private_value = private_value.strip()
+                    # fontforge doesn't check values, do basic checks here
+                    try:
+                        if private_name in ['BlueValues', 'OtherBlues', 'FamilyBlues', 'FamilyOtherBlues']:
+                            # array of integers with even length
+                            assert private_value[0] == '[' and private_value[-1] == ']'
+                            vals = private_value[1:-1].split()
+                            [int(v) for v in vals] # raises ValueErrors if no ints
+                            if private_name in ['BlueValues', 'FamilyBlues']:
+                                max_num_pairs = 7
+                            if private_name in ['OtherBlues', 'FamilyOtherBlues']:
+                                max_num_pairs = 5
+                            assert len(vals) % 2 == 0 and len(vals)/2 <= max_num_pairs
+                        elif private_name == ['BlueScale', 'ExpansionFactor']:
+                            # float
+                            float(private_value) # raises ValueError if no float
+                        elif private_name in ['BlueShift', 'BlueFuzz', 'lenIV', 'LanguageGroup']:
+                            # int
+                            int(private_value) # raises ValueError if no int
+                        elif private_name in ['StdHW', 'StdVW']:
+                            # array of one integer (length 1)
+                            assert private_value[0] == '[' and private_value[-1] == ']'
+                            int(private_value[1:-1])
+                        elif private_name in ['StemSnapH', 'StemSnapV']:
+                            # array with length <= 12 of increasing integers
+                            assert private_value[0] == '[' and private_value[-1] == ']'
+                            vals = private_value[1:-1].split()
+                            vals = [int(v) for v in vals] # raises ValueErrors if no ints
+                            assert vals == sorted(vals)
+                            assert len(vals) <= 12
+                        elif private_name == ['forceBold', 'RndStemUp']:
+                            # boolean
+                            assert private_value in ['true', 'false']
+                        else:
+                            print(f'! Unknown PostScript private directory entry {private_name}')
+                    except (AssertionError, ValueError):
+                        raise ValueError(f'value `{private_value}\' of PostScript private directory entry {private_name} is invalid.')
+                    self.font.private[private_name] = private_value
+
             elif cmd_name[:6] == 'glyph_':
                 glyph_cmd = cmd_name[6:]
                 cmd_body_parts = self.cmd_body.split('>> ')
@@ -1146,9 +1286,9 @@ class Mf2ff:
                         raise TypeError(f'{self.input_options.extension_glyph_macro_prefix}_{glyph_cmd} takes exactly two arguments ({len(cmd_body_parts)} given)')
                     glyph_references.append(cmd_body_parts)
                 elif glyph_cmd == 'add_extrema':
-                    glyph_auto_hint = True
+                    glyph_add_extrema = True
                 elif glyph_cmd == 'add_inflections':
-                    glyph_auto_instruct = True
+                    glyph_add_inflections = True
                 elif glyph_cmd == 'auto_hint':
                     glyph_auto_hint = True
                 elif glyph_cmd == 'auto_instruct':
@@ -1364,6 +1504,16 @@ class Mf2ff:
                 for vc in vertical_components
             )
 
+        if self.input_options.extension_font:
+            if self.font_add_extrema:
+                self.font.addExtrema()
+            if self.font_add_inflections:
+                self.font.addInflections()
+            if self.font_auto_hint:
+                self.font.autoHint()
+            if self.font_auto_instruct:
+                self.font.autoInstr()
+
         if self.input_options.extension_glyph:
             for glyph_name, reference_name, reference_ps_matrix in self.glyph_references:
                 self.font[glyph_name].addReference(reference_name, reference_ps_matrix)
@@ -1443,6 +1593,17 @@ class Mf2ff:
                 +(
                     r'|'+self.input_options.extension_attachment_points_macro_prefix+r'_(?:mark_(?:base|mark)|mkmk_(?:basemark|mark))'
                     if self.input_options.extension_attachment_points else r''
+                )
+                +(
+                    r'|font_(?:'
+                        r'name|family_name|full_name'
+                        r'|weight|version|copyright|comment|fontlog'
+                        r'|ascent|descent|cap_height'
+                        r'|underline_(?:position|width)'
+                        r'|add_(?:extrema|inflections)|auto_(?:hint|instruct)'
+                        r'|math_constant|postscript_private_dictionary'
+                    r')'
+                    if self.input_options.extension_font else r''
                 )
                 +(
                     r'|glyph_(?:'
@@ -1806,6 +1967,43 @@ class Mf2ff:
                     'enddef;'
                 ) if self.input_options.extension_attachment_points else ''
             )
+            # font
+            +(
+                (
+                    ''.join(
+                        'def ' + self.input_options.extension_font_macro_prefix + '_' + font_cmd + '='
+                            +m_+'font_'+ font_cmd +'";'+m__+
+                        'enddef;'
+                        for font_cmd in [
+                            'add_extrema', 'add_inflections',
+                            'auto_hint', 'auto_instruct'
+                        ]
+                    )
+                    +''.join(
+                        'def ' + self.input_options.extension_font_macro_prefix + '_' + font_cmd + ' expr e='
+                            +m_+'font_'+ font_cmd +'";'
+                            'show e;'
+                            +m__+
+                        'enddef;'
+                        for font_cmd in [
+                            'name', 'family_name', 'full_name',
+                            'weight', 'version', 'copyright', 'comment', 'fontlog',
+                            'ascent', 'descent', 'cap_height',
+                            'underline_position', 'underline_width'
+                        ]
+                    )
+                    +''.join(
+                        'def ' + self.input_options.extension_font_macro_prefix + '_' + font_cmd + '(text t)='
+                            +m_+'font_'+ font_cmd +'";'
+                            'show t;'
+                            +m__+
+                        'enddef;'
+                        for font_cmd in [
+                            'math_constant', 'postscript_private_dictionary'
+                        ]
+                    )
+                ) if self.input_options.extension_font else ''
+            )
             # glyph
             +(
                 (
@@ -1889,6 +2087,76 @@ class Mf2ff:
                 + 'ETA: {:6.3f}'.format(eta) + ' ' + eta_unit
             )
             sys.stdout.flush()
+
+    def set_default_math_constants(self):
+        '''Set OpenType MATH table constants to fontdimen values or TeX defaults.
+        '''
+        sigma = self.fontdimens['family2']
+        xi = self.fontdimens['family3']
+        if self.font.os2_capheight == 0:
+            cap_height = self.font.ascent
+        else:
+            cap_height = self.font.os2_capheight
+        math_default_values = {
+            'UpperLimitBaselineRiseMin': xi[11],
+            'UpperLimitGapMin': xi[9],
+            'LowerLimitGapMin': xi[10],
+            'LowerLimitBaselineDropMin': xi[12],
+            'StretchStackTopShiftUp': xi[11],
+            'StretchStackGapAboveMin': xi[9],
+            'StretchStackGapBelowMin': xi[10],
+            'StretchStackBottomShiftDown': xi[12],
+            'OverbarExtraAscender': xi[8],
+            'OverbarRuleThickness': xi[8],
+            'OverbarVerticalGap': None if xi[8] is None else 3*xi[8],
+            'UnderbarVerticalGap': None if xi[8] is None else 3*xi[8],
+            'UnderbarRuleThickness': xi[8],
+            'UnderbarExtraDescender': xi[8],
+            'FractionNumeratorDisplayStyleShiftUp': sigma[8],
+            'FractionNumeratorShiftUp': sigma[9],
+            'FractionNumeratorDisplayStyleGapMin': None if xi[8] is None else 3*xi[8],
+            'FractionNumeratorGapMin': xi[8],
+            'FractionRuleThickness': xi[8],
+            'FractionDenominatorDisplayStyleGapMin': None if xi[8] is None else 3*xi[8],
+            'FractionDenominatorGapMin': xi[8],
+            'FractionDenominatorDisplayStyleShiftDown': sigma[11],
+            'FractionDenominatorShiftDown': sigma[12],
+            'StackTopDisplayStyleShiftUp': sigma[8],
+            'StackTopShiftUp': sigma[10],
+            'StackDisplayStyleGapMin': None if xi[8] is None else 7*xi[8],
+            'StackGapMin': None if xi[8] is None else 3*xi[8],
+            'StackBottomDisplayStyleShiftDown': sigma[11],
+            'StackBottomShiftDown': sigma[12],
+            'SuperscriptShiftUp': sigma[13],
+            'SuperscriptShiftUpCramped': sigma[15],
+            'SubscriptShiftDown': sigma[16],
+            'SuperscriptBaselineDropMax': sigma[18],
+            'SubscriptBaselineDropMin': sigma[19],
+            'SuperscriptBottomMin': None if sigma[5] is None else 1/4*sigma[5],
+            'SubscriptTopMax': None if sigma[5] is None else 4/5*sigma[5],
+            'SubSuperscriptGapMin': None if xi[8] is None else 4*xi[8],
+            'SuperscriptBottomMaxWithSubscript': None if sigma[5] is None else 4/5*sigma[5],
+            'SpaceAfterScript': 0.05*self.font.em,
+            'RadicalExtraAscender': xi[8],
+            'RadicalRuleThickness': xi[8],
+            'RadicalDisplayStyleVerticalGap': None if xi[8] is None or sigma[5] is None else xi[8] + 1/4*sigma[5],
+            'RadicalVerticalGap': None if xi[8] is None else xi[8] + 1/4*xi[8],
+            'RadicalKernBeforeDegree': 5/18*self.font.em,
+            'RadicalKernAfterDegree': 10/18*self.font.em,
+            'RadicalDegreeBottomRaisePercent': 60,
+            'ScriptPercentScaleDown': 70,
+            'ScriptScriptPercentScaleDown': 50,
+            'DisplayOperatorMinHeight': 1.4*self.font.em,
+            'DelimitedSubFormulaMinHeight': sigma[21],
+            'AxisHeight': sigma[22],
+            'AccentBaseHeight': sigma[5],
+            'FlattenedAccentBaseHeight': cap_height,
+            'MathLeading': 3/18*self.font.em,
+            'MinConnectorOverlap': 0,
+        }
+        for name, value in math_default_values.items():
+            if name not in self.specified_math_constants and value is not None:
+                self.font.math.__setattr__(name, round(value))
 
     def to_glyph_name(self, g):
         '''converts name or code point g to FontForge glyph name

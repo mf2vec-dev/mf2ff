@@ -32,6 +32,8 @@ class Mf2ffOptions:
             'extension_attachment_points': {'type': bool, 'default': False},
             'extension_glyph_macro_prefix': {'type': str, 'default': 'glyph'},
             'extension_glyph': {'type': bool, 'default': False},
+            'extension_font_macro_prefix': {'type': str, 'default': 'font'},
+            'extension_font': {'type': bool, 'default': False},
             'extension_ligtable_switch_macro_prefix': {'type': str, 'default': 'ligtable_switch'},
             'extension_ligtable_switch': {'type': bool, 'default': False},
             'extrema': {'type': bool, 'default': False},
@@ -63,6 +65,7 @@ class Mf2ffOptions:
                 ('latn', ('dflt',))
             )},
             'set_italic_correction': {'type': bool, 'default': True},
+            'set_math_defaults': {'type': bool, 'default': True},
             'sfd': {'type': bool, 'default': True},
             'stroke_accuracy': {'type': float | None, 'default': None}, # None: use fontforge's default (should be 0.25)
             'stroke_simplify': {'type': bool, 'default': True},
@@ -251,11 +254,10 @@ class Mf2ffOptions:
         ]
         mf2ff_options_negatable = [
             'charcode-from-last-ASCII-hex-arg', 'cull-at-shipout', 'debug',
-            'extension-attachment-points', 'extension-ligtable-switch',
             'extrema', 'fix-contours','hint', 'is_type', 'kerning-classes',
-            'otf', 'quadratic', 'quiet', 'remove-artifacts',
-            'set-italic-correction', 'sfd', 'stroke-simplify', 'time', 'ttf',
-            'use-ppi-factor'
+            'otf', 'quadratic', 'quiet', 'remove-artifacts', 
+            'set-italic-correction', 'set-math-defaults', 'sfd',
+            'stroke-simplify', 'time', 'ttf', 'use-ppi-factor'
         ]
         mf2ff_options_values = [
             'ascent', 'comment', 'copyright', 'descent', 'designsize',
@@ -264,9 +266,10 @@ class Mf2ffOptions:
             'output-encoding', 'ppi', 'stroke-accuracy', 'upm', 'upos',
             'uwidth'
         ]
-        extension_names_macro_prefix = [
-            'attachment-points', 'glyph', 'ligtable-switch'
+        extension_names = [
+            'attachment-points', 'glyph', 'font', 'ligtable-switch'
         ]
+        mf2ff_options_negatable.extend('extension-' + e for e in extension_names)
 
         i = 1 # i == 0 is mf2ff
         while i < len(args):
@@ -293,7 +296,7 @@ class Mf2ffOptions:
                         if option_name in (
                             mf_options_values
                             + ['jobname', 'base', 'progname', 'stroke-accuracy']
-                            + ['extension-' + e + '-macro-prefix' for e in extension_names_macro_prefix]
+                            + ['extension-' + e + '-macro-prefix' for e in extension_names]
                             + mf2ff_options_values + ['scripts']
                         ):
                             option_value = args[i+1]
@@ -328,7 +331,7 @@ class Mf2ffOptions:
                         self.__setattr__(name, False)
                     # name value mf2ff option
                     elif (option_name[:10] == 'extension-'
-                            and option_name[10:-13] in extension_names_macro_prefix
+                            and option_name[10:-13] in extension_names
                             and option_name[-13:] == '-macro-prefix'
                         ):
                         name = ('extension_' + option_name[10:-13].replace('-', '_') + '_macro_prefix')
@@ -508,15 +511,20 @@ class Mf2ffOptions:
             '                    set macro name prefix (default: \'attachment_point\')\n'
             '                      choose so that in mf files there are none of:\n'
             '                      <macro-prefix>_mark_base, <macro-prefix>_mark_mark, <macro-prefix>_mkmk_basemark, <macro-prefix>_mkmk_mark\n'
-            '  -[no-]extension-ligtable-switch\n'
-            '                    enable/disable ligtable switch extension (default: disabled)\n'
+            '  -[no-]extension-glyph\n'
+            '                    enable/disable glyph extension (default: disabled)\n'
             '  -extension-glyph-macro-prefix=STR\n'
             '                    set macro name prefix (default: \'glyph\')\n'
             '                      choose so that in mf files there are no glyph macros.\n'
-            '  -[no-]extension-glyph\n'
-            '                    enable/disable glyph extension (default: disabled)\n'
+            '  -[no-]extension-font\n'
+            '                    enable/disable font extension (default: disabled)\n'
+            '  -extension-font-macro-prefix=STR\n'
+            '                    set macro name prefix (default: \'font\')\n'
+            '                      choose so that in mf files there are no font macros.\n'
+            '  -[no-]extension-ligtable-switch\n'
+            '                    enable/disable ligtable switch extension (default: disabled)\n'
             '  -extension-ligtable-switch-macro-prefix=STR\n'
-            '                    set macro name prefix (default: \'ligtable\')\n'
+            '                    set macro name prefix (default: \'ligtable_switch\')\n'
             '                      choose so that in mf files there are no ligtable switch macros.\n'
             '  -[no-]extrema     disable/enable extrema adding (default: disabled)\n'
             '  -familyname=STR   set font\'s family name\n'
@@ -551,6 +559,8 @@ class Mf2ffOptions:
             '                      e.g. ((\'latn\',(\'dflt\',)),)\n'
             '  -[no-]set-italic-correction\n'
             '                    disable/enable setting italic correction based on charic (default: enabled)\n'
+            '  -[no-]set-math-defaults\n'
+            '                    disable/enable setting OpenType math table constants based on fontdimens and TeX rules (default: enabled)\n'
             '  -[no-]sfd         disable/enable Spline Font Database (FontForge\n'
             '                      Project) output generation (default: enabled)\n'
             '  -stroke-accuracy=NUM\n'
