@@ -886,6 +886,10 @@ class Mf2ff:
                 if self.input_options.set_italic_correction:
                     glyph.italicCorrection = charic
 
+                if self.input_options.set_top_accent:
+                    glyph.topaccent = round((charwd + charic)/2)
+                    # skewchar kerning is handled at the end
+
                 for attachment_point_class_name, lookup_type, x, y in attachment_points:
                     glyph.addAnchorPoint(attachment_point_class_name, lookup_type, x, y)
                 attachment_points = []
@@ -1394,6 +1398,32 @@ class Mf2ff:
                     'gsub_contextchain', contextchain_subtable_name, 'glyph',
                     char1 + ' | ' + char2 + ' @<' + lookup_name + '_' + char2 + '> |'
                 )
+
+        if self.input_options.set_top_accent:
+            skewchar = self.input_options.skewchar
+            if skewchar < 0:
+                if self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-italic':
+                    skewchar = 127
+                elif self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-symbols':
+                    skewchar = 48
+                else:
+                    skewchar = None
+            if skewchar is not None:
+                # extract all skewchar kerning pairs
+                skewchar_kerns = [
+                    [ # TODO always int / code point in pos_list
+                        pos[0][0] if isinstance(pos[0][0], int) else ord(pos[0][0]),
+                        pos[1]
+                    ] for pos in pos_list if pos[0][1] == skewchar
+                ]
+                # remove skewchar kerning pairs in pos_list
+                pos_list = [pos for pos in pos_list if pos[0][1] != skewchar]
+
+                # set topaccent with the kerning of skewchar
+                for skewchar_kern in skewchar_kerns:
+                    wx = self.font[skewchar_kern[0]].width + self.font[skewchar_kern[0]].italicCorrection
+                    s = skewchar_kern[1] # kern value of glyph skewchar_kern[0] and glyph skewchar
+                    self.font[skewchar_kern[0]].topaccent = round(wx/2 + s)
 
         if len(pos_list) > 0:
             if self.input_options.kerning_classes:

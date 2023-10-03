@@ -23,6 +23,7 @@ This tutorial should provide an introduction to both ways. Afterward, useful opt
     - [`remove-artifacts`](#remove-artifacts)
     - [`set-italic-correction`](#set-italic-correction)
     - [`set-math-defaults`](#set-math-defaults)
+    - [`set-top-accent` \& `skewchar`](#set-top-accent--skewchar)
     - [`stroke-simplify` \& `stroke-accuracy`](#stroke-simplify--stroke-accuracy)
     - [`upm`](#upm)
     - [`use-ppi-factor`](#use-ppi-factor)
@@ -253,6 +254,25 @@ This option enables or disables setting `glyph.italicCorrection` to the value of
 | default | disabled |
 
 This option enables using the `fontdimen` values to set the OpenType `math` table constants to default TeX equivalent values.
+
+
+### `set-top-accent` & `skewchar`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`set-top-accent` |
+| API | `mf2ff.options.set_top_accent = True` / `False` |
+| default | disabled |
+
+This option enables defining the OpenType math top accent attachment point horizontal position for all glyphs based on the width and the italic correction of the glyph. Kerning with the skewchar is used (if the input contains it) and removed from final kerning tables. The skewchar can be defined with the `skewchar` option. 
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`skewchar=`*number* / `None` |
+| API | `mf2ff.options.skewchar = ` *number* / `None` |
+| default | `-1` |
+
+If `skewchar` is set to a non-negative number, the kerning pairs with that code point are used to adjust the top accent value. A value of `None` will cause top accent to only use width and italic correction for all glyphs. `skewchar` option with value `-1` (default) use `127` as the skewchar if the input encoding is TeX math italic, `48` if it is TeX math symbols and `None` otherwise.
 
 
 ### `stroke-simplify` & `stroke-accuracy`

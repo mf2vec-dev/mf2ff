@@ -66,7 +66,9 @@ class Mf2ffOptions:
             )},
             'set_italic_correction': {'type': bool, 'default': True},
             'set_math_defaults': {'type': bool, 'default': True},
+            'set_top_accent': {'type': bool, 'default': False},
             'sfd': {'type': bool, 'default': True},
+            'skewchar': {'type': int | None, 'default': -1},
             'stroke_accuracy': {'type': float | None, 'default': None}, # None: use fontforge's default (should be 0.25)
             'stroke_simplify': {'type': bool, 'default': True},
             'time': {'type': bool, 'default': False},
@@ -256,15 +258,15 @@ class Mf2ffOptions:
             'charcode-from-last-ASCII-hex-arg', 'cull-at-shipout', 'debug',
             'extrema', 'fix-contours','hint', 'is_type', 'kerning-classes',
             'otf', 'quadratic', 'quiet', 'remove-artifacts', 
-            'set-italic-correction', 'set-math-defaults', 'sfd',
-            'stroke-simplify', 'time', 'ttf', 'use-ppi-factor'
+            'set-italic-correction', 'set-math-defaults', 'set-top-accent',
+            'sfd', 'stroke-simplify', 'time', 'ttf', 'use-ppi-factor'
         ]
         mf2ff_options_values = [
             'ascent', 'comment', 'copyright', 'descent', 'designsize',
             'familyname', 'fontlog', 'fontname', 'font-version', 'fullname',
             'input-encoding', 'input-file', 'italicangle', 'output-directory',
-            'output-encoding', 'ppi', 'stroke-accuracy', 'upm', 'upos',
-            'uwidth'
+            'output-encoding', 'ppi', 'skewchar', 'stroke-accuracy', 'upm',
+            'upos', 'uwidth'
         ]
         extension_names = [
             'attachment-points', 'glyph', 'font', 'ligtable-switch'
@@ -561,8 +563,14 @@ class Mf2ffOptions:
             '                    disable/enable setting italic correction based on charic (default: enabled)\n'
             '  -[no-]set-math-defaults\n'
             '                    disable/enable setting OpenType math table constants based on fontdimens and TeX rules (default: enabled)\n'
+            '  -[no-]set-top-accent\n'
+            '                    set the top accent position based on skewchar kerning\n'
             '  -[no-]sfd         disable/enable Spline Font Database (FontForge\n'
             '                      Project) output generation (default: enabled)\n'
+            '  -skewchar=NUM     set the skewchar as an integer (decimal) to use if set-top-accent is enabled\n'
+            '                      A value of None treats all glyphs the same and keeps the kerning as defined.\n'
+            '                      A value of -1 will use 127 for TeX-math-italic, 48 for TeX-math-symbols and None otherwise.\n'
+            '                      (default: -1)\n'
             '  -stroke-accuracy=NUM\n'
             '                    set stroke accuracy, i.e. target for the allowed error in em-units\n'
             '                      for layer.simplify() during layer.stoke(). Has no effect if\n'
