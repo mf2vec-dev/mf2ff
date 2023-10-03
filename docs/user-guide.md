@@ -54,7 +54,7 @@ mf2ff.run()
 ```
 
 Optionally, you can use the `fontforge` Python module to load the font and make automatic changes to this or a different script. This is especially useful if you want to do a large number of similar changes which is not supported by `mf2ff` (yet).\
-(Of course, this also works in a separate script and for fonts generated using the command line.) 
+(Of course, this also works in a separate script and for fonts generated using the command line.)
 
 Here is an example:
 
@@ -74,7 +74,7 @@ Please refer to [FontForge's documentation](https://fontforge.org/docs/scripting
 > - combination of multiple independent `.mf` inputs into one font,
 > - processing of `.mf` input that exceeds METAFONT's character limit.
 
-The difficulty of designing a Unicode with METAFONT is not the definition of non-ASCII characters. The Computer Modern fonts define greek letters, mathematical operators, etc. without any problem, just using a non-ASCII encoding. The main problem is the number of characters will most likely exceed METAFONT's limit of 256 character per font. Computer Modern deals with this by using multiple fonts that are to be used alongside each other (e.g. `cmmi10`, `cmsy10`, `cmex10`). 
+The difficulty of designing a Unicode with METAFONT is not the definition of non-ASCII characters. The Computer Modern fonts define greek letters, mathematical operators, etc. without any problem, just using a non-ASCII encoding. The main problem is the number of characters will most likely exceed METAFONT's limit of 256 character per font. Computer Modern deals with this by using multiple fonts that are to be used alongside each other (e.g. `cmmi10`, `cmsy10`, `cmex10`).
 
 Because using multiple fonts and having to switch between them is not practical for today's font applications, the characters from multiple `.mf` inputs need to be combined in a single font. `mf2ff` supports this with the [`:`*N* command line option syntax described below](#input-filen-and-the-n-syntax) and with the `inputs` option in the API shown in the `cm_math_10` example. The following aspects need to be considered when working with this approach:
 - Code point definition:\
@@ -138,7 +138,7 @@ There are different types of options:
 | API | `mf2ff.options.charcode_from_last_ASCII_hex_arg = True` / `False` |
 | default | disabled |
 
-This option uses the last hexadecimal string of even length passed as an argument to `ASCII` since the last shipout command as the encoding value during shipout of the current character, ignoring charcode and charext. This is especially useful when using plain METAFONT's `beginchar` macro. 
+This option uses the last hexadecimal string of even length passed as an argument to `ASCII` since the last shipout command as the encoding value during shipout of the current character, ignoring charcode and charext. This is especially useful when using plain METAFONT's `beginchar` macro.
 
 This option breaks backwards compatibility with METAFONT.
 
@@ -209,7 +209,7 @@ enddef;
 % example usage:
 group_kerning("F", "V", "W", "Y")(-4/5pt#)("c", "e", "o", "q");
 ```
-This should expand to a ligtable command which kerns all combinations of the first list and the second list (e.g. "Fc", "Fo", "We", etc.) with the offset defined in the middle. METAFONT will create 16 kerning pairs from this example. If you run `mf2ff` on input with such this example, it will create the classes based on these kerning pairs and builds up a kerning matrix. If there are other ligtable or group_kerning commands, `mf2ff` will split up or combine the classes according to the kerning specifications. 
+This should expand to a ligtable command which kerns all combinations of the first list and the second list (e.g. "Fc", "Fo", "We", etc.) with the offset defined in the middle. METAFONT will create 16 kerning pairs from this example. If you run `mf2ff` on input with such this example, it will create the classes based on these kerning pairs and builds up a kerning matrix. If there are other ligtable or group_kerning commands, `mf2ff` will split up or combine the classes according to the kerning specifications.
 
 
 ### `quadratic`
@@ -264,7 +264,7 @@ This option enables using the `fontdimen` values to set the OpenType `math` tabl
 | API | `mf2ff.options.set_top_accent = True` / `False` |
 | default | disabled |
 
-This option enables defining the OpenType math top accent attachment point horizontal position for all glyphs based on the width and the italic correction of the glyph. Kerning with the skewchar is used (if the input contains it) and removed from final kerning tables. The skewchar can be defined with the `skewchar` option. 
+This option enables defining the OpenType math top accent attachment point horizontal position for all glyphs based on the width and the italic correction of the glyph. Kerning with the skewchar is used (if the input contains it) and removed from final kerning tables. The skewchar can be defined with the `skewchar` option.
 
 |||
 |-|-|
@@ -367,6 +367,7 @@ The following macros are available when this extension is active:
 - `glyph_name(g_name);` to specify the name of a glyph as a string, e.g. `"a.sc"`.
 - `glyph_unicode(g_unicode);` to specify the unicode value of a glyph as an integer or a hexadecimal string.
 - `glyph_comment(g_comment);` to define a comment for the glyph as a string.
+- `glyph_top_accent(g_top_accent);` to define the glyph's math top accent attachment point horizontal position as a number.
 - `glyph_build;` to build the glyph from references to other glyphs, e.g. ligatures, composite glyphs or accented glyphs.
 - `glyph_add_reference(g_name, g_transform)` to add a reference to another character, e.g. add a base glyph and a diacritic mark with custom positioning (e.g. `g_transform = identity shifted (w/2, 0);` with plain METAFONT).
 - `glyph_add_extrema;` to automatically add extremes to the glyph's contours. This is recommended for automatic hinting (see below).
@@ -376,7 +377,7 @@ The following macros are available when this extension is active:
 - `glyph_add_horizontal_hint(y_start, y_end);` to add a custom PostScript horizontal (stem) hint to the glyph.
 - `glyph_add_vertical_hint(x_start, x_end);` to add a custom PostScript vertical (stem) hint to the glyph.
 - `glyph_add_diagonal_hint(p, q, d);` to add a custom diagonal (stem) hint to the glyph as three pairs representing two points `p`, `q` and a direction `d`, e.g. to improve automatic TrueType instructions.\
-  The direction `d` can be omitted. In this case d is computed from `p` and `q`.
+  The direction `d` can be omitted. In this case `d` is computed from `p` and `q`.
 - `glyph_replaced_by(g_name, opentype_feature);` to associate the referenced glyph as a replacement glyph with an OpenType single substitution feature to the current glyph.
 - `glyph_replacement_of(g_name, opentype_feature);` to associate the current glyph as a replacement glyph with an OpenType single substitution feature to the specified glyph.
 

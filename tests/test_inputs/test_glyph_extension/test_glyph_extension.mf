@@ -56,6 +56,10 @@ beginchar("", 100, 100, 0);
     glyph_replacement_of("c", "smcp");
 endchar;
 
+beginchar("t", 100, 100, 0);
+    glyph_top_accent(w/2);
+endchar;
+
 beginchar("h", 100, 100, 0);
     glyph_add_horizontal_hint(10, 20);
     glyph_add_vertical_hint(30, 40);

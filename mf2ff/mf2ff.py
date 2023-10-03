@@ -386,6 +386,7 @@ class Mf2ff:
         if self.input_options.extension_glyph:
             glyph_name = None
             glyph_comment = None
+            glyph_top_accent = None
             glyph_build = False
             glyph_references = []
             glyph_add_extrema = False
@@ -397,6 +398,8 @@ class Mf2ff:
 
             self.glyph_references = []
             self.glyph_replacements = []
+
+            specified_top_accents = []
 
         i = 0
         while i < len(self.cmds):
@@ -886,7 +889,11 @@ class Mf2ff:
                 if self.input_options.set_italic_correction:
                     glyph.italicCorrection = charic
 
-                if self.input_options.set_top_accent:
+                if self.input_options.extension_glyph and glyph_top_accent is not None:
+                    glyph.topaccent = glyph_top_accent
+                    # TODO how to get the code point if encoding is not unicode?
+                    specified_top_accents.append(glyph.glyphname)
+                elif self.input_options.set_top_accent:
                     glyph.topaccent = round((charwd + charic)/2)
                     # skewchar kerning is handled at the end
 
@@ -969,6 +976,7 @@ class Mf2ff:
                     glyph_name = None
                     glyph_unicode = None
                     glyph_comment = None
+                    glyph_top_accent = None
                     glyph_build = False
                     glyph_references = []
                     glyph_add_extrema = False
@@ -1260,7 +1268,7 @@ class Mf2ff:
             elif cmd_name[:6] == 'glyph_':
                 glyph_cmd = cmd_name[6:]
                 cmd_body_parts = self.cmd_body.split('>> ')
-                if glyph_cmd in ['name', 'unicode', 'comment']:
+                if glyph_cmd in ['name', 'unicode', 'comment', 'top_accent']:
                     if len(cmd_body_parts) != 1:
                         raise TypeError(f'{self.input_options.extension_glyph_macro_prefix}_{glyph_cmd} takes exactly one argument ({len(cmd_body_parts)} given)')
                     arg = cmd_body_parts[0]
@@ -1273,7 +1281,7 @@ class Mf2ff:
                             glyph_name = arg
                         elif glyph_cmd == 'comment':
                             glyph_comment = arg
-                    else: # 'unicode'
+                    elif glyph_cmd == 'unicode':
                         if arg[0] == '"':
                             arg = arg[1:-1]
                             if arg.lower()[:2] == 'u+':
@@ -1283,6 +1291,8 @@ class Mf2ff:
                         else:
                             arg = round(float(arg))
                         glyph_unicode = arg
+                    else: # 'top_accent'
+                        glyph_top_accent = round(float(arg))
                 elif glyph_cmd == 'build':
                     glyph_build = True
                 elif glyph_cmd == 'add_reference':
@@ -1421,9 +1431,13 @@ class Mf2ff:
 
                 # set topaccent with the kerning of skewchar
                 for skewchar_kern in skewchar_kerns:
-                    wx = self.font[skewchar_kern[0]].width + self.font[skewchar_kern[0]].italicCorrection
-                    s = skewchar_kern[1] # kern value of glyph skewchar_kern[0] and glyph skewchar
-                    self.font[skewchar_kern[0]].topaccent = round(wx/2 + s)
+                    if (
+                        not self.input_options.extension_glyph
+                        or (self.input_options.extension_glyph and self.font[skewchar_kern[0]].glyphname not in specified_top_accents)
+                    ):
+                        wx = self.font[skewchar_kern[0]].width + self.font[skewchar_kern[0]].italicCorrection
+                        s = skewchar_kern[1] # kern value of glyph skewchar_kern[0] and glyph skewchar
+                        self.font[skewchar_kern[0]].topaccent = round(wx/2 + s)
 
         if len(pos_list) > 0:
             if self.input_options.kerning_classes:
@@ -1637,7 +1651,8 @@ class Mf2ff:
                 )
                 +(
                     r'|glyph_(?:'
-                        r'name|unicode|comment|build|add_reference|add_(?:extrema|inflections)|auto_(?:hint|instruct)'
+                        r'name|unicode|comment|top_accent|build|add_reference'
+                        r'|add_(?:extrema|inflections)|auto_(?:hint|instruct)'
                         r'|add_(?:horizontal|vertical|diagonal)_hint|replaced_by|replacement_of'
                     r')'
                     if self.input_options.extension_glyph else r''
@@ -2053,7 +2068,7 @@ class Mf2ff:
                             'show e;'
                             +m__+
                         'enddef;'
-                        for glyph_cmd in ['name', 'unicode', 'comment']
+                        for glyph_cmd in ['name', 'unicode', 'comment', 'top_accent']
                     )
                     +''.join(
                         'def ' + self.input_options.extension_glyph_macro_prefix + '_' + glyph_cmd + '(text t)='

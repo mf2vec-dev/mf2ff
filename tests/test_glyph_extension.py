@@ -28,6 +28,9 @@ class TestGlyphExtension(Mf2ffTest):
     def test_glyph_only_name(self):
         self.assertIn('b.sc', self.font)
 
+    def test_glyph_top_accent(self):
+        self.assertEqual(self.font['t'].topaccent, 50)
+
     def test_auto_hint(self):
         glyph = self.font['f']
 
@@ -46,7 +49,7 @@ class TestGlyphExtension(Mf2ffTest):
         self.assertEqual(len(glyph.vhints[0]), 2)
         self.assertEqual(glyph.vhints[0][0], 10)
         self.assertEqual(glyph.vhints[0][1], 10)
-        
+
     def test_auto_instruct(self):
         glyph = self.font['f']
         # TODO FontForge doesn't autoInstruct, not even in the GUI
@@ -54,7 +57,7 @@ class TestGlyphExtension(Mf2ffTest):
         # self.fontforge.parseTTInstrs (parseTTInstrs requires str and outputs
         # bytes, unParseTTInstrs requires bytes and outputs bytes)
         self.assertEqual(self.fontforge.unParseTTInstrs(glyph.ttinstrs), b'')
-    
+
     def test_build(self):
         glyph = self.font['ff']
 
@@ -67,7 +70,7 @@ class TestGlyphExtension(Mf2ffTest):
         self.assertEqual(glyph.references[1][0], 'f')
         self.assertEqual(glyph.references[1][1], (1, 0, 0, 1, 0, 0))
         self.assertEqual(glyph.references[1][2], False)
-    
+
     def test_add_reference(self):
         glyph = self.font['questiondown']
         self.assertEqual(len(glyph.references), 1)
