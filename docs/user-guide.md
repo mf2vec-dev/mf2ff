@@ -378,6 +378,7 @@ The following macros are available when this extension is active:
 - `glyph_add_vertical_hint(x_start, x_end);` to add a custom PostScript vertical (stem) hint to the glyph.
 - `glyph_add_diagonal_hint(p, q, d);` to add a custom diagonal (stem) hint to the glyph as three pairs representing two points `p`, `q` and a direction `d`, e.g. to improve automatic TrueType instructions.\
   The direction `d` can be omitted. In this case `d` is computed from `p` and `q`.
+- `glyph_add_math_kerning_top_right(x, y);`, `glyph_add_math_kerning_top_left(x, y);`, `glyph_add_math_kerning_bottom_right(x, y);` or `glyph_add_math_kerning_bottom_left(x, y);` to add math kerning points to the glyph.
 - `glyph_replaced_by(g_name, opentype_feature);` to associate the referenced glyph as a replacement glyph with an OpenType single substitution feature to the current glyph.
 - `glyph_replacement_of(g_name, opentype_feature);` to associate the current glyph as a replacement glyph with an OpenType single substitution feature to the specified glyph.
 

@@ -28,6 +28,14 @@ class TestGlyphExtension(Mf2ffTest):
     def test_glyph_only_name(self):
         self.assertIn('b.sc', self.font)
 
+    def test_glyph_add_math_kerning(self):
+        self.assertEqual(self.font['k'].mathKern.topLeft[0], (25, 75))
+        self.assertEqual(self.font['k'].mathKern.topLeft[1][0], 50)
+        self.assertEqual(self.font['k'].mathKern.bottomRight[0], (-25, 25))
+        self.assertEqual(self.font['k'].mathKern.bottomRight[1][0], 0)
+        # the second element of the last tuple is meaningless and fontforge
+        # sets it to the height of the glyph
+
     def test_glyph_top_accent(self):
         self.assertEqual(self.font['t'].topaccent, 50)
 

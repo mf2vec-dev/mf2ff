@@ -395,6 +395,12 @@ class Mf2ff:
             glyph_auto_instruct = False
             glyph_replacements = []
             glyph_hints = []
+            glyph_math_kernings = {
+                'top_right': [],
+                'top_left': [],
+                'bottom_right': [],
+                'bottom_left': []
+            }
 
             self.glyph_references = []
             self.glyph_replacements = []
@@ -967,6 +973,27 @@ class Mf2ff:
                                     glyph.vhints = hints
                     if glyph_auto_instruct:
                         glyph.autoInstr()
+                    for corner, kernings in glyph_math_kernings.items():
+                        if len(kernings) > 0:
+                            if corner.split('_')[1] == 'right':
+                                kernings = [(
+                                    round(float(k) - (charwd + charic)),
+                                    round(float(h))
+                                ) for k, h in kernings]
+                            else:
+                                kernings = [(
+                                    round(float(k)),
+                                    round(float(h))
+                                ) for k, h in kernings]
+                            if corner == 'top_right':
+                                glyph.mathKern.topRight = tuple(kernings)
+                            elif corner == 'top_left':
+                                glyph.mathKern.topLeft = tuple(kernings)
+                            elif corner == 'bottom_right':
+                                glyph.mathKern.bottomRight = tuple(kernings)
+                            elif corner == 'bottom_left':
+                                glyph.mathKern.bottomLeft = tuple(kernings)
+                        
                     if len(glyph_replacements) > 0:
                         # replace None by glyph name
                         glyph_replacements = [tuple(glyph.glyphname if r is None else r for r in gr) for gr in glyph_replacements]
@@ -984,6 +1011,12 @@ class Mf2ff:
                     glyph_auto_hint = False
                     glyph_auto_instruct = False
                     glyph_hints = []
+                    glyph_math_kernings = {
+                        'top_right': [],
+                        'top_left': [],
+                        'bottom_right': [],
+                        'bottom_left': []
+                    }
                     glyph_replacements = []
 
                 if self.input_options.ascent is None and charht > self.font.ascent:
@@ -1309,6 +1342,8 @@ class Mf2ff:
                     glyph_auto_instruct = True
                 elif glyph_cmd in ['add_horizontal_hint', 'add_vertical_hint', 'add_diagonal_hint']:
                     glyph_hints.append([glyph_cmd[4:-5]] + cmd_body_parts)
+                elif glyph_cmd[:17] in 'add_math_kerning_':
+                    glyph_math_kernings[glyph_cmd[17:]].append(cmd_body_parts)
                 elif glyph_cmd in ['replaced_by', 'replacement_of']:
                     if len(cmd_body_parts) != 2:
                         raise TypeError(f'{self.input_options.extension_glyph_macro_prefix}_{glyph_cmd} takes exactly two arguments ({len(cmd_body_parts)} given)')
@@ -1653,7 +1688,8 @@ class Mf2ff:
                     r'|glyph_(?:'
                         r'name|unicode|comment|top_accent|build|add_reference'
                         r'|add_(?:extrema|inflections)|auto_(?:hint|instruct)'
-                        r'|add_(?:horizontal|vertical|diagonal)_hint|replaced_by|replacement_of'
+                        r'|add_(?:(?:horizontal|vertical|diagonal)_hint|math_kerning_(?:top|bottom)_(?:right|left))'
+                        r'|replaced_by|replacement_of'
                     r')'
                     if self.input_options.extension_glyph else r''
                 )
@@ -2079,6 +2115,8 @@ class Mf2ff:
                         for glyph_cmd in [
                             'add_reference',
                             'add_horizontal_hint', 'add_vertical_hint', 'add_diagonal_hint',
+                            'add_math_kerning_top_right', 'add_math_kerning_top_left',
+                            'add_math_kerning_bottom_right', 'add_math_kerning_bottom_left',
                             'replaced_by', 'replacement_of'
                         ]
                     )

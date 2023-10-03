@@ -60,6 +60,13 @@ beginchar("t", 100, 100, 0);
     glyph_top_accent(w/2);
 endchar;
 
+beginchar("k", 100, 100, 0);
+    glyph_add_math_kerning_top_left(w/4, 3/4*h);
+    glyph_add_math_kerning_top_left(w/2, h);
+    glyph_add_math_kerning_bottom_right(3/4*w, h/4);
+    glyph_add_math_kerning_bottom_right(w, h/2);
+endchar;
+
 beginchar("h", 100, 100, 0);
     glyph_add_horizontal_hint(10, 20);
     glyph_add_vertical_hint(30, 40);
