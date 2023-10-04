@@ -894,6 +894,9 @@ class Mf2ff:
                 glyph.texdepth = chardp
                 if self.input_options.set_italic_correction:
                     glyph.italicCorrection = charic
+                else:
+                    # also ignore ic value in other calculations below
+                    charic = 0
 
                 if self.input_options.extension_glyph and glyph_top_accent is not None:
                     glyph.topaccent = glyph_top_accent
@@ -977,14 +980,14 @@ class Mf2ff:
                         if len(kernings) > 0:
                             if corner.split('_')[1] == 'right':
                                 kernings = [(
-                                    round(float(k) - (charwd + charic)),
-                                    round(float(h))
-                                ) for k, h in kernings]
+                                    round(float(x) - (charwd + charic)),
+                                    round(float(y))
+                                ) for x, y in kernings]
                             else:
                                 kernings = [(
-                                    round(float(k)),
-                                    round(float(h))
-                                ) for k, h in kernings]
+                                    round(float(x)),
+                                    round(float(y))
+                                ) for x, y in kernings]
                             if corner == 'top_right':
                                 glyph.mathKern.topRight = tuple(kernings)
                             elif corner == 'top_left':
