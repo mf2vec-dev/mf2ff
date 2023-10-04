@@ -12,7 +12,7 @@ This tutorial should provide an introduction to both ways. Afterward, useful opt
   - [Run `mf2ff` on the command line](#run-mf2ff-on-the-command-line)
   - [Use `mf2ff` from a Python script](#use-mf2ff-from-a-python-script)
   - [Unicode support](#unicode-support)
-  - [Specifying encoding point, Unicode value and glyph name](#specifying-encoding-point-unicode-value-and-glyph-name)
+  - [Specifying code point, Unicode value and glyph name](#specifying-code-point-unicode-value-and-glyph-name)
   - [Options](#options)
     - [`charcode-from-last-ASCII-hex-arg`](#charcode-from-last-ascii-hex-arg)
     - [`cull-at-shipout`](#cull-at-shipout)
@@ -86,12 +86,21 @@ Because using multiple fonts and having to switch between them is not practical 
 - `.mf` input that exceeds METAFONT's character limit produces different output in METAFONT (glyph metrics or glyphs are overwritten). This is no problem for `mf2ff` but for debugging the `.mf` input with METAFONT some glyph definitions / `shipout`s and maybe other commands like `ligtable`, `charlist` and `extensible` need to be commented out or deactivated using an approach [similar to the commands of extensions](#general-note-on-extensions).
 
 
-## Specifying encoding point, Unicode value and glyph name
+## Specifying code point, Unicode value and glyph name
 
-`mf2ff` provides the following ways to set the encoding point, Unicode value and glyph name. The relevant definition of variables or use of macros are the last between two shipout (between `beginchar` and `endchar`).
+> `mf2ff` supports the following ways to specify the glyph that is created:
+> - `beginchar("A", ...);`, `beginchar(65, ...);`, `beginchar(oct"101", ...);`, `beginchar(hex"41", ...);`, ... (the usual way)
+> - `beginchar(...);` and `charext` (the usual way with `charext`)
+> - `beginchar("0041", ...);` or `beginchar("U+0041", ...);`
+> - `beginchar("", ...);` or `beginchar(-1, ...);` and `glyph_unicode` (and optionally `glyph_name`)
+> - `beginchar("", ...);` or `beginchar(-1, ...);` and `glyph_name`
+> 
+> Only the first two are compatible to METAFONT without `mf2ff`.
+
+`mf2ff` provides the following ways to set the code point, Unicode value and glyph name. The relevant definition of variables or use of macros are the last between two shipout (between `beginchar` and `endchar`).
 - Only define `charcode`:\
   In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as usual.\
-  The value of `charcode` determines the code point in the input encoding .\
+  The value of `charcode` determines the code point in the input encoding.\
   The value of `charcode` should not exceed 4095.99998 and can not exceed 32767.99998.\
   This is compatible to METAFONT as long as $0\le{}$`charext`${}\le255$.
 - Only define `charcode` and `charext`:\
@@ -111,7 +120,7 @@ Because using multiple fonts and having to switch between them is not practical 
   `glyph_unicode` must be defined as explained [below](#general-note-on-extensions) to work with METAFONT.
   If `glyph_name` is used, the default name of the glyph is overwritten. `glyph_name` must be defined as explained [below](#general-note-on-extensions) to work with METAFONT.
 - Define `charcode` as `-1` and `glyph_name`:\
-  In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as `-1` or an empty string (`""`).\
+  In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as `-1` or an empty string (`""`) and defining `glyph_name`.\
   The option `extension-glyph` needs to be active.\
   A glyph without a Unicode value is created and given the name defined by `glyph_name`.\
   This is useful for creating characters for the `glyph_replacement_of` or `glyph_replaced_by` macros from the [glyph extension](#glyph-extension).\
@@ -253,7 +262,7 @@ This option enables or disables setting `glyph.italicCorrection` to the value of
 | API | `mf2ff.options.set_math_defaults = True` / `False` |
 | default | disabled |
 
-This option enables using the `fontdimen` values to set the OpenType `math` table constants to default TeX equivalent values.
+This option enables using the `fontdimen` values to set the OpenType `math` table constants to default TeX equivalent values. An overview of the OpenType `math` constants and the default values that are used when the `set-math-defaults` option is enabled can be found [here](math.md).
 
 
 ### `set-top-accent` & `skewchar`
@@ -379,7 +388,7 @@ The following macros are available when this extension is active:
 - `glyph_add_diagonal_hint(p, q, d);` to add a custom diagonal (stem) hint to the glyph as three pairs representing two points `p`, `q` and a direction `d`, e.g. to improve automatic TrueType instructions.\
   The direction `d` can be omitted. In this case `d` is computed from `p` and `q`.
 - `glyph_add_math_kerning_top_right(x, y);`, `glyph_add_math_kerning_top_left(x, y);`, `glyph_add_math_kerning_bottom_right(x, y);` or `glyph_add_math_kerning_bottom_left(x, y);` to add math kerning points to the glyph.
-- `glyph_replaced_by(g_name, opentype_feature);` to associate the referenced glyph as a replacement glyph with an OpenType single substitution feature to the current glyph.
+- `glyph_replaced_by(g_name, opentype_feature);` to associate the specified glyph as a replacement glyph with an OpenType single substitution feature to the current glyph.
 - `glyph_replacement_of(g_name, opentype_feature);` to associate the current glyph as a replacement glyph with an OpenType single substitution feature to the specified glyph.
 
 Similar to the other extensions, the prefix of the glyph extension macros can be changed:
@@ -418,7 +427,7 @@ The following macros are available when this extension is active:
 - `font_add_inflections;` to automatically add inflection points to the contours of all glyphs.
 - `font_auto_hint;` to automatically add PostScript hints to all glyph.
 - `font_auto_instruct;` to automatically add TrueType instructions to all glyph.
-- `font_math_constant(name, value)` to define an OpenType `math` table constant, name as a string, value as a number.
+- `font_math_constant(name, value)` to define an OpenType `math` table constant, name as a string, value as a number. An overview of the OpenType `math` constants and the default values that are used when the `set-math-defaults` option is enabled can be found [here](math.md).
 - `font_postscript_private_dictionary(name, value)` to define an entry in the PostScript private directory, name as string, value depending on entry (arrays as a sting in PostScript format).
 
 Similar to the other extensions, the prefix of the glyph extension macros can be changed:

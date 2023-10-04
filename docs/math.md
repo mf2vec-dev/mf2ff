@@ -1,5 +1,8 @@
 # OpenType `math`
 
+Back to [README](../README.md)\
+Back to [User Guide](user-guide.md)
+
 The following table and the implemented use of the TeX/METAFONT `fontdimen`s to set the OpenType parameters are based on Ulrik Vieth's overview [1].
 
 $\sigma_i$ represents TeX's `\fontdimen`$i$ and METAFONT's `fontdimen `$i$ of the symbol font (family 2) of the current style.\
