@@ -24,6 +24,7 @@ This tutorial should provide an introduction to both ways. Afterward, useful opt
     - [`set-italic-correction`](#set-italic-correction)
     - [`set-math-defaults`](#set-math-defaults)
     - [`set-top-accent` \& `skewchar`](#set-top-accent--skewchar)
+    - [`space-from-fontdimen`](#space-from-fontdimen)
     - [`stroke-simplify` \& `stroke-accuracy`](#stroke-simplify--stroke-accuracy)
     - [`upm`](#upm)
     - [`use-ppi-factor`](#use-ppi-factor)
@@ -282,6 +283,17 @@ This option enables defining the OpenType math top accent attachment point horiz
 | default | `-1` |
 
 If `skewchar` is set to a non-negative number, the kerning pairs with that code point are used to adjust the top accent value. A value of `None` will cause top accent to only use width and italic correction for all glyphs. `skewchar` option with value `-1` (default) use `127` as the skewchar if the input encoding is TeX math italic, `48` if it is TeX math symbols and `None` otherwise.
+
+
+### `space-from-fontdimen`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`space-from-fontdimen` |
+| API | `mf2ff.options.space_from_fontdimen = True` / `False` |
+| default | enabled |
+
+This option enables using the value of `fontdimen 2` to add a glyph at with Unicode value `U+0020` (a space) to the font. If the input encoding has no code point for the space, a new one is created.
 
 
 ### `stroke-simplify` & `stroke-accuracy`

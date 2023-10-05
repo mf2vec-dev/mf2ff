@@ -69,6 +69,7 @@ class Mf2ffOptions:
             'set_top_accent': {'type': bool, 'default': False},
             'sfd': {'type': bool, 'default': True},
             'skewchar': {'type': int | None, 'default': -1},
+            'space_from_fontdimen': {'type': bool, 'default': True},
             'stroke_accuracy': {'type': float | None, 'default': None}, # None: use fontforge's default (should be 0.25)
             'stroke_simplify': {'type': bool, 'default': True},
             'time': {'type': bool, 'default': False},
@@ -259,7 +260,8 @@ class Mf2ffOptions:
             'extrema', 'fix-contours','hint', 'is_type', 'kerning-classes',
             'otf', 'quadratic', 'quiet', 'remove-artifacts', 
             'set-italic-correction', 'set-math-defaults', 'set-top-accent',
-            'sfd', 'stroke-simplify', 'time', 'ttf', 'use-ppi-factor'
+            'sfd', 'space-from-fontdimen', 'stroke-simplify', 'time', 'ttf',
+            'use-ppi-factor'
         ]
         mf2ff_options_values = [
             'ascent', 'comment', 'copyright', 'descent', 'designsize',
@@ -571,6 +573,9 @@ class Mf2ffOptions:
             '                      A value of None treats all glyphs the same and keeps the kerning as defined.\n'
             '                      A value of -1 will use 127 for TeX-math-italic, 48 for TeX-math-symbols and None otherwise.\n'
             '                      (default: -1)\n'
+            '  -[no-]space-from-fontdimen\n'
+            '                    disable/enable creating an empty space glyph at U+0020 from fontdimen 2.\n'
+            '                      If input encoding has no code point for space, a new one is created.\n'
             '  -stroke-accuracy=NUM\n'
             '                    set stroke accuracy, i.e. target for the allowed error in em-units\n'
             '                      for layer.simplify() during layer.stoke(). Has no effect if\n'

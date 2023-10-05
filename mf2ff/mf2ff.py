@@ -1117,7 +1117,8 @@ class Mf2ff:
                         else:
                             self.font.italicangle = -atan(slant)*180/pi
                     elif k == 2:
-                        self.font.createChar(32).width = round(params[j]*hppp)
+                        if self.input_options.space_from_fontdimen:
+                            self.font.createChar(32, 'space').width = round(params[j]*hppp)
                     elif k == 5:
                         # font.os2_xheight not in FontForge docs
                         self.font.os2_xheight = round(params[j]*hppp)
