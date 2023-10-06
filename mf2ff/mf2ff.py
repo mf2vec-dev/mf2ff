@@ -2375,15 +2375,36 @@ class Mf2ff:
               1. Defaults to None. None will use
               self.options.params['remove_overlap']['scale_factor'].
         '''
-        if isinstance(pic, fontforge.layer):
-            picture = pic
+        is_self_picture = not isinstance(pic, fontforge.layer)
+        if is_self_picture:
+            # Duplicate so below strategy for avoiding removeOverlap() results
+            # works.
+            picture = self.pictures[pic].dup()
         else:
-            picture = self.pictures[pic]
+            picture = pic
+        all_contours_closed = all(c.closed for c in picture)
+        if not all_contours_closed:
+            print('! One or more contours are open, so removing overlap may not work.')
         if s is None:
             s = self.options.params['remove_overlap']['scale_factor']
         picture.transform((s, 0, 0, s, 0, 0))
         picture.removeOverlap()
         picture.transform((1/s, 0, 0, 1/s, 0, 0))
+        # If pic was a key to self.pictures and it had no open contours, we can
+        # try to work around problems if there were any..
+        if is_self_picture:
+            if all_contours_closed:
+                # check again if problems were introduced.
+                all_contours_closed = all(c.closed for c in picture)
+                if not all_contours_closed:
+                    # layer.removeOverlap()'s result is bad
+                    picture = fontforge.layer()
+                    # Remove overlap only between two contours, one contour after
+                    # the other.
+                    for c in self.pictures[pic]:
+                        picture += c
+                        self.remove_overlap(picture, s)
+            self.pictures[pic] = picture
 
     def fix_contours(self, layer):
         '''fixes contours by closing open contours if first and last point have the same coordinates
