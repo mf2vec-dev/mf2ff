@@ -636,7 +636,7 @@ class Mf2ff:
                         # stroke(). Note: This also seems to change the contour
                         # order in the glyph's layer. The outer contour always
                         # seems to be the last contour
-                        self.pictures['temp_layer'].correctDirection()
+                        self.correct_direction('temp_layer')
                         # add stroked layer to glyph
                         self.pictures[addto] += self.pictures['temp_layer']
 
@@ -686,10 +686,8 @@ class Mf2ff:
                     # TODO explain this section
                     drop_contours = []
                     temp_layer = self.pictures[cull_pic_name]
-                    corrected_picture = fontforge.layer()
-                    for c in self.pictures[cull_pic_name]:
-                        corrected_picture += deepcopy(c)
-                    corrected_picture = corrected_picture.correctDirection()
+                    corrected_picture = self.pictures[cull_pic_name].dup()
+                    self.correct_direction(corrected_picture)
                     for j, (cl, l) in enumerate(zip(corrected_picture, self.pictures[cull_pic_name])):
                         if (
                             drop_pos and cl.isClockwise() == l.isClockwise()
@@ -703,7 +701,7 @@ class Mf2ff:
                 elif keep_or_drop == 'dropping' and a == 0 and b == 0:
                     # everything non-zero will stay
                     self.remove_overlap(cull_pic_name)
-                    self.pictures[cull_pic_name].correctDirection()
+                    self.correct_direction(cull_pic_name)
                 elif keep_or_drop == 'keeping' and a == 0 and b == 0:
                     print('! cull V keeping (0, 0) isn\'t allowed (see The METAFONTbook, p. 120)')
                     print('  ignoring this cull command')
@@ -2368,12 +2366,12 @@ class Mf2ff:
         points might be missing and some contours might be broken.
 
         Args:
-            pic_name (fontforge.layer or str): a layer or a name of a picture in
-              self.pictures
+            pic_name (fontforge.layer or str): a layer or a name of a picture
+              in self.pictures
             s (int or float, optional): scale factor to upscale before and
-              downscale after removeOverlap(). Value should be much greater than
-              1. Defaults to None. None will use
-              self.options.params['remove_overlap']['scale_factor'].
+              downscale after removeOverlap(). Value should be much greater
+              than 1. Defaults to None. None will use
+              self.input_options.params['remove_overlap']['scale_factor'].
         '''
         is_self_picture = not isinstance(pic, fontforge.layer)
         if is_self_picture:
@@ -2386,7 +2384,7 @@ class Mf2ff:
         if not all_contours_closed:
             print('! One or more contours are open, so removing overlap may not work.')
         if s is None:
-            s = self.options.params['remove_overlap']['scale_factor']
+            s = self.input_options.params['remove_overlap']['scale_factor']
         picture.transform((s, 0, 0, s, 0, 0))
         picture.removeOverlap()
         picture.transform((1/s, 0, 0, 1/s, 0, 0))
@@ -2405,6 +2403,32 @@ class Mf2ff:
                         picture += c
                         self.remove_overlap(picture, s)
             self.pictures[pic] = picture
+
+    def correct_direction(self, pic, s=None):
+        '''applies layer.correctDirection() to pic or self.pictures[pic]
+
+        Scales the layer up before and down after applying correctDirection to
+        overcome problems or inaccuracies of FontForge. Without this, some
+        contours might not be corrected.
+
+        Args:
+            pic_name (fontforge.layer or str): a layer or a name of a picture
+              in self.pictures
+            s (int or float, optional): scale factor to upscale before and
+              downscale after correctDirection(). Value should be greater
+              than 1. Defaults to None. None will use
+              self.input_options.params['correct_direction']['scale_factor'].
+        '''
+        is_self_picture = not isinstance(pic, fontforge.layer)
+        if is_self_picture:
+            picture = self.pictures[pic]
+        else:
+            picture = pic
+        if s is None:
+            s = self.input_options.params['correct_direction']['scale_factor']
+        picture.transform((s, 0, 0, s, 0, 0))
+        picture.correctDirection()
+        picture.transform((1/s, 0, 0, 1/s, 0, 0))
 
     def fix_contours(self, layer):
         '''fixes contours by closing open contours if first and last point have the same coordinates

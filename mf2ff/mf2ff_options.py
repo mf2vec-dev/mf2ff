@@ -86,6 +86,9 @@ class Mf2ffOptions:
         self.__dict__['_inputs'] = []
         self.__dict__['_index'] = None
         self.__dict__['_params'] = {
+            'correct_direction': {
+                'scale_factor': 10,
+            },
             'remove_artefacts': {
                 'collinear': {
                     'distance_threshold': 0.01,
