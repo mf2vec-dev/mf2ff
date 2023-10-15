@@ -994,7 +994,7 @@ class Mf2ff:
                                 glyph.mathKern.bottomRight = tuple(kernings)
                             elif corner == 'bottom_left':
                                 glyph.mathKern.bottomLeft = tuple(kernings)
-                        
+
                     if len(glyph_replacements) > 0:
                         # replace None by glyph name
                         glyph_replacements = [tuple(glyph.glyphname if r is None else r for r in gr) for gr in glyph_replacements]
@@ -2244,42 +2244,70 @@ class Mf2ff:
                 self.font.math.__setattr__(name, round(value))
 
     def to_glyph_name(self, g):
-        '''converts name or code point g to FontForge glyph name
+        '''converts character or code point g to glyph name
 
-        If name is unknown, use first character of name and print a warning.
+        If the ligtable_generalized_code option is enabled, this method can also process hexadecimal (e.g. 0x0000), Unicode (e.g. U+0000) or glyph name input.
+
+        If g is not a hex or Unicode string and is unknown as a glyph name, use first character of g and print a warning.
 
         Args:
-            g (str or int): glyph code point or name
+            g (str or int): character or code point, (Unicode, hexadecimal or glyph name if ligtable_generalized_code option is enabled)
 
         Returns:
             string: FontForge glyph name
         '''
-        if isinstance(g, str):
-            # if g is a string, use g if it can be used to access the glyph. If
-            # not, try fontforge.unicodeFromName and unicodedata.lookup. If not
-            # found, use first character.
-            g_str = g
-            del g
-            try:
-                self.font[g_str]
-                # g_str is valid name
-                return g_str
-            except TypeError:
-                if fontforge.unicodeFromName(g_str) == -1:
-                    g_int = fontforge.unicodeFromName(g_str)
-                else:
+        if self.input_options.ligtable_generalized_code:
+            if isinstance(g, str):
+                g_str = g
+                del g
+
+                # check for Unicode and hex string
+                if g_str[:2].lower() == 'u+':
+                    g_str = fontforge.nameFromUnicode(int(g_str[2:], 16))
+                    return g_str
+                g_hex_str = g_str
+                if g_hex_str[:2].lower() == '0x':
+                    g_hex_str = g_hex_str[2:]
+                if len(g_hex_str) in [4, 5]: # ae, ff, etc. are valid glyph names
                     try:
-                        # convert name to Unicode character and back to Fontforge glyph name
-                        g_int = unicodedata.decimal(unicodedata.lookup(g_str))
-                    except KeyError:
-                        if len(g_str) != 1:
-                            print('! \'' + g_str + '´ is not a valid glyph name. \'' + g_str[0] + '´ is assumed.')
-                            g_str = g_str[0]
-                        g_int = ord(g_str)
+                        g_int = int(g_hex_str, 16)
+                    except ValueError:
+                        # continue below
+                        pass
+                    else:
+                        g_str = self.font[g_int].glyphname
+                        return g_str
+
+                # no Unicode or hex string:\
+                # Use g if it can be used to access the glyph. If not, try
+                # fontforge.unicodeFromName and unicodedata.lookup. If not
+                # found, use first character.
+                try:
+                    self.font[g_str]
+                    # g_str is valid name
+                    return g_str
+                except TypeError:
+                    if fontforge.unicodeFromName(g_str) != -1:
+                        g_int = fontforge.unicodeFromName(g_str)
+                    else:
+                        try:
+                            # convert name to Unicode character and back to
+                            # Fontforge glyph name
+                            g_int = unicodedata.decimal(unicodedata.lookup(g_str))
+                        except KeyError:
+                            if len(g_str) != 1:
+                                print('! \'' + g_str + '´ is not a valid glyph name. \'' + g_str[0] + '´ is assumed.')
+                                g_str = g_str[0]
+                            g_int = ord(g_str)
+            else:
+                # if g is int, use name based on current encoding
+                g_int = g
+                del g
         else:
-            # if g is int, use name based on current encoding
-            g_int = g
-            del g
+            if isinstance(g, str):
+                g_int = ord(g[0])
+        # get glyph name for g_int code point (if g was a glyph name, the name
+        # was already returned above)
         g_str = self.font[g_int].glyphname
         return g_str
 

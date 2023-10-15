@@ -51,6 +51,7 @@ class Mf2ffOptions:
             'italicangle': {'type': float, 'default': 0.0},
             'jobname': {'type': str, 'default': ''},
             'kerning_classes': {'type': bool, 'default': False},
+            'ligtable_generalized_code': {'type': bool, 'default': False},
             'mf_options': {'type': list, 'default': ['-interaction=batchmode']},
             'otf': {'type': bool, 'default': False},
             'output_directory': {'type': Path, 'default': Path.cwd()},
@@ -261,10 +262,10 @@ class Mf2ffOptions:
         mf2ff_options_negatable = [
             'charcode-from-last-ASCII-hex-arg', 'cull-at-shipout', 'debug',
             'extrema', 'fix-contours','hint', 'is_type', 'kerning-classes',
-            'otf', 'quadratic', 'quiet', 'remove-artifacts', 
-            'set-italic-correction', 'set-math-defaults', 'set-top-accent',
-            'sfd', 'space-from-fontdimen', 'stroke-simplify', 'time', 'ttf',
-            'use-ppi-factor'
+            'ligtable-generalized-code', 'otf', 'quadratic', 'quiet',
+            'remove-artifacts', 'set-italic-correction', 'set-math-defaults',
+            'set-top-accent', 'sfd', 'space-from-fontdimen', 'stroke-simplify',
+            'time', 'ttf', 'use-ppi-factor'
         ]
         mf2ff_options_values = [
             'ascent', 'comment', 'copyright', 'descent', 'designsize',
@@ -552,6 +553,9 @@ class Mf2ffOptions:
             '  -[no-]kerning-classes\n'
             '                    disable/enable kerning classes instead of kerning pairs\n'
             '                      (default: disabled = kerning pairs)'
+            '  -[no-]ligtable-generalized-code\n'
+            '                    disable/enable support for hexadecimal, unicode and glyph name values for <code> in ligtable commands\n'
+            '                      (default: disabled)\n'
             '  -[no-]otf         disable/enable OpenType output generation (default: disabled)\n'
             '  -output-directory=DIR\n'
             '                    set existing directory DIR as output directory\n'

@@ -19,6 +19,7 @@ This tutorial should provide an introduction to both ways. Afterward, useful opt
     - [`input-encoding`](#input-encoding)
     - [`input-file:`*N* and the `:`*N* syntax](#input-filen-and-the-n-syntax)
     - [`kerning-classes`](#kerning-classes)
+    - [`ligtable-generalized-code`](#ligtable-generalized-code)
     - [`quadratic`](#quadratic)
     - [`remove-artifacts`](#remove-artifacts)
     - [`set-italic-correction`](#set-italic-correction)
@@ -220,6 +221,17 @@ enddef;
 group_kerning("F", "V", "W", "Y")(-4/5pt#)("c", "e", "o", "q");
 ```
 This should expand to a ligtable command which kerns all combinations of the first list and the second list (e.g. "Fc", "Fo", "We", etc.) with the offset defined in the middle. METAFONT will create 16 kerning pairs from this example. If you run `mf2ff` on input with such this example, it will create the classes based on these kerning pairs and builds up a kerning matrix. If there are other ligtable or group_kerning commands, `mf2ff` will split up or combine the classes according to the kerning specifications.
+
+
+### `ligtable-generalized-code`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`ligtable-generalized-code` |
+| API | `mf2ff.options.ligtable_generalized_code = True` / `False` |
+| default | disabled |
+
+This option enables or disables support for hexadecimal strings (e.g. "0x0000"), Unicode strings (e.g. "U+0000") and glyph names in `ligtable` commands, instead of only accepting numeric values and strings of length 1.
 
 
 ### `quadratic`

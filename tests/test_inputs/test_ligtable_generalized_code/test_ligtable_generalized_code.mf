@@ -1,0 +1,23 @@
+mode_setup;
+
+beginchar("a", 100, 100, 0);
+endchar;
+
+beginchar(hex"0100", 100, 100, 0);
+endchar;
+
+beginchar(-1, 100, 100, 0);
+glyph_unicode("U+0200)
+endchar;
+
+beginchar(-1, 100, 100, 0);
+glyph_name("a.sc")
+endchar;
+
+ligtable "a": "0x0100" kern -10;
+ligtable "a": "U+0200" kern -20;
+ligtable "a": "a.sc" kern -30;
+ligtable "0x0100": "U+0200" kern -40;
+ligtable "U+0200": "a.sc" =: "0x0100";
+
+end
