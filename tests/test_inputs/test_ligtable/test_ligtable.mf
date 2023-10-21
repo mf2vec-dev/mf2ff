@@ -1,6 +1,15 @@
 mode_setup;
 
 
+beginchar(48, 100, 100, 0);
+endchar;
+
+beginchar(49, 100, 100, 0);
+endchar;
+
+ligtable 48: 49 kern -10;
+
+
 beginchar("A", 100, 100, 0);
 endchar;
 

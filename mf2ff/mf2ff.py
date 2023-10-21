@@ -2304,8 +2304,11 @@ class Mf2ff:
                 g_int = g
                 del g
         else:
+            # METAFONT's behavior
             if isinstance(g, str):
                 g_int = ord(g[0])
+            else:
+                g_int = g
         # get glyph name for g_int code point (if g was a glyph name, the name
         # was already returned above)
         g_str = self.font[g_int].glyphname
