@@ -1708,6 +1708,7 @@ class Mf2ff:
         self.command_pattern = re.compile(M+
             r'('
                 r'addto|also|contour|doublepath|turningcheck|turningnumber|withpen|withweight'
+                r'|rotated|scaled|shifted|slanted|xscaled|yscaled'
                 r'|cull|keeping|dropping'
                 r'|picture|pic_eqn|pic|as|eq|mi|pl'
                 r'|shipout'
