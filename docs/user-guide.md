@@ -20,6 +20,8 @@ This tutorial should provide an introduction to both ways. Afterward, useful opt
     - [`input-file:`*N* and the `:`*N* syntax](#input-filen-and-the-n-syntax)
     - [`kerning-classes`](#kerning-classes)
     - [`ligtable-generalized-code`](#ligtable-generalized-code)
+    - [`only-code-points` \& `ignore-code-points`](#only-code-points--ignore-code-points)
+    - [`ot-sub-feature` \& `glyph-name-suffix`](#ot-sub-feature--glyph-name-suffix)
     - [`quadratic`](#quadratic)
     - [`remove-artifacts`](#remove-artifacts)
     - [`set-italic-correction`](#set-italic-correction)
@@ -96,7 +98,7 @@ Because using multiple fonts and having to switch between them is not practical 
 > - `beginchar("0041", ...);` or `beginchar("U+0041", ...);`
 > - `beginchar("", ...);` or `beginchar(-1, ...);` and `glyph_unicode` (and optionally `glyph_name`)
 > - `beginchar("", ...);` or `beginchar(-1, ...);` and `glyph_name`
-> 
+>
 > Only the first two are compatible to METAFONT without `mf2ff`.
 
 `mf2ff` provides the following ways to set the code point, Unicode value and glyph name. The relevant definition of variables or use of macros are the last between two shipout (between `beginchar` and `endchar`).
@@ -234,6 +236,45 @@ This should expand to a ligtable command which kerns all combinations of the fir
 This option enables or disables support for hexadecimal strings (e.g. "0x0000"), Unicode strings (e.g. "U+0000") and glyph names in `ligtable` commands, instead of only accepting numeric values and strings of length 1.
 
 
+### `only-code-points` & `ignore-code-points`
+
+|||
+|-|-|
+| CLI | `-only-code-points=`*code point ranges* / `None` |
+| API | `mf2ff.options.only_code_points = ` *code point ranges* / `None` |
+| default | `None` |
+
+|||
+|-|-|
+| CLI | `-ignore-code-points=`*code point ranges* / `None` |
+| API | `mf2ff.options.ignore_code_points = ` *code point ranges* / `None` |
+| default | `None` |
+
+These options allow the selection of glyphs to be included in the output. Both can be applied on the same input to `ignore-code-points` from the ones specified by `only-code-points`.
+
+The value in the CLI should be a comma separated list (without spaces) of single code points and code point ranges (two code points separated by `-`). The code points can be defined in hexadecimal format (e.g. `0x00`). Examples: `0x00-0x1F,0x7F` or `0x41-0x5A,0x61-0x7A`.\
+The value in the API should be a list of lists of one (single glyphs) or two integers (ranges, inclusive). Examples: `[[0, 31], [127]]` or `[[65, 90], [97, 122]]`.
+
+
+### `ot-sub-feature` & `glyph-name-suffix`
+
+|||
+|-|-|
+| CLI | `-ot-sub-feature=`*feature tag* / `None` |
+| API | `mf2ff.options.ot_sub_feature = ` *feature tag* / `None` |
+| default | `None` |
+
+The glyphs of the input are added to a substitution lookup table with the specified OpenType feature tag.
+
+The glyphs have no Unicode value and the glyph name is appended with the feature tag. When the `glyph-name-suffix` option is specified, it's value is used instead of the feature tag. The value of the `glyph-name-suffix` option should start with some kind of a separator, e.g. `.sc`.
+
+|||
+|-|-|
+| CLI | `-glyph-name-suffix=`*feature tag* / `None` |
+| API | `mf2ff.options.glyph_name_suffix = ` *feature tag* / `None` |
+| default | `None` |
+
+
 ### `quadratic`
 
 |||
@@ -318,9 +359,9 @@ This option enables using the value of `fontdimen 2` to add a glyph at with Unic
 
 |||
 |-|-|
-| CLI | `-stroke-accuracy=`*number* |
-| API | `mf2ff.options.stroke_accuracy = ` *number* |
-| default | 0.25 (FontForge's default) |
+| CLI | `-stroke-accuracy=`*number* / `None` |
+| API | `mf2ff.options.stroke_accuracy = ` *number* / `None` |
+| default | `None` (`0.25`, FontForge's default) |
 
 FontForge's `layer.stroke()` function provides `simplify` and `accuracy` options. When enabled, `layer.simplify()` is called on the layer. The `error_bound` argument of `layer.simplify()` can be adjusted using `mf2ff`'s `stroke-accuracy` option.
 

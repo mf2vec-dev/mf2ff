@@ -381,8 +381,8 @@ class Mf2ff:
             for ligtable_op_type, ligtable_ot_features in self.supported_ligtable_ot_features.items()
         }
 
-        if self.input_options.extension_glyph or self.input_options.charcode_from_last_ASCII_hex_arg:
-            glyph_unicode = None
+        glyph_unicode = None
+        self.glyph_replacements = [] # for all glyphs
         if self.input_options.extension_glyph:
             glyph_name = None
             glyph_comment = None
@@ -393,7 +393,7 @@ class Mf2ff:
             glyph_add_inflections = False
             glyph_auto_hint = False
             glyph_auto_instruct = False
-            glyph_replacements = []
+            glyph_replacements = [] # for current glyph
             glyph_hints = []
             glyph_math_kernings = {
                 'top_right': [],
@@ -403,7 +403,6 @@ class Mf2ff:
             }
 
             self.glyph_references = []
-            self.glyph_replacements = []
 
             specified_top_accents = []
 
@@ -808,6 +807,8 @@ class Mf2ff:
                 i = j_eq[-1]-1
 
             elif cmd_name == 'shipout':
+                skip_glyph = False
+
                 shipout = self.shipout_pattern.search(self.cmd_body)
                 hppp = float(shipout.group(1))
 
@@ -837,11 +838,9 @@ class Mf2ff:
                         # is ASCII value of U or u). If no glyph_unicode was
                         # defined using the glyph extension, use the unicode
                         # value from ASCII. This means a unicode value from
-                        # ASCII is discarded if glyph_unicode is used.
-                        if (
-                            not self.input_options.extension_glyph
-                            or (self.input_options.extension_glyph and glyph_unicode is None)
-                        ):
+                        # ASCII stored in glyph_code is discarded if
+                        # glyph_unicode is used.
+                        if glyph_unicode is None:
                             glyph_unicode = glyph_code
                         glyph_code = -1
                     last_ASCII_hex_arg_is_unicode = False
@@ -861,7 +860,39 @@ class Mf2ff:
                     # overlaps again.
                     self.remove_overlap(pic)
 
-                if (self.input_options.extension_glyph or self.input_options.charcode_from_last_ASCII_hex_arg) and glyph_unicode is not None and glyph_code == -1:
+                if glyph_code >= 0:
+                    # do this before any glyph_code changes
+                    skip_glyph = self.should_skip_glyph(glyph_code)
+
+                # Open Type Substitution glyphs need different glyph name
+                if self.input_options.ot_sub_feature is not None:
+                    if glyph_code < 0:
+                        if glyph_unicode is not None:
+                            base_glyph_name = fontforge.nameFromUnicode(glyph_unicode)
+                        elif glyph_name is not None:
+                            base_glyph_name = glyph_name
+                        else:
+                            raise ValueError('! glyph without glyph code, unicode value and glyph name')
+                    else:
+                        # TODO This solution is not ideal.
+                        try:
+                            # TODO If the input encoding changes, some names
+                            # might be wrong.
+                            base_glyph_name = self.font[glyph_code].glyphname
+                        except TypeError:
+                            # if the encoding changed and the character ahs no unicode 
+                            base_glyph_name = 'NameMe.' + str(glyph_code)
+                    # set glyph code and unicode value to unset values to
+                    # create glyph with name below
+                    glyph_code = -1
+                    glyph_unicode = None
+                    if self.input_options.glyph_name_suffix is not None:
+                        glyph_name_suffix = self.input_options.glyph_name_suffix
+                    else:
+                        glyph_name_suffix = '.' + self.input_options.ot_sub_feature
+                    glyph_name = base_glyph_name + glyph_name_suffix
+
+                if glyph_unicode is not None and glyph_code == -1:
                     # If no glyph_name is defined, use the unicode default name
                     # instead.
                     if not self.input_options.extension_glyph or glyph_name is None:
@@ -871,138 +902,145 @@ class Mf2ff:
                     elif self.input_options.extension_glyph and glyph_name[0] == '"':
                         glyph_name = glyph_name[1:-1]
                     glyph = self.font.createChar(glyph_unicode, glyph_name)
-                elif self.input_options.extension_glyph and glyph_unicode is None and glyph_code == -1 and glyph_name is not None:
-                    glyph = self.font.createChar(-1, glyph_name)
+                elif glyph_unicode is None and glyph_code == -1 and glyph_name is not None:
+                    if not skip_glyph:
+                        glyph = self.font.createChar(-1, glyph_name)
                 else:
-                    glyph = self.font.createMappedChar(glyph_code)
-                glyph.layers[1] = pic
+                    if not skip_glyph:
+                        glyph = self.font.createMappedChar(glyph_code)
+                
+                if not skip_glyph:
+                    glyph.layers[1] = pic
 
-                # transform before setting glyph.width\
-                # glyph.transform has no 'noWidth' flag. This is strange
-                # because font.transform supports this flag and the GUI glyph
-                # transform dialog has a 'Transform Width Too' checkbox that
-                # can be unchecked.
-                if xoffset != 0 or yoffset != 0:
-                    # "The pixels of v are shifted by (xoffset, yoffset) as
-                    # they are shipped out." (The METAFONTbook, p. 220)
-                    glyph.transform((1.0, 0.0, 0.0, 1.0, xoffset, yoffset))
+                    # transform before setting glyph.width\
+                    # glyph.transform has no 'noWidth' flag. This is strange
+                    # because font.transform supports this flag and the GUI glyph
+                    # transform dialog has a 'Transform Width Too' checkbox that
+                    # can be unchecked.
+                    if xoffset != 0 or yoffset != 0:
+                        # "The pixels of v are shifted by (xoffset, yoffset) as
+                        # they are shipped out." (The METAFONTbook, p. 220)
+                        glyph.transform((1.0, 0.0, 0.0, 1.0, xoffset, yoffset))
 
-                glyph.width = charwd
-                glyph.texheight = charht
-                glyph.texdepth = chardp
-                if self.input_options.set_italic_correction:
-                    glyph.italicCorrection = charic
-                else:
-                    # also ignore ic value in other calculations below
-                    charic = 0
+                    glyph.width = charwd
+                    glyph.texheight = charht
+                    glyph.texdepth = chardp
+                    if self.input_options.set_italic_correction:
+                        glyph.italicCorrection = charic
+                    else:
+                        # also ignore ic value in other calculations below
+                        charic = 0
 
-                if self.input_options.extension_glyph and glyph_top_accent is not None:
-                    glyph.topaccent = glyph_top_accent
-                    # TODO how to get the code point if encoding is not unicode?
-                    specified_top_accents.append(glyph.glyphname)
-                elif self.input_options.set_top_accent:
-                    glyph.topaccent = round((charwd + charic)/2)
-                    # skewchar kerning is handled at the end
+                    if self.input_options.extension_glyph and glyph_top_accent is not None:
+                        glyph.topaccent = glyph_top_accent
+                        # TODO how to get the code point if encoding is not unicode?
+                        specified_top_accents.append(glyph.glyphname)
+                    elif self.input_options.set_top_accent:
+                        glyph.topaccent = round((charwd + charic)/2)
+                        # skewchar kerning is handled at the end
 
-                for attachment_point_class_name, lookup_type, x, y in attachment_points:
-                    glyph.addAnchorPoint(attachment_point_class_name, lookup_type, x, y)
+                    for attachment_point_class_name, lookup_type, x, y in attachment_points:
+                        glyph.addAnchorPoint(attachment_point_class_name, lookup_type, x, y)
                 attachment_points = []
+
+                if not skip_glyph and self.input_options.ot_sub_feature is not None:
+                    self.glyph_replacements.append((base_glyph_name, self.input_options.ot_sub_feature, glyph_name))
 
                 if self.input_options.extension_glyph:
                     # Setting glyph.glyphname or glyph.unicode after creation
                     # somehow messes up the encoding.
-                    if glyph_comment is not None:
-                        if glyph_comment[0] == '"':
-                            glyph_comment = glyph_comment[1:-1]
-                        glyph.comment = glyph_comment
-                    if glyph_build:
-                        glyph.build()
-                    if len(glyph_references) > 0:
-                        for referenced_name, transform_str in glyph_references:
-                            transform_str = transform_str[1:-1] # remove '(' and ')'
-                            mf_transform = [float(t) for t in transform_str.split(',')]
-                            ps_matrix = tuple(mf_transform[2:] + mf_transform[:2]) # move translate parts to end
-                            if referenced_name[0] == '"':
-                                referenced_name = referenced_name[1:-1]
-                            self.glyph_references.append((glyph.glyphname, self.to_glyph_name(referenced_name), ps_matrix))
-                    if glyph_add_extrema:
-                        glyph.addExtrema()
-                    if glyph_add_inflections:
-                        glyph.addInflections()
-                    if glyph_auto_hint:
-                        glyph.autoHint()
-                    # do manual hints after autoHint since autoHint clears hints
-                    # do manual hints before autoInstr since autoInstr is based on hints
-                    if len(glyph_hints) > 0:
-                        for hint_type, *args in glyph_hints:
-                            if hint_type == 'diagonal':
-                                # args are 2 to 3 strings of a pair each
-                                args = [a[1:-1].split(',') for a in args] # remove '(', ')' and split x and y parts
-                                args = [(round(float(a[0]), 6), round(float(a[1]), 6)) for a in args]
-                                dhints = list(glyph.dhints)
-                                p0 = args[0]
-                                p1 = args[1]
-                                if len(args) == 3:
-                                    unit_vec = args[2]
+                    if not skip_glyph:
+                        if glyph_comment is not None:
+                            if glyph_comment[0] == '"':
+                                glyph_comment = glyph_comment[1:-1]
+                            glyph.comment = glyph_comment
+                        if glyph_build:
+                            glyph.build()
+                        if len(glyph_references) > 0:
+                            for referenced_name, transform_str in glyph_references:
+                                transform_str = transform_str[1:-1] # remove '(' and ')'
+                                mf_transform = [float(t) for t in transform_str.split(',')]
+                                ps_matrix = tuple(mf_transform[2:] + mf_transform[:2]) # move translate parts to end
+                                if referenced_name[0] == '"':
+                                    referenced_name = referenced_name[1:-1]
+                                self.glyph_references.append((glyph.glyphname, self.to_glyph_name(referenced_name), ps_matrix))
+                        if glyph_add_extrema:
+                            glyph.addExtrema()
+                        if glyph_add_inflections:
+                            glyph.addInflections()
+                        if glyph_auto_hint:
+                            glyph.autoHint()
+                        # do manual hints after autoHint since autoHint clears hints
+                        # do manual hints before autoInstr since autoInstr is based on hints
+                        if len(glyph_hints) > 0:
+                            for hint_type, *args in glyph_hints:
+                                if hint_type == 'diagonal':
+                                    # args are 2 to 3 strings of a pair each
+                                    args = [a[1:-1].split(',') for a in args] # remove '(', ')' and split x and y parts
+                                    args = [(round(float(a[0]), 6), round(float(a[1]), 6)) for a in args]
+                                    dhints = list(glyph.dhints)
+                                    p0 = args[0]
+                                    p1 = args[1]
+                                    if len(args) == 3:
+                                        unit_vec = args[2]
+                                    else:
+                                        unit_vec = (p1[1]-p0[1], p1[0]-p0[0]) # perpendicular to vector p0 -> p1
+                                        # The unit vector passed to FontForge
+                                        # doesn't need to have length 1. FontForge
+                                        # will do it's own normalization. No need
+                                        # to do it here.
+                                    dhints.append((p0, p1, unit_vec))
+                                    # TODO Why aren't they displayed in the GUI?
+                                    # dhints created in the gui are. The only
+                                    # difference is that the numbers of dhints
+                                    # created in the GUI are rounded to 6 digits,
+                                    # but FontForge's normalization of unit_vec
+                                    # makes this impossible from the Python API.
+                                    glyph.dhints = tuple(dhints)
                                 else:
-                                    unit_vec = (p1[1]-p0[1], p1[0]-p0[0]) # perpendicular to vector p0 -> p1
-                                    # The unit vector passed to FontForge
-                                    # doesn't need to have length 1. FontForge
-                                    # will do it's own normalization. No need
-                                    # to do it here.
-                                dhints.append((p0, p1, unit_vec))
-                                # TODO Why aren't they displayed in the GUI?
-                                # dhints created in the gui are. The only
-                                # difference is that the numbers of dhints
-                                # created in the GUI are rounded to 6 digits,
-                                # but FontForge's normalization of unit_vec
-                                # makes this impossible from the Python API.
-                                glyph.dhints = tuple(dhints)
-                            else:
-                                # glyph.addHint() hangs, using hhints/vhints
-                                args = [float(a) for a in args]
-                                if hint_type == 'horizontal':
-                                    hints = glyph.hhints
+                                    # glyph.addHint() hangs, using hhints/vhints
+                                    args = [float(a) for a in args]
+                                    if hint_type == 'horizontal':
+                                        hints = glyph.hhints
+                                    else:
+                                        hints = glyph.vhints
+                                    start = min(args)
+                                    width = max(args) - min(args)
+                                    hints = tuple(list(hints) + [(start, width)])
+                                    if hint_type == 'horizontal':
+                                        glyph.hhints = hints
+                                    else:
+                                        glyph.vhints = hints
+                        if glyph_auto_instruct:
+                            glyph.autoInstr()
+                        for corner, kernings in glyph_math_kernings.items():
+                            if len(kernings) > 0:
+                                if corner.split('_')[1] == 'right':
+                                    kernings = [(
+                                        round(float(x) - (charwd + charic)),
+                                        round(float(y))
+                                    ) for x, y in kernings]
                                 else:
-                                    hints = glyph.vhints
-                                start = min(args)
-                                width = max(args) - min(args)
-                                hints = tuple(list(hints) + [(start, width)])
-                                if hint_type == 'horizontal':
-                                    glyph.hhints = hints
-                                else:
-                                    glyph.vhints = hints
-                    if glyph_auto_instruct:
-                        glyph.autoInstr()
-                    for corner, kernings in glyph_math_kernings.items():
-                        if len(kernings) > 0:
-                            if corner.split('_')[1] == 'right':
-                                kernings = [(
-                                    round(float(x) - (charwd + charic)),
-                                    round(float(y))
-                                ) for x, y in kernings]
-                            else:
-                                kernings = [(
-                                    round(float(x)),
-                                    round(float(y))
-                                ) for x, y in kernings]
-                            if corner == 'top_right':
-                                glyph.mathKern.topRight = tuple(kernings)
-                            elif corner == 'top_left':
-                                glyph.mathKern.topLeft = tuple(kernings)
-                            elif corner == 'bottom_right':
-                                glyph.mathKern.bottomRight = tuple(kernings)
-                            elif corner == 'bottom_left':
-                                glyph.mathKern.bottomLeft = tuple(kernings)
+                                    kernings = [(
+                                        round(float(x)),
+                                        round(float(y))
+                                    ) for x, y in kernings]
+                                if corner == 'top_right':
+                                    glyph.mathKern.topRight = tuple(kernings)
+                                elif corner == 'top_left':
+                                    glyph.mathKern.topLeft = tuple(kernings)
+                                elif corner == 'bottom_right':
+                                    glyph.mathKern.bottomRight = tuple(kernings)
+                                elif corner == 'bottom_left':
+                                    glyph.mathKern.bottomLeft = tuple(kernings)
 
-                    if len(glyph_replacements) > 0:
-                        # replace None by glyph name
-                        glyph_replacements = [tuple(glyph.glyphname if r is None else r for r in gr) for gr in glyph_replacements]
-                        self.glyph_replacements.extend(glyph_replacements)
+                        if len(glyph_replacements) > 0:
+                            # replace None by glyph name
+                            glyph_replacements = [tuple(glyph.glyphname if r is None else r for r in gr) for gr in glyph_replacements]
+                            self.glyph_replacements.extend(glyph_replacements)
 
                     # reset everything for next glyph
                     glyph_name = None
-                    glyph_unicode = None
                     glyph_comment = None
                     glyph_top_accent = None
                     glyph_build = False
@@ -1020,10 +1058,13 @@ class Mf2ff:
                     }
                     glyph_replacements = []
 
-                if self.input_options.ascent is None and charht > self.font.ascent:
-                    self.font.ascent = charht
-                if self.input_options.descent is None and chardp > self.font.descent:
-                    self.font.descent = chardp
+                glyph_unicode = None
+
+                if not skip_glyph:
+                    if self.input_options.ascent is None and charht > self.font.ascent:
+                        self.font.ascent = charht
+                    if self.input_options.descent is None and chardp > self.font.descent:
+                        self.font.descent = chardp
 
                 i += 1
 
@@ -1599,14 +1640,19 @@ class Mf2ff:
             for glyph_name, reference_name, reference_ps_matrix in self.glyph_references:
                 self.font[glyph_name].addReference(reference_name, reference_ps_matrix)
 
-            for glyph_name, ot_feature, replacement_glyph_name in self.glyph_replacements:
-                lookup_type = 'gsub_single'
-                lookup_name = lookup_type + '_' + ot_feature
-                subtable_name = lookup_name + '_subtable'
-                if lookup_name not in self.font.gsub_lookups:
-                    self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.input_options.scripts),))
-                    self.font.addLookupSubtable(lookup_name, subtable_name)
+        for glyph_name, ot_feature, replacement_glyph_name in self.glyph_replacements:
+            lookup_type = 'gsub_single'
+            lookup_name = lookup_type + '_' + ot_feature
+            subtable_name = lookup_name + '_subtable'
+            if lookup_name not in self.font.gsub_lookups:
+                self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.input_options.scripts),))
+                self.font.addLookupSubtable(lookup_name, subtable_name)
+            try:
                 self.font[glyph_name].addPosSub(subtable_name, replacement_glyph_name)
+            except TypeError:
+                # something went wrong, most likely ot-sub-feature option
+                # enabled and different encoding.
+                print(f'! Glyph {glyph_name} doesn\'t exist while adding {lookup_type} replacement. Ignored.')
 
     def apply_font_options_and_save(self):
         '''apply self.options to self.font and generate font file
@@ -2311,8 +2357,32 @@ class Mf2ff:
                 g_int = g
         # get glyph name for g_int code point (if g was a glyph name, the name
         # was already returned above)
-        g_str = self.font[g_int].glyphname
+        try:
+            g_str = self.font[g_int].glyphname
+        except TypeError:
+            # TODO very naive fallback
+            g_str = 'NameMe.' + str(g_int)
         return g_str
+
+    def should_skip_glyph(self, glyph_code):
+        if self.input_options.only_code_points is not None:
+            skip_glyph = True
+            for code_range in self.input_options.only_code_points:
+                if len(code_range) == 1 and glyph_code == code_range[0]:
+                    skip_glyph = False
+                    break
+                if code_range[0] <= glyph_code <= code_range[1]:
+                    skip_glyph = False
+                    break
+            if skip_glyph:
+                return True
+        if self.input_options.ignore_code_points is not None:
+            for code_range in self.input_options.ignore_code_points:
+                if len(code_range) == 1 and glyph_code == code_range[0]:
+                    return True
+                if code_range[0] <= glyph_code <= code_range[1]:
+                    return True
+        return False
 
     def reencode(self, encoding_name):
         try:

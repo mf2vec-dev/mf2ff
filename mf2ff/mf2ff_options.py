@@ -44,7 +44,9 @@ class Mf2ffOptions:
             'fontlog': {'type': str, 'default': ''},
             'fontname': {'type': str, 'default': ''},
             'fullname': {'type': str, 'default': ''},
+            'glyph_name_suffix': {'type': str | None, 'default': None},
             'hint': {'type': bool, 'default': False},
+            'ignore_code_points': {'type': list | None, 'default': None},
             'input_encoding': {'type': str | None, 'default': None},
             'input_file': {'type': Path | None, 'default': None},
             'is_type': {'type': bool, 'default': False},
@@ -53,6 +55,8 @@ class Mf2ffOptions:
             'kerning_classes': {'type': bool, 'default': False},
             'ligtable_generalized_code': {'type': bool, 'default': False},
             'mf_options': {'type': list, 'default': ['-interaction=batchmode']},
+            'only_code_points': {'type': list | None, 'default': None},
+            'ot_sub_feature': {'type': str | None, 'default': None},
             'otf': {'type': bool, 'default': False},
             'output_directory': {'type': Path, 'default': Path.cwd()},
             'output_encoding': {'type': str | None, 'default': None},
@@ -270,9 +274,12 @@ class Mf2ffOptions:
         mf2ff_options_values = [
             'ascent', 'comment', 'copyright', 'descent', 'designsize',
             'familyname', 'fontlog', 'fontname', 'font-version', 'fullname',
-            'input-encoding', 'input-file', 'italicangle', 'output-directory',
-            'output-encoding', 'ppi', 'skewchar', 'stroke-accuracy', 'upm',
-            'upos', 'uwidth'
+            'glyph-name-suffix', 'input-encoding', 'input-file', 'italicangle',
+            'ot-sub-feature', 'output-directory', 'output-encoding', 'ppi',
+            'skewchar', 'stroke-accuracy', 'upm', 'upos', 'uwidth'
+        ]
+        code_point_range_list_options = [
+            'only-code-points', 'ignore-code-points'
         ]
         extension_names = [
             'attachment-points', 'glyph', 'font', 'ligtable-switch'
@@ -359,6 +366,10 @@ class Mf2ffOptions:
                         except ValueError:
                             raise ValueError(f'invalid value `{val}\' for option `{option_name}\', cannot be converted to `{option_type}\'')
                         self._set_option(name, val, option_index)
+                    elif option_name in code_point_range_list_options:
+                        name = option_name.replace('-', '_')
+                        code_point_range_list = self._str_to_code_point_range_list(option_value)
+                        self._set_option(name, code_point_range_list, option_index)
                     elif option_name == 'scripts':
                         scripts = self._tuple_str_to_scripts(option_value)
                         self._set_option('scripts', scripts, option_index)
@@ -451,6 +462,20 @@ class Mf2ffOptions:
             yield options
             i += 1
 
+    def _str_to_code_point_range_list(self, s):
+        if s == 'None':
+            return None
+        code_point_list = []
+        for code_point_range_str in s.split(','):
+            code_point_range = code_point_range_str.split('-')
+            for i in range(len(code_point_range)):
+                if code_point_range[i][:2].lower() == '0x':
+                    code_point_range[i] = int(code_point_range[i], 16)
+                else:
+                    code_point_range[i] = int(code_point_range[i])
+            code_point_list.append(code_point_range)
+        return code_point_list
+
     def _tuple_str_to_scripts(self, s):
         str_pattern = r'((?:\'\w*\'|\"\w*\"))'
         script_tuple_pattern = (
@@ -542,8 +567,15 @@ class Mf2ffOptions:
             '  -fontname=STR     set font\'s name\n'
             '  -font-version=STR set font\'s version\n'
             '  -fullname=STR     set font\'s full name\n'
+            '  -glyph-name-suffix=STR\n'
+            '                    set glyph name suffix for all glyphs\n'
+            '                      It should start with some kind of a separator, e.g. a period.\n'
+            '                      Currently, this only applies if -ot-sub-feature option is enabled.\n'
             '  -help             display this help\n'
             '  -[no-]hint        disable/enable auto hinting and auto instructing (default: disabled)\n'
+            '  -ignore-code-points=RANGES\n'
+            '                    specify ranges (inclusive) of code points to ignore, other code points are processed\n'
+            '                      e.g. 0x00-0x1F,0x7F to ignore ASCII control characters\n'
             '  -input-encoding=STR\n'
             '                    specify encoding of the input file.\n'
             '                      Set None to use Unicode. (default: None)\n'
@@ -552,10 +584,16 @@ class Mf2ffOptions:
             '  -italicangle=NUM  set font\'s italic angle\n'
             '  -[no-]kerning-classes\n'
             '                    disable/enable kerning classes instead of kerning pairs\n'
-            '                      (default: disabled = kerning pairs)'
+            '                      (default: disabled = kerning pairs)\n'
             '  -[no-]ligtable-generalized-code\n'
             '                    disable/enable support for hexadecimal, unicode and glyph name values for <code> in ligtable commands\n'
             '                      (default: disabled)\n'
+            '  -only-code-points=RANGES\n'
+            '                    specify ranges (inclusive) of code points to process, other code points are ignored\n'
+            '                      e.g. 0x41-0x5A,0x61-0x7A for latin letters only\n'
+            '  -ot-sub-feature=STR\n'
+            '                    specify all glyphs as a replacement of a OpenType substitution feature tag (four characters)\n'
+            '                      The glyphs will have no Unicode value but a name suffixed with the feature tag (or the glyph-name-suffix).\n'
             '  -[no-]otf         disable/enable OpenType output generation (default: disabled)\n'
             '  -output-directory=DIR\n'
             '                    set existing directory DIR as output directory\n'
