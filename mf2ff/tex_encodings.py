@@ -49,6 +49,41 @@ def load_tex_text(Delta_as_increment=False, combining_diacritical_marks=False, p
             ) + [
     ])
 
+def load_tex_text_without_f_ligatures(Delta_as_increment=False, combining_diacritical_marks=False):
+    nd = '/.notdef'
+    load_encoding('TeX-text-without-f-ligatures', [ # comment is last in line
+        '/Gamma', ('/Delta' if Delta_as_increment else '/uni0394'), '/Theta', '/Lambda', '/Xi', '/Pi', '/Sigma', '/Upsilon', # 0x07
+        '/Phi', '/Psi', '/Omega', '/arrowup', '/arrowdown', '/quotesingle', '/exclamdown', '/questiondown', # 0x0F
+        '/dotlessi', '/dotlessj'] + (
+            ['/gravecomb', '/acutecomb', '/uni030C', '/uni0306', '/uni0304', '/uni030A', # 0x17
+        '/uni0327']
+            if combining_diacritical_marks else
+            ['/grave', '/acute', '/caron', '/breve', '/macron', '/ring', # 0x17
+        '/cedilla']
+            ) + ['/germandbls', '/ae', '/oe', '/oslash', '/AE', '/OE', '/Oslash', # 0x1F
+        ('/uni0337' if combining_diacritical_marks else nd), # ?
+            '/exclam', '/quotedblright', '/numbersign', '/dollar', '/percent', '/ampersand', '/quoteright', # 0x27
+        '/parenleft', '/parenright', '/asterisk', '/plus', '/comma', '/hyphen', '/period', '/slash', # 0x2F
+        '/zero', '/one', '/two', '/three', '/four', '/five', '/six', '/seven', # 0x37
+        '/eight', '/nine', '/colon', '/semicolon', '/less', '/equal', '/greater', '/question', # 0x3F
+        '/at', '/A', '/B', '/C', '/D', '/E', '/F', '/G', # 0x47
+        '/H', '/I', '/J', '/K', '/L', '/M', '/N', '/O', # 0x4F
+        '/P', '/Q', '/R', '/S', '/T', '/U', '/V', '/W', # 0x57
+        '/X', '/Y', '/Z', '/bracketleft', '/quotedblleft', '/bracketright'] + (
+            ['/uni0302', '/uni0307'] # 0x5F
+            if combining_diacritical_marks else
+            ['/circumflex', '/dotaccent'] # 0x5F
+            ) + [
+        '/quoteleft', '/a', '/b', '/c', '/d', '/e', '/f', '/g', # 0x67
+        '/h', '/i', '/j', '/k', '/l', '/m', '/n', '/o', # 0x6F
+        '/p', '/q', '/r', '/s', '/t', '/u', '/v', '/w', # 0x77
+        '/x', '/y', '/z', '/endash', '/emdash'] + (
+            ['/uni030B', '/tildecomb', '/uni0308'] # 0x7F
+            if combining_diacritical_marks else
+            ['/hungarumlaut', '/tilde', '/dieresis'] # 0x7F
+            ) + [
+    ])
+
 def load_tex_typewriter_text(Delta_as_increment=False, combining_diacritical_marks=False):
     load_encoding('TeX-typewriter-text', [ # comment is last in line
         '/Gamma', ('/Delta' if Delta_as_increment else '/uni0394'), '/Theta', '/Lambda', '/Xi', '/Pi', '/Sigma', '/Upsilon', # 0x07
@@ -196,4 +231,25 @@ def load_tex_extended_ascii(apostrophe=False, minus=False, combining_diacritical
         '/h', '/i', '/j', '/k', '/l', '/m', '/n', '/o', # 0x6F
         '/p', '/q', '/r', '/s', '/t', '/u', '/v', '/w', # 0x77
         '/x', '/y', '/z', '/braceleft', '/bar', '/braceright', ('/tildecomb'if combining_diacritical_marks else '/tilde'), ('/integral' if integral else nd), # 0x7F
+    ])
+
+def load_ascii_caps_and_digits():
+    nd = '/.notdef'
+    load_encoding('ASCII-caps-and-digits', [ # comment is last in line
+        nd, nd, nd, nd, nd, nd, nd, nd, # 0x07
+        nd, nd, nd, nd, nd, nd, nd, nd, # 0x0F
+        nd, nd, nd, nd, nd, nd, nd, nd, # 0x17
+        nd, nd, nd, nd, nd, nd, nd, nd, # 0x1F
+        nd, nd, nd, nd, nd, nd, nd, nd, # 0x27
+        nd, nd, nd, nd, nd, nd, nd, nd, # 0x2F
+        '/zero', '/one', '/two', '/three', '/four', '/five', '/six', '/seven', # 0x37
+        '/eight', '/nine', nd, nd, nd, nd, nd, nd, # 0x3F
+        nd, '/A', '/B', '/C', '/D', '/E', '/F', '/G', # 0x47
+        '/H', '/I', '/J', '/K', '/L', '/M', '/N', '/O', # 0x4F
+        '/P', '/Q', '/R', '/S', '/T', '/U', '/V', '/W', # 0x57
+        '/X', '/Y', '/Z', nd, nd, nd, nd, nd, # 0x5F
+        nd, nd, nd, nd, nd, nd, nd, nd, # 0x67
+        nd, nd, nd, nd, nd, nd, nd, nd, # 0x6F
+        nd, nd, nd, nd, nd, nd, nd, nd, # 0x77
+        nd, nd, nd, nd, nd, nd, nd, nd, # 0x7F
     ])

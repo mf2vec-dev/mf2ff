@@ -2323,6 +2323,9 @@ class Mf2ff:
             if encoding_name == 'tex-text':
                 tex_encodings.load_tex_text()
                 encoding_name = 'TeX-text'
+            elif encoding_name == 'tex-text-without-f-ligatures':
+                tex_encodings.load_tex_text_without_f_ligatures()
+                encoding_name = 'TeX-text-without-f-ligatures'
             elif encoding_name == 'tex-typewriter-text':
                 tex_encodings.load_tex_typewriter_text()
                 encoding_name = 'TeX-typewriter-text'
@@ -2338,6 +2341,9 @@ class Mf2ff:
             elif encoding_name == 'tex-extended-ascii':
                 tex_encodings.load_tex_extended_ascii()
                 encoding_name = 'TeX-extended-ASCII'
+            elif encoding_name == 'ascii-caps-and-digits':
+                tex_encodings.load_ascii_caps_and_digits()
+                encoding_name = 'ASCII-caps-and-digits'
             else:
                 raise e
             # font.reencode not in FontForge docs
