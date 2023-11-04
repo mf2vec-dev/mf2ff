@@ -14,7 +14,12 @@ def load_encoding(encoding_name, glyph_name_list):
             file.write('] def')
         fontforge.loadEncodingFile(str(file_path))
 
-def load_tex_text(Delta_as_increment=False, combining_diacritical_marks=False, pound=False):
+def handle_other_kwargs(other_kwargs):
+    for option in other_kwargs.keys():
+        print(f'! Encoding option {option} is not supported by this encoding.')
+
+def load_tex_text(Delta_as_increment=False, combining_diacritical_marks=False, pound=False, **other_kwargs):
+    handle_other_kwargs(other_kwargs)
     nd = '/.notdef'
     load_encoding('TeX-text', [ # comment is last in line
         '/Gamma', ('/Delta' if Delta_as_increment else '/uni0394'), '/Theta', '/Lambda', '/Xi', '/Pi', '/Sigma', '/Upsilon', # 0x07
@@ -49,7 +54,8 @@ def load_tex_text(Delta_as_increment=False, combining_diacritical_marks=False, p
             ) + [
     ])
 
-def load_tex_text_without_f_ligatures(Delta_as_increment=False, combining_diacritical_marks=False):
+def load_tex_text_without_f_ligatures(Delta_as_increment=False, combining_diacritical_marks=False, **other_kwargs):
+    handle_other_kwargs(other_kwargs)
     nd = '/.notdef'
     load_encoding('TeX-text-without-f-ligatures', [ # comment is last in line
         '/Gamma', ('/Delta' if Delta_as_increment else '/uni0394'), '/Theta', '/Lambda', '/Xi', '/Pi', '/Sigma', '/Upsilon', # 0x07
@@ -84,7 +90,8 @@ def load_tex_text_without_f_ligatures(Delta_as_increment=False, combining_diacri
             ) + [
     ])
 
-def load_tex_typewriter_text(Delta_as_increment=False, combining_diacritical_marks=False):
+def load_tex_typewriter_text(Delta_as_increment=False, combining_diacritical_marks=False, **other_kwargs):
+    handle_other_kwargs(other_kwargs)
     load_encoding('TeX-typewriter-text', [ # comment is last in line
         '/Gamma', ('/Delta' if Delta_as_increment else '/uni0394'), '/Theta', '/Lambda', '/Xi', '/Pi', '/Sigma', '/Upsilon', # 0x07
         '/Phi', '/Psi', '/Omega', '/arrowup', '/arrowdown', '/quotesingle', '/exclamdown', '/questiondown', # 0x0F
@@ -113,7 +120,8 @@ def load_tex_typewriter_text(Delta_as_increment=False, combining_diacritical_mar
             ) + [
     ])
 
-def load_tex_math_italic(swap_epsilon=False, swap_phi=False, oldstyle_as_basic=False, latin_as_basic=False, greek_as_basic=False):
+def load_tex_math_italic(swap_epsilon=False, swap_phi=False, oldstyle_as_basic=False, latin_as_basic=False, greek_as_basic=False, **other_kwargs):
+    handle_other_kwargs(other_kwargs)
     nd = '/.notdef'
     load_encoding('TeX-math-italic', [ # comment is last in line
         ] + ([
@@ -161,7 +169,8 @@ def load_tex_math_italic(swap_epsilon=False, swap_phi=False, oldstyle_as_basic=F
             ) + ['/u1D6A4', '/u1D6A5', '/weierstrass', '/uni20D7', '/uni0311', # 0x7F
     ])
 
-def load_tex_math_symbols(prime=False, script_as_basic=False):
+def load_tex_math_symbols(prime=False, script_as_basic=False, **other_kwargs):
+    handle_other_kwargs(other_kwargs)
     nd = '/.notdef'
     load_encoding('TeX-math-symbols', [ # comment is last in line
         '/minus', '/dotmath', '/multiply', '/asteriskmath', '/divide', '/uni22C4', '/plusminus', '/uni2213', # 0x07
@@ -190,7 +199,8 @@ def load_tex_math_symbols(prime=False, script_as_basic=False):
         '/section', '/dagger', '/daggerdbl', '/paragraph', '/club', '/uni2662', '/uni2661', '/spade', # 0x7F
     ])
 
-def load_tex_math_extension():
+def load_tex_math_extension(**other_kwargs):
+    handle_other_kwargs(other_kwargs)
     nd = '/.notdef'
     load_encoding('TeX-math-extension', [ # comment is last in line
         nd, nd, nd, nd, nd, nd, nd, nd, # 0x07
@@ -212,7 +222,8 @@ def load_tex_math_extension():
         nd, nd, nd, nd, nd, nd, nd, nd, # 0x7F
     ])
 
-def load_tex_extended_ascii(apostrophe=False, minus=False, combining_diacritical_marks=False, grave=False, integral=False):
+def load_tex_extended_ascii(apostrophe=False, minus=False, combining_diacritical_marks=False, grave=False, integral=False, **other_kwargs):
+    handle_other_kwargs(other_kwargs)
     nd = '/.notdef'
     load_encoding('TeX-extended-ASCII', [ # comment is last in line
         '/dotmath', '/arrowdown', '/alpha', '/beta', '/logicaland', '/logicalnot', '/element', '/pi', # 0x07
@@ -233,7 +244,8 @@ def load_tex_extended_ascii(apostrophe=False, minus=False, combining_diacritical
         '/x', '/y', '/z', '/braceleft', '/bar', '/braceright', ('/tildecomb'if combining_diacritical_marks else '/tilde'), ('/integral' if integral else nd), # 0x7F
     ])
 
-def load_ascii_caps_and_digits():
+def load_ascii_caps_and_digits(**other_kwargs):
+    handle_other_kwargs(other_kwargs)
     nd = '/.notdef'
     load_encoding('ASCII-caps-and-digits', [ # comment is last in line
         nd, nd, nd, nd, nd, nd, nd, nd, # 0x07

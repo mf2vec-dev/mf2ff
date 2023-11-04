@@ -171,7 +171,7 @@ class Mf2ff:
             if self.input_options.input_encoding is None:
                 self.reencode('UnicodeFull')
             else:
-                self.reencode(self.input_options.input_encoding)
+                self.reencode(self.input_options.input_encoding, self.input_options.input_encoding_options)
 
             # picture variables are processed inside fontforge using layers.
             # A dict is used to keep track of the pictures
@@ -1661,7 +1661,7 @@ class Mf2ff:
             for layer_name in self.font.layers:
                 self.font.layers[layer_name].is_quadratic = True
         if self.options.output_encoding is not None:
-            self.reencode(self.options.output_encoding)
+            self.reencode(self.options.output_encoding, self.options.output_encoding_options)
 
         output_path = self.options.output_directory / self.options.jobname
         if self.options.extrema:
@@ -2385,35 +2385,37 @@ class Mf2ff:
                     return True
         return False
 
-    def reencode(self, encoding_name):
+    def reencode(self, encoding_name, encoding_options=None):
         try:
             # font.reencode not in FontForge docs
             self.font.reencode(encoding_name)
         except NameError as e:
             encoding_name = encoding_name.lower().replace(' ', '-')
+            if encoding_options is None:
+                encoding_options = {}
             if encoding_name == 'tex-text':
-                tex_encodings.load_tex_text()
+                tex_encodings.load_tex_text(**encoding_options)
                 encoding_name = 'TeX-text'
             elif encoding_name == 'tex-text-without-f-ligatures':
-                tex_encodings.load_tex_text_without_f_ligatures()
+                tex_encodings.load_tex_text_without_f_ligatures(**encoding_options)
                 encoding_name = 'TeX-text-without-f-ligatures'
             elif encoding_name == 'tex-typewriter-text':
-                tex_encodings.load_tex_typewriter_text()
+                tex_encodings.load_tex_typewriter_text(**encoding_options)
                 encoding_name = 'TeX-typewriter-text'
             elif encoding_name == 'tex-math-italic':
-                tex_encodings.load_tex_math_italic()
+                tex_encodings.load_tex_math_italic(**encoding_options)
                 encoding_name = 'TeX-math-italic'
             elif encoding_name == 'tex-math-symbols':
-                tex_encodings.load_tex_math_symbols()
+                tex_encodings.load_tex_math_symbols(**encoding_options)
                 encoding_name = 'TeX-math-symbols'
             elif encoding_name == 'tex-math-extension':
-                tex_encodings.load_tex_math_extension()
+                tex_encodings.load_tex_math_extension(**encoding_options)
                 encoding_name = 'TeX-math-extension'
             elif encoding_name == 'tex-extended-ascii':
-                tex_encodings.load_tex_extended_ascii()
+                tex_encodings.load_tex_extended_ascii(**encoding_options)
                 encoding_name = 'TeX-extended-ASCII'
             elif encoding_name == 'ascii-caps-and-digits':
-                tex_encodings.load_ascii_caps_and_digits()
+                tex_encodings.load_ascii_caps_and_digits(**encoding_options)
                 encoding_name = 'ASCII-caps-and-digits'
             else:
                 raise e

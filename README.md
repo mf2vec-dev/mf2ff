@@ -25,6 +25,8 @@ The tool has not yet been thoroughly tested, but most common METAFONT commands a
 
 
 ## Setup
+> Once `mf2ff` is sufficiently stable, it will be made available on PyPI.
+
 You need to install FontForge and METAFONT to use `mf2ff`.
 
 You may have problems running the `mf2ff` script. One issue may be that you need to run Python 3 with the fontforge module. Below are some tips on how to get it to work. I can't guarantee that this will work on your system, but you should give it a try.
