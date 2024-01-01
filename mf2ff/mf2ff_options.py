@@ -34,6 +34,8 @@ class Mf2ffOptions:
             'extension_glyph': {'type': bool, 'default': False},
             'extension_font_macro_prefix': {'type': str, 'default': 'font'},
             'extension_font': {'type': bool, 'default': False},
+            'extension_ligature_macro_prefix': {'type': str, 'default': 'ligature'},
+            'extension_ligature': {'type': bool, 'default': False},
             'extension_ligtable_switch_macro_prefix': {'type': str, 'default': 'ligtable_switch'},
             'extension_ligtable_switch': {'type': bool, 'default': False},
             'extrema': {'type': bool, 'default': False},
@@ -284,7 +286,7 @@ class Mf2ffOptions:
             'only-code-points', 'ignore-code-points'
         ]
         extension_names = [
-            'attachment-points', 'glyph', 'font', 'ligtable-switch'
+            'attachment-points', 'glyph', 'font', 'ligature', 'ligtable-switch'
         ]
         mf2ff_options_negatable.extend('extension-' + e for e in extension_names)
 
@@ -556,6 +558,11 @@ class Mf2ffOptions:
             '  -extension-font-macro-prefix=STR\n'
             '                    set macro name prefix (default: \'font\')\n'
             '                      choose so that in mf files there are no font macros.\n'
+            '  -[no-]extension-ligature\n'
+            '                    enable/disable ligature extension (default: disabled)\n'
+            '  -extension-ligature-macro-prefix=STR\n'
+            '                    set macro name prefix (default: \'ligature\')\n'
+            '                      choose so that in mf files there are no ligature macros.\n'
             '  -[no-]extension-ligtable-switch\n'
             '                    enable/disable ligtable switch extension (default: disabled)\n'
             '  -extension-ligtable-switch-macro-prefix=STR\n'

@@ -36,6 +36,7 @@ This tutorial should provide an introduction to both ways. Afterward, useful opt
     - [Attachment points](#attachment-points)
     - [Glyph extension](#glyph-extension)
     - [Font extension](#font-extension)
+    - [Ligature extension](#ligature-extension)
     - [Ligtable switch](#ligtable-switch)
     - [General note on extensions](#general-note-on-extensions)
 
@@ -516,6 +517,27 @@ Similar to the other extensions, the prefix of the glyph extension macros can be
 | CLI |`-extension-font-macro-prefix=`*string* |
 | API | `mf2ff.options.extension_font_macro_prefix = ` *string* |
 | default | `font` |
+
+
+### Ligature extension
+
+|||
+|-|-|
+| CLI |`-`[`no-`]`extension-ligature` |
+| API | `mf2ff.options.extension_ligature = True` / `False` |
+| default | disabled |
+
+If enabled, the following macros can be used in `mf2ff`'s input:
+- `ligature_components(c1,c2,...)` to define ligature components of the glyph shipped out next, components `c1`, `c2`, ... can be code points or glyph names
+- `ligature_carets(xc1,cx2,...)` to set caret positions (text insertion positions) `xc1`, `cx2`, ... between components of the glyph shipped out next. The number of caret positions should be 1 less than the number of ligature components.
+
+Similar to the other extensions, the prefix of the ligature macros can be changed:
+
+|||
+|-|-|
+| CLI |`-extension-ligature-macro-prefix=`*string* |
+| API | `mf2ff.options.extension_ligature_macro_prefix = ` *string* |
+| default | `ligature` |
 
 
 ### Ligtable switch

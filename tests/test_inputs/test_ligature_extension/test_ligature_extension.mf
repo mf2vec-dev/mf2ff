@@ -1,0 +1,22 @@
+mode_setup;
+
+beginchar("A", 100, 100, 0);
+endchar;
+
+beginchar("B", 100, 100, 0);
+endchar;
+
+beginchar("C", 100, 100, 0);
+endchar;
+
+beginchar("D", 100, 100, 0);
+ligature_components("A", "B", "C");
+ligature_carets(30, 60);
+endchar;
+
+beginchar("E", 100, 100, 0);
+ligature_components(65, 66, 67, 68);
+ligature_carets(30, 40, 70);
+endchar;
+
+end

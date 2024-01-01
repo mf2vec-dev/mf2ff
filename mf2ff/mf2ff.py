@@ -406,6 +406,9 @@ class Mf2ff:
 
             specified_top_accents = []
 
+        if self.input_options.extension_ligature:
+            carets = []
+
         i = 0
         while i < len(self.cmds):
             cmd = self.cmds[i]
@@ -880,7 +883,7 @@ class Mf2ff:
                             # might be wrong.
                             base_glyph_name = self.font[glyph_code].glyphname
                         except TypeError:
-                            # if the encoding changed and the character ahs no unicode 
+                            # if the encoding changed and the character ahs no unicode
                             base_glyph_name = 'NameMe.' + str(glyph_code)
                     # set glyph code and unicode value to unset values to
                     # create glyph with name below
@@ -908,7 +911,7 @@ class Mf2ff:
                 else:
                     if not skip_glyph:
                         glyph = self.font.createMappedChar(glyph_code)
-                
+
                 if not skip_glyph:
                     glyph.layers[1] = pic
 
@@ -1058,6 +1061,10 @@ class Mf2ff:
                     }
                     glyph_replacements = []
 
+                if self.input_options.extension_ligature:
+                    sub_list = [[(glyph.glyphname, True) if s[0] is None else s[0]] + s[1:] for s in sub_list]
+                    glyph.lcarets = tuple(carets)
+
                 glyph_unicode = None
 
                 if not skip_glyph:
@@ -1130,7 +1137,7 @@ class Mf2ff:
                         lig = lig [1:-1] if lig [0] == '"' else round(float(lig ))
                         tmp_sub_list += deepcopy(tmp_list)
                         for i in range(len(tmp_sub_list)-len(tmp_list), len(tmp_sub_list)):
-                            tmp_sub_list[i] = [lig, lig_type] + [tmp_sub_list[i][0] + [char]] + [current_ligtable_to_feature['lig']]
+                            tmp_sub_list[i] = [(lig, False), lig_type, tmp_sub_list[i][0] + [char], current_ligtable_to_feature['lig']] # False: lig is not a glyph name
                     elif cmd_name == 'skipto':
                         self.skiptos[self.last_cmd_body] = tmp_list
                     else:
@@ -1397,6 +1404,15 @@ class Mf2ff:
                         replacement.reverse() # current glyph always first
                     glyph_replacements.append(replacement)
 
+            elif cmd_name[:9] == 'ligature_':
+                ligature_command = cmd_name[9:]
+                cmd_body_parts = self.cmd_body.split('>> ')
+                if ligature_command == 'components':
+                    components = [c[1:-1] if c[0] == '"' else round(float(c)) for c in cmd_body_parts]
+                    sub_list.append([None, ' :=   ', components, current_ligtable_to_feature['lig']])
+                elif ligature_command == 'carets':
+                    carets = [int(c) for c in cmd_body_parts]
+
             elif cmd_name[:16] == 'ligtable_switch_':
                 ligtable_op_type, ot_feature = cmd_name[16:].split('_to_')
                 current_ligtable_to_feature[ligtable_op_type] = ot_feature
@@ -1409,7 +1425,7 @@ class Mf2ff:
 
         # all commands processed, but for some commands post processing is needed
         for sub in sub_list:
-            lig = self.to_glyph_name(sub[0])
+            lig = sub[0][0] if sub[0][1] else self.to_glyph_name(sub[0][0]) # sub[0][1]: is_glyph_name
             lig_type = sub[1]
             char1 = self.to_glyph_name(sub[2][0])
             char2 = self.to_glyph_name(sub[2][1])
@@ -1424,12 +1440,17 @@ class Mf2ff:
                     self.font.addLookup(lookup_name, lookup_type, (), ((ot_feature, self.input_options.scripts),))
                 if subtable_name not in self.font.getLookupSubtables(lookup_name):
                     self.font.addLookupSubtable(lookup_name, subtable_name)
+                if len(sub[2]) > 2:
+                    # ligature extension enables more than 2 components
+                    components = tuple(self.to_glyph_name(c) for c in sub[2])
+                else:
+                    components = (char1, char2)
                 # Try to create the ligature. FontForge will
                 # raise a TypeError, if one of the
                 # characters is unknown. In that case, print
                 # a warning and continue
                 try:
-                    self.font[lig].addPosSub(subtable_name, (char1, char2))
+                    self.font[lig].addPosSub(subtable_name, components)
                 except TypeError as e:
                     print('! Error while adding ligature:', e, '(either '+repr(char1)+' or '+repr(char2)+' is unknown) Ignored.')
             elif lig_type[0] == '|' and lig_type[3] == ' ':
@@ -1741,6 +1762,10 @@ class Mf2ff:
                         r'|replaced_by|replacement_of'
                     r')'
                     if self.input_options.extension_glyph else r''
+                )
+                +(
+                    r'|ligature_(?:components|carets)'
+                    if self.input_options.extension_ligature else r''
                 )
                 +(
                     r'|'+r'|'.join(
@@ -2170,6 +2195,19 @@ class Mf2ff:
                         ]
                     )
                 ) if self.input_options.extension_glyph else ''
+            )
+            # ligature
+            +(
+                (
+                    ''.join(
+                        'def ' + self.input_options.extension_ligature_macro_prefix + '_' + ligature_cmd + '(text t)='
+                            +m_+'ligature_'+ ligature_cmd +'";'
+                            'show t;'
+                            +m__+
+                        'enddef;'
+                        for ligature_cmd in ['components', 'carets']
+                    )
+                ) if self.input_options.extension_ligature else ''
             )
             # ligtable switch
             +(
