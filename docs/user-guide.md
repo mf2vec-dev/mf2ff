@@ -2,11 +2,11 @@
 
 Back to [README](../README.md)
 
-You can use mf2ff in two ways:
+You can use `mf2ff` in two ways:
 - on the command line using `python -m mf2ff ...` or
 - as an importable Python module using `from mf2ff import Mf2ff`.
 
-This tutorial should provide an introduction to both ways. Afterward, useful options are explained which can be used in both. The last section describes extensions to the METAFONT language that are supported by `mf2ff`.
+This tutorial should provide an introduction to both ways. Afterwards, useful options are explained which can be used in both. The last section describes extensions to the METAFONT language that are supported by `mf2ff`.
 
 - [User Guide](#user-guide)
   - [Run `mf2ff` on the command line](#run-mf2ff-on-the-command-line)
@@ -76,11 +76,12 @@ Please refer to [FontForge's documentation](https://fontforge.org/docs/scripting
 
 ## Unicode support
 
+> [!NOTE]
 > `mf2ff` supports two different basic alternatives to create fonts that exceed METAFONT's character limit:
 > - combination of multiple independent `.mf` inputs into one font,
 > - processing of `.mf` input that exceeds METAFONT's character limit.
 
-The difficulty of designing a Unicode with METAFONT is not the definition of non-ASCII characters. The Computer Modern fonts define greek letters, mathematical operators, etc. without any problem, just using a non-ASCII encoding. The main problem is the number of characters will most likely exceed METAFONT's limit of 256 character per font. Computer Modern deals with this by using multiple fonts that are to be used alongside each other (e.g. `cmmi10`, `cmsy10`, `cmex10`).
+The difficulty of designing a Unicode font with METAFONT is not the definition of non-ASCII characters. The Computer Modern fonts define Greek letters, mathematical operators, etc. without any problem, just using a non-ASCII encoding. The main problem is that the number of characters will most likely exceed METAFONT's limit of 256 character per font. Computer Modern deals with this by using multiple fonts that are to be used alongside each other (e.g. `cmmi10`, `cmsy10`, `cmex10`).
 
 Because using multiple fonts and having to switch between them is not practical for today's font applications, the characters from multiple `.mf` inputs need to be combined in a single font. `mf2ff` supports this with the [`:`*N* command line option syntax described below](#input-filen-and-the-n-syntax) and with the `inputs` option in the API shown in the `cm_math_10` example. The following aspects need to be considered when working with this approach:
 - Code point definition:\
@@ -88,12 +89,14 @@ Because using multiple fonts and having to switch between them is not practical 
 - Kerning and ligatures:\
   Either combine certain glyphs that should be kerned or used in a ligature definition in one input or deactivating ligature definitions and kerning pairs that work across multiple input for the use without `mf2ff` using an approach [similar to the commands of extensions](#general-note-on-extensions).
 
-`mf2ff` also supports the processing of inputs with more characters than METAFONT's limit. This is possible since from METAFONT's perspective only many contours are compute. They are never drawn to pictures and no picture is shipped out. In accordance with the mf2vec concept, everything is just written to the log file. This approach has one major downside:
+`mf2ff` also supports the processing of inputs with more characters than METAFONT's limit. This is possible since from METAFONT's perspective, only equations are solved and paths are computed (control points are chosen). The paths are never added to a picture and no picture is shipped out. In accordance with the mf2vec concept, everything is just written to the log file.\
+This approach of defining more characters than METAFONT's limit has one major downside:
 - `.mf` input that exceeds METAFONT's character limit produces different output in METAFONT (glyph metrics or glyphs are overwritten). This is no problem for `mf2ff` but for debugging the `.mf` input with METAFONT some glyph definitions / `shipout`s and maybe other commands like `ligtable`, `charlist` and `extensible` need to be commented out or deactivated using an approach [similar to the commands of extensions](#general-note-on-extensions).
 
 
 ## Specifying code point, Unicode value and glyph name
 
+> [!NOTE]
 > `mf2ff` supports the following ways to specify the glyph that is created:
 > - `beginchar("A", ...);`, `beginchar(65, ...);`, `beginchar(oct"101", ...);`, `beginchar(hex"41", ...);`, ... (the usual way)
 > - `beginchar(...);` and `charext` (the usual way with `charext`)
@@ -117,11 +120,11 @@ Because using multiple fonts and having to switch between them is not practical 
 - Passing a hexadecimal string to `ASCII`:\
   In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as a hexadecimal string.\
   The option `charcode-from-last-ASCII-hex-arg` needs to be active.\
-  The value of the hexadecimal string passed to `ASCII` determines either the unicode value if the string starts with `U+`, or the code point in the input encoding otherwise.\
+  The value of the hexadecimal string passed to `ASCII` determines either the Unicode value if the string starts with `U+`, or the code point in the input encoding otherwise.\
   This is *not* compatible to METAFONT, `ASCII` evaluates to the ASCII value of the first character in the argument.
 - Define `charcode` as `-1` and `glyph_unicode` (optionally define `glyph_name`):\
   In plain METAFONT this is equivalent to specifying the first argument of `beginchar` as `-1` or an empty string (`""`) and defining `glyph_unicode`.\
-  The value of `glyph_unicode` determines the unicode value.\
+  The value of `glyph_unicode` determines the Unicode value.\
   This is *not* compatible to METAFONT, METAFONT will use the code point 255 for those glyphs.\
   `glyph_unicode` must be defined as explained [below](#general-note-on-extensions) to work with METAFONT.
   If `glyph_name` is used, the default name of the glyph is overwritten. `glyph_name` must be defined as explained [below](#general-note-on-extensions) to work with METAFONT.
@@ -281,7 +284,7 @@ The value in the API should be a list of lists of one (single glyphs) or two int
 
 The glyphs of the input are added to a substitution lookup table with the specified OpenType feature tag.
 
-The glyphs have no Unicode value and the glyph name is appended with the feature tag. When the `glyph-name-suffix` option is specified, it's value is used instead of the feature tag. The value of the `glyph-name-suffix` option should start with some kind of a separator, e.g. `.sc`.
+The glyphs have no Unicode value and the glyph name is appended with the feature tag. When the `glyph-name-suffix` option is specified, its value is used instead of the feature tag. The value of the `glyph-name-suffix` option should start with some kind of a separator, e.g. `.sc`.
 
 |||
 |-|-|
@@ -398,7 +401,7 @@ Specifying UPM (units per em or em size) triggers a preliminary run of METAFONT 
 
 |||
 |-|-|
-| CLI | `-`[`no-`]`use-ppi-factor`  |
+| CLI | `-`[`no-`]`use-ppi-factor` |
 | API | `mf2ff.options.use_ppi_factor = True` / `False` |
 | default | disabled |
 
@@ -454,7 +457,7 @@ The glyph extension provides several macros to control the code point, glyph ref
 
 The following macros are available when this extension is active:
 - `glyph_name(g_name);` to specify the name of a glyph as a string, e.g. `"a.sc"`.
-- `glyph_unicode(g_unicode);` to specify the unicode value of a glyph as an integer or a hexadecimal string.
+- `glyph_unicode(g_unicode);` to specify the Unicode value of a glyph as an integer or a hexadecimal string.
 - `glyph_comment(g_comment);` to define a comment for the glyph as a string.
 - `glyph_top_accent(g_top_accent);` to define the glyph's math top accent attachment point horizontal position as a number.
 - `glyph_build;` to build the glyph from references to other glyphs, e.g. ligatures, composite glyphs or accented glyphs.
@@ -563,7 +566,7 @@ Similar to the other extensions, the prefix of the ligtable switch macros can be
 
 
 ### General note on extensions
-To be able to run the .mf files also in METAFONT without using `mf2ff`, you need to define the tokens of extensions so METAFONT won't throw an error. Since `mf2ff`'s definition of those macros should not be overwritten by a definitions in the .mf file, you can use the following code to only define them when you don't run `mf2ff` (using the attachment point extension as an example):
+To be able to run the .mf files also in METAFONT without using `mf2ff`, you need to define the tokens of extensions so METAFONT won't throw an error. Since `mf2ff`'s definition of those macros should not be overwritten by definitions in the .mf file, you can use the following code to only define them when you don't run `mf2ff` (using the attachment point extension as an example):
 ```
 if unknown __mfIIvec__:
   def attachment_point_mark_base(text t) = enddef;

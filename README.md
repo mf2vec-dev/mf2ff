@@ -25,6 +25,8 @@ The tool has not yet been thoroughly tested, but most common METAFONT commands a
 
 
 ## Setup
+
+> [!NOTE]
 > Once `mf2ff` is sufficiently stable, it will be made available on PyPI.
 
 You need to install FontForge and METAFONT to use `mf2ff`.
@@ -224,6 +226,8 @@ The following table shows a comparison of the tools available for converting MET
 | **Supports cull commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | ❌&nbsp;No | ❔ | ❌&nbsp;No | ❌&nbsp;No | ✅&nbsp;Yes | ✅&nbsp;Yes |
 | **Supports variable fonts** | ❌&nbsp;No | ❌&nbsp;No, maybe in the future | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❔ | ❌&nbsp;No |
 
+Although the above comparison has been carefully prepared, it may contain errors and other interesting tools may be missing. Please feel free to provide feedback to improve this section.
+
 
 ## Examples
 The following are some examples created with `mf2ff`. The outlines and filled characters are shown as they are displayed in FontForge. Note that the results are not perfect yet.
@@ -267,13 +271,13 @@ If a specific limitation is holding your project back, open an issue so that fut
 - The support of `cull` commands is limited.
 - Ligature commands\
   Only `:`, `::`, `kern`, `skipto` as well as the ligature operators `=:`, `|=:`, `=:|` and `|=:|` are supported. The ligtable command ignores `>` in operators. Moreover, the operator `||:` is not supported.
-- picture type test\
+- Picture type test\
   The `picture` keyword has to be redefined to initialize the picture variables as a FontForge vector layer. As METAFONT uses the type keywords for both, variable declaration and type test in boolean expressions, the `picture` keyword cannot be used to test if a variable is of type `picture`.
 - System of equations of picture variables\
   METAFONT's pictures can be interpreted as arrays representing the value of the pixels*. A system of equations of these pictures can be solved by solving systems of equations for each and every pixel. This method cannot be transferred to vector graphics. Therefore systems of equations of pictures are not supported, but simple assignments and assignment-like equations should work fine.\
   \* However, METAFONT stores picture variables by storing the difference between successive pixels.
 - Pen and path types are the same\
-  In fact, every pen variable is a path variable. Therefore, commands like `makepen` and `makepath` have no effect. Pens and paths cannot be distinguished using `pen` or `path` in a boolean expression. There is a option `is_type` that introduces `is_pen` or `is_path` which might help you to circumvent this problem.
+  In fact, every pen variable is a path variable. Therefore, commands like `makepen` and `makepath` have no effect. Pens and paths cannot be distinguished using `pen` or `path` in a boolean expression. There is an option `is_type` that introduces `is_pen` or `is_path` which might help you to circumvent this problem.
 - Nested conditions or nested loops within `ligtable`, `fontdimen`, `charlist` and `extensible` commands\
   In some situations, `mf2ff` needs to redefine the colon (`:`). This may cause problems in processing multiple nested `if`...(`elseif`)...(`end`)...`fi` and/or `for`/`forsuffixes`/`forever`...`endfor` within commands that use the colon in their own syntax, i.e. `ligtable`, `fontdimen`, `charlist` and `extensible`.
 - FontForge sometimes hangs\
