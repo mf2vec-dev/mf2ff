@@ -16,7 +16,7 @@ This tutorial should provide an introduction to both ways. Afterwards, useful op
   - [Options](#options)
     - [`charcode-from-last-ASCII-hex-arg`](#charcode-from-last-ascii-hex-arg)
     - [`cull-at-shipout`](#cull-at-shipout)
-    - [`input-encoding`](#input-encoding)
+    - [`input-encoding` \& `output-encoding`](#input-encoding--output-encoding)
     - [`input-encoding-options` \& `output-encoding-options`](#input-encoding-options--output-encoding-options)
     - [`input-file:`*N* and the `:`*N* syntax](#input-filen-and-the-n-syntax)
     - [`kerning-classes`](#kerning-classes)
@@ -177,15 +177,21 @@ This option runs the cull command according to plain METAFONT's cullit macro bef
 Note that cull commands that are part of the definition of a glyph may result in the `cull-at-shipout` option not making any further changes for some glyphs.
 
 
-### `input-encoding`
+### `input-encoding` & `output-encoding`
 
 |||
 |-|-|
-| CLI | `-input-encoding=`*encoding* |
-| API | `mf2ff.options.input_encoding = ` *encoding* |
-| default | `UnicodeFull` |
+| CLI | `-input-encoding=`*encoding* / `None` |
+| API | `mf2ff.options.input_encoding = ` *encoding* / `None` |
+| default | `None` (`UnicodeFull`) |
 
-This option specifies the input encoding. Besides FontForge's default encodings, the following encodings are supported:
+|||
+|-|-|
+| CLI | `-output-encoding=`*encoding* / `None` |
+| API | `mf2ff.options.output_encoding = ` *encoding* / `None` |
+| default | `None` (same as input) |
+
+These options specify the input or output encoding. Besides FontForge's default encodings, the following encodings are supported:
 - `TeX-text`
 - `TeX-text-without-f-ligatures`
 - `TeX-typewriter-text`
@@ -195,13 +201,21 @@ This option specifies the input encoding. Besides FontForge's default encodings,
 - `TeX-extended-ASCII`
 - `ASCII-caps-and-digits`
 
+You can also specify a file path (absolute or relative to the working directory) pointing to a file that defines a PostScript encoding array:
+```postscript
+/UniqueEncodingName [
+ /Gamma /uni0394 /Theta /Lambda
+ % ...
+] def
+```
+
 
 ### `input-encoding-options` & `output-encoding-options`
 
 |||
 |-|-|
 | CLI | *not available* |
-| API | `mf2ff.options.`[`input`\|`output`]`_encoding_options = ` *options dict* |
+| API | `mf2ff.options.`[`input`\|`output`]`_encoding_options = ` *options dict* / `None` |
 | default | `None` |
 
 These two options provide access to options of the built-in TeX encodings, e.g. `{'combining_diacritical_marks': True}` for the `TeX text` encoding.

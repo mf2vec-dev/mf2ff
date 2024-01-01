@@ -2427,7 +2427,7 @@ class Mf2ff:
         try:
             # font.reencode not in FontForge docs
             self.font.reencode(encoding_name)
-        except NameError as e:
+        except NameError:
             encoding_name = encoding_name.lower().replace(' ', '-')
             if encoding_options is None:
                 encoding_options = {}
@@ -2456,7 +2456,12 @@ class Mf2ff:
                 tex_encodings.load_ascii_caps_and_digits(**encoding_options)
                 encoding_name = 'ASCII-caps-and-digits'
             else:
-                raise e
+                # try to load encoding file
+                loaded_encoding = fontforge.loadEncodingFile(encoding_name)
+                if loaded_encoding is None:
+                    # file not found or empty
+                    raise ValueError(f'Unknown encoding \'{encoding_name}\'.')
+                encoding_name = loaded_encoding
             # font.reencode not in FontForge docs
             self.font.reencode(encoding_name)
 
