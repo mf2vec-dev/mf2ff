@@ -141,19 +141,26 @@ class Mf2ff:
                 pre_run_results = self.process_pre_run_commands()
                 # upm
                 orig_upm = pre_run_results['ascent'] + pre_run_results['descent']
-                target_upm = self.input_options.upm
-                target_ppi = self.input_options.ppi * target_upm / orig_upm
-                mf_target_ppi = target_ppi
-                ppi_overflow_factor = 1
-                while mf_target_ppi > self.MF_OVERFLOW:
-                    # reduce mf_target_ppi to prevent arithmetic overflow in METAFONT
-                    ppi_overflow_factor += 1
-                    mf_target_ppi = target_ppi/ppi_overflow_factor
-                self.ppi = mf_target_ppi
-                while self.ppi > self.MF_INFINITY:
-                    # create font with lower UPM to not exceed METAFONT's infinity with pixels_per_inch value
-                    self.ppi_factor += 1
-                    self.ppi = mf_target_ppi/self.ppi_factor
+                if orig_upm > 0:
+                    target_upm = self.input_options.upm
+                    target_ppi = self.input_options.ppi * target_upm / orig_upm
+                    mf_target_ppi = target_ppi
+                    ppi_overflow_factor = 1
+                    while mf_target_ppi > self.MF_OVERFLOW:
+                        # reduce mf_target_ppi to prevent arithmetic overflow
+                        # in METAFONT
+                        ppi_overflow_factor += 1
+                        mf_target_ppi = target_ppi/ppi_overflow_factor
+                    self.ppi = mf_target_ppi
+                    while self.ppi > self.MF_INFINITY:
+                        # create font with lower UPM to not exceed METAFONT's
+                        # infinity with pixels_per_inch value
+                        self.ppi_factor += 1
+                        self.ppi = mf_target_ppi/self.ppi_factor
+                # else there FontForge will print an 'Internal Error: NaN value
+                # in spline creation' when setting self.font.em to upm later,
+                # but it won't crash.
+
                 # redefine self.mf_first_line with new self.ppi value
                 self.define_mf_first_line()
 
