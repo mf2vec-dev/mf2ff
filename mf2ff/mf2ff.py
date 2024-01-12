@@ -428,7 +428,7 @@ class Mf2ff:
 
             if cmd_name == 'ASCII' and self.input_options.charcode_from_last_ASCII_hex_arg:
                 ascii_str_arg = self.cmd_body[1:-1]
-                if (len(ascii_str_arg) % 2) == 0: # only even number of characters
+                if len(ascii_str_arg) > 0 and (len(ascii_str_arg) % 2) == 0: # only even number of characters
                     try:
                         ascii_arg_first_char = ascii_str_arg[0]
                         if ascii_str_arg[:2].lower() == 'u+':
