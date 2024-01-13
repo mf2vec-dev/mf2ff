@@ -68,6 +68,7 @@ class Mf2ffOptions:
             'quadratic': {'type': bool, 'default': False},
             'quiet': {'type': bool, 'default': False},
             'remove_artifacts': {'type': bool, 'default': False},
+            'remove_collinear': {'type': bool, 'default': False},
             'scripts': {'type': tuple, 'default': (
                 ('cyrl', ('dflt',)),
                 ('grek', ('dflt',)),
@@ -98,11 +99,14 @@ class Mf2ffOptions:
             'correct_direction': {
                 'scale_factor': 10,
             },
-            'remove_artefacts': {
+            'remove_artifacts': {
                 'collinear': {
                     'distance_threshold': 0.01,
                     'point_threshold': 0.1,
                 },
+            },
+            'remove_collinear': {
+                'distance_threshold': 0.01,
             },
             'remove_overlap': {
                 'scale_factor': 1000,
@@ -271,9 +275,10 @@ class Mf2ffOptions:
             'charcode-from-last-ASCII-hex-arg', 'cull-at-shipout', 'debug',
             'extrema', 'fix-contours','hint', 'is_type', 'kerning-classes',
             'ligtable-generalized-code', 'otf', 'quadratic', 'quiet',
-            'remove-artifacts', 'set-italic-correction', 'set-math-defaults',
-            'set-top-accent', 'sfd', 'space-from-fontdimen', 'stroke-simplify',
-            'time', 'ttf', 'use-ppi-factor'
+            'remove-artifacts', 'remove-collinear', 'set-italic-correction',
+            'set-math-defaults', 'set-top-accent', 'sfd',
+            'space-from-fontdimen', 'stroke-simplify', 'time', 'ttf',
+            'use-ppi-factor'
         ]
         mf2ff_options_values = [
             'ascent', 'comment', 'copyright', 'descent', 'designsize',
@@ -613,6 +618,8 @@ class Mf2ffOptions:
             '  -[no-]quadratic   approximate cubic with quadratic Bézier curves\n'
             '  -[no-]remove-artifacts\n'
             '                    disable/enable removing of artifacts (default: disabled)\n'
+            '  -[no-]remove-collinear\n'
+            '                    disable/enable removing of collinear points (default: disabled)\n'
             '  -scripts=TUPLE    set scripts for tables,\n'
             '                      e.g. ((\'latn\',(\'dflt\',)),)\n'
             '  -[no-]set-italic-correction\n'

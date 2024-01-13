@@ -56,6 +56,7 @@ if __name__ == '__main__':
     mf2ff.options.stroke_simplify = False
     mf2ff.options.fix_contours = True
     mf2ff.options.remove_artifacts = True
+    mf2ff.options.remove_collinear = True
     mf2ff.options.cull_at_shipout = True
     mf2ff.options.kerning_classes = True
     mf2ff.options.upm = 1000

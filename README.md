@@ -20,7 +20,7 @@ The tool has not yet been thoroughly tested, but most common METAFONT commands a
     - [cmr10](#cmr10)
     - [El Palo Alto](#el-palo-alto)
     - [JofA Logo](#jofa-logo)
-  - [Current limitations of the `mf2ff`](#current-limitations-of-the-mf2ff)
+  - [Current limitations of `mf2ff`](#current-limitations-of-mf2ff)
   - [Troubleshooting](#troubleshooting)
 
 
@@ -261,7 +261,7 @@ The logo, which is presented on page 138, The METAFONTbook. In the left version,
 | ![](img/examples/jofa_logo/jofa_logo_contour.png) | ![](img/examples/jofa_logo/jofa_logo_filled.png) | ![](img/examples/jofa_logo/jofa_logo_contour_culled.png) |
 
 
-## Current limitations of the `mf2ff`
+## Current limitations of `mf2ff`
 Since `mf2ff` is still under development and not thoroughly tested, there are a few limitations. They may be addressed in future updates.\
 If a specific limitation is holding your project back, open an issue so that future updates can focus on the needs of users.
 - Pen commands\

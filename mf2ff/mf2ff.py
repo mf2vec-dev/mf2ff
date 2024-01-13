@@ -863,7 +863,10 @@ class Mf2ff:
                     self.fix_contours(pic)
 
                 if self.input_options.remove_artifacts:
-                    self.remove_artefacts(pic)
+                    self.remove_artifacts(pic)
+
+                if self.input_options.remove_collinear:
+                    self.remove_collinear(pic)
 
                 if self.input_options.cull_at_shipout:
                     # Above fixes are after actual cull-at-shipout so remove
@@ -2603,61 +2606,145 @@ class Mf2ff:
             if c[0] == c[-1]:
                 c.closed = True
 
-    def remove_artefacts(self, layer):
-        '''remove artefacts in layer to remove unnecessary (parts of) contours
-
-        Simplify messes up with the dish_serif of computer modern
-        even when reducing the error_bound. Therefore an own
-        cleanup is done.
+    def remove_collinear(self, layer):
+        '''removes points which are not needed due to collinearity
 
         Args:
-            layer (fontforge.layer): layers whose contours should be cleaned up
+            layer (fontforge.layer): layer whose collinear points should be
+              removed
         '''
+        distance_threshold = self.options.params['remove_collinear']['distance_threshold']
+        i_c = 0
+        while i_c < len(layer):
+            c = layer[i_c]
+            if not c.closed:
+                # There should be no open contours, keep them for better
+                # debugging.
+                continue
+            if self.is_collinear(c, distance_threshold):
+                del layer[i_c]
+                continue # don't increase by 1 below
+            i_p1 = 0
+            while i_p1 < len(c):
+                if not c[i_p1].on_curve:
+                    # only check parts of c which start with an on-curve point
+                    i_p1 += 1
+                    continue
+                i_p2 = i_p1 + 2 # start with 3 points
+                collinear_sub_c = None
+                while True:
+                    if i_p2 >= len(c):
+                        i_p2 -= len(c)
+                    if i_p2 == i_p1:
+                        break
+                    if not c[i_p2].on_curve:
+                        # only check parts of c which end with an on-curve point
+                        i_p2 += 1
+                        continue
+                    if i_p1 < i_p2:
+                        sub_c = c[i_p1:i_p2+1]
+                    else:
+                        sub_c = c[i_p1:]+c[:i_p2+1]
+                    if self.is_collinear(sub_c, distance_threshold):
+                        # try again with next point
+                        collinear_sub_c = sub_c
+                        i_p2 += 1
+                        continue
+                    else:
+                        # can't go further than i_p2 (or last on_curve point)
+                        break
+                # don't remove if all points are control points ( not all(not ...) == any(...) )
+                if collinear_sub_c is not None and any(p.on_curve for p in collinear_sub_c[1:-1]):
+                    # can't use -= 1 here since i_p2 can be increased
+                    # multiple times due to control points
+                    i_p2 = i_p1 + len(collinear_sub_c)-1
+                    if i_p2 >= len(c):
+                        i_p2 -= len(c)
+
+                    # remove collinear points between i_p1 and i_p2
+                    if i_p1 < i_p2:
+                        # remove points between
+                        self.del_c_i_j(c, i_p1+1, i_p2-1)
+                    else:
+                        if i_p1+1 < len(c):
+                            self.del_c_i_j(c, i_p1+1, None)
+                        if i_p2-1 >= 0:
+                            self.del_c_i_j(c, None, i_p2-1)
+                i_p1 += 1
+            i_c += 1
+
+    def remove_artifacts(self, layer):
+        '''remove artifacts in layer to remove unnecessary (parts of) contours
+
+        Fontforge messes up with the dish_serif of Computer Modern. Therefore
+        an own cleanup is done.
+
+        Args:
+            layer (fontforge.layer): layer whose contours should be cleaned up
+        '''
+        point_threshold = self.options.params['remove_artifacts']['collinear']['point_threshold']
+        distance_threshold = self.options.params['remove_artifacts']['collinear']['distance_threshold']
         i_c = 0
         while i_c < len(layer):
             c = layer[i_c]
             if c.closed:
                 # check for collinearity c
-                if self.is_collinear(c):
+                if self.is_collinear(c, distance_threshold):
                     del layer[i_c]
                     continue # don't increase by 1 below
                 # check for collinearity of loops inside c
                 # search for points with same coords
-                point_threshold = self.options.params['remove_artefacts']['collinear']['point_threshold']
                 while True:
                     for i_p1, i_p2 in permutations([i_p for i_p, p in enumerate(c) if p.on_curve], 2):
                         p1 = c[i_p1]
                         p2 = c[i_p2]
                         if 1 < abs(i_p2 - i_p1) < len(c)-1 and abs(p2.x - p1.x) < point_threshold and abs(p2.y - p1.y) < point_threshold:
                             if i_p1 < i_p2:
-                                if self.is_collinear(c[i_p1:i_p2]):
-                                    # do del c[i_p1+1:i_p2] without "Segmentation fault (core dumped)"
-                                    for i_p_i in range(i_p2-1, i_p1, -1):
-                                        del c[i_p_i]
+                                if self.is_collinear(c[i_p1:i_p2], distance_threshold):
+                                    self.del_c_i_j(c, i_p1+1, i_p2)
                                     break
-                            else: # end/start is between i_p1 i_p2
-                                if self.is_collinear(c[i_p1:]+c[:i_p2]):
-                                    # TODO too many points removed?
-                                    # do del c[i_p1:] without "Segmentation fault (core dumped)"
-                                    for i_p1_i in range(len(c)-1, i_p1-1, -1):
-                                        del c[i_p1_i]
-                                                # do del c[:i_p2-1]
-                                    for i_p2_i in range(i_p2-1, -1, -1):
-                                        del c[i_p2_i]
+                            else: # end/start is between i_p1 and i_p2
+                                if self.is_collinear(c[i_p1:]+c[:i_p2], distance_threshold):
+                                    self.del_c_i_j(c, i_p1, None)
+                                    if i_p2-1 >= 0:
+                                        self.del_c_i_j(c, None, i_p2-1)
                                     break
                     else:
-                        # if looped over all combinations and
-                        # condition was not, i.e. for loop didn't
-                        # hit break, no collinearity loop is in c
+                        # if looped over all combinations and condition was
+                        # false, i.e. for loop didn't hit break, then there is
+                        # no collinear loop is in c
                         break
 
             i_c += 1
 
-    def is_collinear(self, c):
+    def del_c_i_j(self, c, i=None, j=None):
+        '''performs del c[i:j+1] without 'Segmentation fault (core dumped)'
+
+        deletes c[j], c[j-1], ..., c[i+1], c[i]
+
+        c will have (j-i+1) fewer points
+
+        Args:
+            c (fontforge.contour): contour which points should be deleted.
+            i (int or None, optional): i is first point to delete. default to
+              None. None is the first element.
+            j (int or None, optional): j is last point to delete. default to
+              None. None is the last element.
+        '''
+        if i is None:
+            i = 0
+        if j is None:
+            j = len(c)-1
+
+        # loop over j, j-1, ..., i+1, i
+        for k in range(j, i-1, -1):
+            del c[k]
+
+    def is_collinear(self, c, collinear_distance_threshold=0.01):
         '''checks whether all points in closed contour c are collinear
 
-        If all points in the contour c are at the same position, c is considered
-        to be collinear.
+        If all points in the contour c lie on a straight line, c is considered
+        to be collinear. In practice, c is most often part of a larger contour.
 
         Args:
             c (fontforge.contour): the contour to be checked for collinearity
@@ -2667,8 +2754,8 @@ class Mf2ff:
         '''
         x_mean = sum(p.x for p in c)/len(c)
         y_mean = sum(p.y for p in c)/len(c)
-        x_var = sum(abs(p.x - x_mean)**2 for p in c)/len(c)
-        y_var = sum(abs(p.y - y_mean)**2 for p in c)/len(c)
+        x_var = sum((p.x - x_mean)**2 for p in c)/len(c)
+        y_var = sum((p.y - y_mean)**2 for p in c)/len(c)
         if x_var < 0.01 and y_var < 0.01:
             return True
         if x_var < y_var:
@@ -2684,7 +2771,7 @@ class Mf2ff:
         alpha = y_mean - (beta*x_mean)
         denominator = sqrt(beta**2 + 1)
         d_max = max(abs(-beta*x + 1*y - alpha)/denominator for x, y in xy)
-        return d_max < self.options.params['remove_artefacts']['collinear']['distance_threshold']
+        return d_max < collinear_distance_threshold
 
 
 # __main__ part

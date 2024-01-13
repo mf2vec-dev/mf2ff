@@ -25,6 +25,7 @@ This tutorial should provide an introduction to both ways. Afterwards, useful op
     - [`ot-sub-feature` \& `glyph-name-suffix`](#ot-sub-feature--glyph-name-suffix)
     - [`quadratic`](#quadratic)
     - [`remove-artifacts`](#remove-artifacts)
+    - [`remove-collinear`](#remove-collinear)
     - [`set-italic-correction`](#set-italic-correction)
     - [`set-math-defaults`](#set-math-defaults)
     - [`set-top-accent` \& `skewchar`](#set-top-accent--skewchar)
@@ -327,6 +328,21 @@ This option enables or disables the conversion of the contours on foreground lay
 | default | disabled |
 
 This option removes contours and parts of contours which are closed and collinear and thus don't have an influence on the shape of the glyph. Those artifacts can result from FontForge's "Overlap" commands.
+
+Note that by enabling the `remove-collinear` option, collinear loops are likely to be removed as well, which may cause enabling `remove-artifacts` to have no further effect.
+
+
+### `remove-collinear`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`remove-collinear` |
+| API | `mf2ff.options.remove_collinear = True` / `False` |
+| default | disabled |
+
+This option removes unnecessary points if a contour can be described with fewer points due to collinearity, i.e. if three or more points lie on a straight line, the points in the middle are not needed because the straight line can be described with two points.
+
+Note that by enabling the `remove-collinear` option, collinear loops are likely to be removed as well, which may cause enabling `remove-artifacts` to have no further effect.
 
 
 ### `set-italic-correction`
