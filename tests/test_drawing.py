@@ -97,7 +97,6 @@ class TestDrawing(Mf2ffTest):
         self.assertAlmostEqual(P[7].x, 62.760, places=1)
         self.assertEqual(P[7].y, 15)
 
-
     def test_open_convex(self):
         g = self.font['D']
         l = g.layers[1]
@@ -289,6 +288,424 @@ class TestDrawing(Mf2ffTest):
         self.assertEqual(P[6].y, 5)
         self.assertEqual(P[7].x, 10)
         self.assertEqual(P[7].y, 5)
+
+    def test_line_penrazor_right(self):
+        g = self.font['a']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 1)
+
+        c = l[0]
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 4)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+
+        self.assertAlmostEqual(P[0].x, 24.330, places=1)
+        self.assertEqual(P[0].y, 22.5)
+        self.assertAlmostEqual(P[1].x, 64.330, places=1)
+        self.assertEqual(P[1].y, 22.5)
+        self.assertAlmostEqual(P[2].x, 55.670, places=1)
+        self.assertEqual(P[2].y, 17.5)
+        self.assertAlmostEqual(P[3].x, 15.670, places=1)
+        self.assertEqual(P[3].y, 17.5)
+
+    def test_line_penrazor_left(self):
+        g = self.font['b']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 1)
+
+        c = l[0]
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 4)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+
+        self.assertAlmostEqual(P[0].x, 64.330, places=1)
+        self.assertEqual(P[0].y, 22.5)
+        self.assertAlmostEqual(P[1].x, 55.670, places=1)
+        self.assertEqual(P[1].y, 17.5)
+        self.assertAlmostEqual(P[2].x, 15.670, places=1)
+        self.assertEqual(P[2].y, 17.5)
+        self.assertAlmostEqual(P[3].x, 24.330, places=1)
+        self.assertEqual(P[3].y, 22.5)
+
+    def test_open_penrazor(self):
+        g = self.font['c']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 1)
+
+        c = l[0]
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 10)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+
+        self.assertAlmostEqual(P[0].x, 19.330, places=1)
+        self.assertEqual(P[0].y, 82.5)
+        self.assertAlmostEqual(P[1].x, 94.330, places=1)
+        self.assertEqual(P[1].y, 22.5)
+        self.assertAlmostEqual(P[2].x, 85.670, places=1)
+        self.assertEqual(P[2].y, 17.5)
+        self.assertAlmostEqual(P[3].x, 5.670, places=1)
+        self.assertEqual(P[3].y, 7.5)
+        self.assertAlmostEqual(P[4].x, 14.330, places=1)
+        self.assertEqual(P[4].y, 12.5)
+        self.assertAlmostEqual(P[5].x, 81.435, places=1)
+        self.assertAlmostEqual(P[5].y, 20.888, places=1)
+        self.assertAlmostEqual(P[6].x, 19.330, places=1)
+        self.assertAlmostEqual(P[6].y, 70.572, places=1)
+        self.assertAlmostEqual(P[7].x, 19.330, places=1)
+        self.assertEqual(P[7].y, 22.5)
+        self.assertAlmostEqual(P[8].x, 10.670, places=1)
+        self.assertEqual(P[8].y, 17.5)
+        self.assertAlmostEqual(P[9].x, 10.670, places=1)
+        self.assertEqual(P[9].y, 77.5)
+
+    def test_almost_overlap_penrazor(self):
+        g = self.font['d']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 1)
+
+        c = l[0]
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 10)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+
+        self.assertAlmostEqual(P[0].x, 19.330, places=1)
+        self.assertEqual(P[0].y, 82.5)
+        self.assertAlmostEqual(P[1].x, 94.330, places=1)
+        self.assertEqual(P[1].y, 22.5)
+        self.assertAlmostEqual(P[2].x, 85.670, places=1)
+        self.assertEqual(P[2].y, 17.5)
+        self.assertAlmostEqual(P[3].x, 5.670, places=1)
+        self.assertEqual(P[3].y, 7.5)
+        self.assertAlmostEqual(P[4].x, 14.330, places=1)
+        self.assertEqual(P[4].y, 12.5)
+        self.assertAlmostEqual(P[5].x, 81.435, places=1)
+        self.assertAlmostEqual(P[5].y, 20.888, places=1)
+        self.assertAlmostEqual(P[6].x, 19.330, places=1)
+        self.assertAlmostEqual(P[6].y, 70.572, places=1)
+        self.assertAlmostEqual(P[7].x, 19.330, places=1)
+        self.assertEqual(P[7].y, 15.5)
+        self.assertAlmostEqual(P[8].x, 10.670, places=1)
+        self.assertEqual(P[8].y, 10.5)
+        self.assertAlmostEqual(P[9].x, 10.670, places=1)
+        self.assertEqual(P[9].y, 77.5)
+
+    def test_just_overlap_penrazor(self):
+        g = self.font['e']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 2)
+
+        c = l[0] # outer
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 6)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+
+        self.assertAlmostEqual(P[0].x, 19.330, places=1)
+        self.assertEqual(P[0].y, 82.5)
+        self.assertAlmostEqual(P[1].x, 94.330, places=1)
+        self.assertEqual(P[1].y, 22.5)
+        self.assertAlmostEqual(P[2].x, 85.670, places=1)
+        self.assertEqual(P[2].y, 17.5)
+        self.assertAlmostEqual(P[3].x, 5.670, places=1)
+        self.assertEqual(P[3].y, 7.5)
+        self.assertAlmostEqual(P[4].x, 10.670, places=1)
+        self.assertAlmostEqual(P[4].y, 10.387, places=1)
+        self.assertAlmostEqual(P[5].x, 10.670, places=1)
+        self.assertEqual(P[5].y, 77.5)
+
+        c = l[1] # inner
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 4)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), False)
+        
+        self.assertAlmostEqual(P[0].x, 19.330, places=1)
+        self.assertAlmostEqual(P[0].y, 70.572, places=1)
+        self.assertAlmostEqual(P[1].x, 19.330, places=1)
+        self.assertEqual(P[1].y, 14.5)
+        self.assertAlmostEqual(P[2].x, 16.290, places=1)
+        self.assertAlmostEqual(P[2].y, 12.765, places=1)
+        self.assertAlmostEqual(P[3].x, 81.435, places=1)
+        self.assertAlmostEqual(P[3].y, 20.888, places=1)
+
+    def test_just_crossing_penrazor(self):
+        g = self.font['f']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 2)
+
+        c = l[0] # outer
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 9)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+
+        self.assertAlmostEqual(P[0].x, 19.330, places=1)
+        self.assertEqual(P[0].y, 82.5)
+        self.assertAlmostEqual(P[1].x, 94.330, places=1)
+        self.assertEqual(P[1].y, 22.5)
+        self.assertAlmostEqual(P[2].x, 85.670, places=1)
+        self.assertEqual(P[2].y, 17.5)
+        self.assertAlmostEqual(P[3].x, 12.052, places=1)
+        self.assertAlmostEqual(P[3].y, 8.298, places=1)
+        self.assertAlmostEqual(P[4].x, 10.670, places=1)
+        self.assertEqual(P[4].y, 7.5)
+        self.assertAlmostEqual(P[5].x, 10.670, places=1)
+        self.assertEqual(P[5].y, 8.125)
+        self.assertAlmostEqual(P[6].x, 5.670, places=1)
+        self.assertEqual(P[6].y, 7.5)
+        self.assertAlmostEqual(P[7].x, 10.670, places=1)
+        self.assertAlmostEqual(P[7].y, 10.387, places=1)
+        self.assertAlmostEqual(P[8].x, 10.670, places=1)
+        self.assertEqual(P[8].y, 77.5)
+
+        c = l[1] # inner
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 3)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), False)
+        
+        self.assertAlmostEqual(P[0].x, 19.330, places=1)
+        self.assertAlmostEqual(P[0].y, 70.572, places=1)
+        self.assertAlmostEqual(P[1].x, 19.330, places=1)
+        self.assertAlmostEqual(P[1].y, 13.125, places=1)
+        self.assertAlmostEqual(P[2].x, 81.435, places=1)
+        self.assertAlmostEqual(P[2].y, 20.888, places=1)
+
+    def test_crossing_penrazor(self):
+        g = self.font['g']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 2)
+
+        c = l[0] # outer
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 10)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+
+        self.assertAlmostEqual(P[0].x, 19.330, places=1)
+        self.assertEqual(P[0].y, 82.5)
+        self.assertAlmostEqual(P[1].x, 94.330, places=1)
+        self.assertEqual(P[1].y, 22.5)
+        self.assertAlmostEqual(P[2].x, 85.670, places=1)
+        self.assertEqual(P[2].y, 17.5)
+        self.assertAlmostEqual(P[3].x, 19.330, places=1)
+        self.assertAlmostEqual(P[3].y, 9.207, places=1)
+        self.assertAlmostEqual(P[4].x, 19.330, places=1)
+        self.assertEqual(P[4].y, 2.5)
+        self.assertAlmostEqual(P[5].x, 10.670, places=1)
+        self.assertEqual(P[5].y, -2.5)
+        self.assertAlmostEqual(P[6].x, 10.670, places=1)
+        self.assertEqual(P[6].y, 8.125)
+        self.assertAlmostEqual(P[7].x, 5.670, places=1)
+        self.assertEqual(P[7].y, 7.5)
+        self.assertAlmostEqual(P[8].x, 10.670, places=1)
+        self.assertAlmostEqual(P[8].y, 10.387, places=1)
+        self.assertAlmostEqual(P[9].x, 10.670, places=1)
+        self.assertEqual(P[9].y, 77.5)
+
+        c = l[1] # inner
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 3)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), False)
+        
+        self.assertAlmostEqual(P[0].x, 19.330, places=1)
+        self.assertAlmostEqual(P[0].y, 70.572, places=1)
+        self.assertAlmostEqual(P[1].x, 19.330, places=1)
+        self.assertAlmostEqual(P[1].y, 13.125, places=1)
+        self.assertAlmostEqual(P[2].x, 81.435, places=1)
+        self.assertAlmostEqual(P[2].y, 20.888, places=1)
+
+    def test_closed_penrazor(self):
+        g = self.font['h']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 2)
+
+        c = l[0] # outer
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 5)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+
+        self.assertAlmostEqual(P[0].x, 19.330, places=1)
+        self.assertEqual(P[0].y, 82.5)
+        self.assertAlmostEqual(P[1].x, 94.330, places=1)
+        self.assertEqual(P[1].y, 22.5)
+        self.assertAlmostEqual(P[2].x, 85.670, places=1)
+        self.assertEqual(P[2].y, 17.5)
+        self.assertAlmostEqual(P[3].x, 5.670, places=1)
+        self.assertEqual(P[3].y, 7.5)
+        self.assertAlmostEqual(P[4].x, 10.670, places=1)
+        self.assertEqual(P[4].y, 77.5)
+
+        c = l[1] # inner
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 3)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), False)
+
+        self.assertAlmostEqual(P[0].x, 18.524, places=1)
+        self.assertAlmostEqual(P[0].y, 71.217, places=1)
+        self.assertAlmostEqual(P[1].x, 14.330, places=1)
+        self.assertAlmostEqual(P[1].y, 12.5, places=1)
+        self.assertAlmostEqual(P[2].x, 81.435, places=1)
+        self.assertAlmostEqual(P[2].y, 20.888, places=1)
+
+    def test_curve_1_penrazor(self):
+        g = self.font['i']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 1)
+
+        c = l[0]
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 8)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+        
+        self.assertAlmostEqual(P[0].x, 24.330, places=1)
+        self.assertEqual(P[0].y, 22.5)
+        self.assertAlmostEqual(P[1].x, 15.670, places=1)
+        self.assertEqual(P[1].y, 17.5)
+        self.assertAlmostEqual(P[2].x, 25.670, places=1)
+        self.assertAlmostEqual(P[2].y, 37.499, places=1)
+        self.assertAlmostEqual(P[3].x, 22.319, places=1)
+        self.assertAlmostEqual(P[3].y, 50.000, places=1)
+        self.assertAlmostEqual(P[4].x, 15.670, places=1)
+        self.assertEqual(P[4].y, 57.5)
+        self.assertAlmostEqual(P[5].x, 24.330, places=1)
+        self.assertEqual(P[5].y, 62.5)
+        self.assertAlmostEqual(P[6].x, 30.980, places=1)
+        self.assertAlmostEqual(P[6].y, 55.000, places=1)
+        self.assertAlmostEqual(P[7].x, 34.330, places=1)
+        self.assertAlmostEqual(P[7].y, 42.499, places=1)
+
+        P = [p for p in c if not p.on_curve] # control points
+        self.assertEqual(len(P), 12)
+        
+        self.assertAlmostEqual(P[0].x, 21.965, places=1)
+        self.assertAlmostEqual(P[0].y, 22.222, places=1)
+        self.assertAlmostEqual(P[1].x, 25.670, places=1)
+        self.assertAlmostEqual(P[1].y, 29.631, places=1)
+        self.assertAlmostEqual(P[2].x, 25.670, places=1)
+        self.assertAlmostEqual(P[2].y, 41.947, places=1)
+        self.assertAlmostEqual(P[3].x, 24.486, places=1)
+        self.assertAlmostEqual(P[3].y, 46.249, places=1)
+        self.assertAlmostEqual(P[4].x, 20.653, places=1)
+        self.assertAlmostEqual(P[4].y, 52.887, places=1)
+        self.assertAlmostEqual(P[5].x, 18.406, places=1)
+        self.assertAlmostEqual(P[5].y, 55.447, places=1)
+        self.assertAlmostEqual(P[6].x, 27.066, places=1)
+        self.assertAlmostEqual(P[6].y, 60.447, places=1)
+        self.assertAlmostEqual(P[7].x, 29.314, places=1)
+        self.assertAlmostEqual(P[7].y, 57.887, places=1)
+        self.assertAlmostEqual(P[8].x, 33.146, places=1)
+        self.assertAlmostEqual(P[8].y, 51.249, places=1)
+        self.assertAlmostEqual(P[9].x, 34.329, places=1)
+        self.assertAlmostEqual(P[9].y, 46.947, places=1)
+        self.assertAlmostEqual(P[10].x, 34.330, places=1)
+        self.assertAlmostEqual(P[10].y, 34.631, places=1)
+        self.assertEqual(P[11].x, 30.625)
+        self.assertAlmostEqual(P[11].y, 27.222, places=1)
+
+    def test_curve_2_penrazor(self):
+        g = self.font['j']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 1)
+
+        c = l[0]
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 9)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+        
+        self.assertEqual(P[0].x, 22.5)
+        self.assertAlmostEqual(P[0].y, 15.670, places=1)
+        self.assertEqual(P[1].x, 17.5)
+        self.assertAlmostEqual(P[1].y, 24.330, places=1)
+        self.assertEqual(P[2].x, 27.5)
+        self.assertAlmostEqual(P[2].y, 44.330, places=1)
+        self.assertAlmostEqual(P[3].x, 26.213, places=1)
+        self.assertAlmostEqual(P[3].y, 52.248, places=1)
+        self.assertEqual(P[4].x, 22.5)
+        self.assertAlmostEqual(P[4].y, 55.670, places=1)
+        self.assertEqual(P[5].x, 17.5)
+        self.assertAlmostEqual(P[5].y, 64.330, places=1)
+        self.assertAlmostEqual(P[6].x, 24.149, places=1)
+        self.assertAlmostEqual(P[6].y, 56.831, places=1)
+        self.assertAlmostEqual(P[7].x, 29.149, places=1)
+        self.assertAlmostEqual(P[7].y, 48.171, places=1)
+        self.assertEqual(P[8].x, 32.5)
+        self.assertAlmostEqual(P[8].y, 35.670, places=1)
+
+    # TODO output of self.font['k'] is corrupted by FontForge' removeOverlap()
+
+    def test_parallel_penrazor(self):
+        # path parallel to penrazor
+        g = self.font['l']
+        l = g.layers[1]
+
+        self.assertEqual(l.isEmpty(), False)
+        self.assertEqual(len(l), 1)
+
+        c = l[0]
+        P = [p for p in c if p.on_curve]
+
+        self.assertEqual(len(P), 7)
+        self.assertEqual(c.closed, True)
+        self.assertEqual(c.isClockwise(), True)
+        
+        self.assertEqual(P[0].x, 65)
+        self.assertEqual(P[0].y, 60)
+        self.assertEqual(P[1].x, 65)
+        self.assertEqual(P[1].y, 20)
+        self.assertEqual(P[2].x, 55)
+        self.assertEqual(P[2].y, 20)
+        self.assertEqual(P[3].x, 55)
+        self.assertEqual(P[3].y, 50)
+        self.assertEqual(P[4].x, 25)
+        self.assertEqual(P[4].y, 20)
+        self.assertEqual(P[5].x, 15)
+        self.assertEqual(P[5].y, 20)
+        self.assertEqual(P[6].x, 55)
+        self.assertEqual(P[6].y, 60)
 
 if __name__ == '__main__':
     unittest.main()

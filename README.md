@@ -265,10 +265,13 @@ The logo, which is presented on page 138, The METAFONTbook. In the left version,
 Since `mf2ff` is still under development and not thoroughly tested, there are a few limitations. They may be addressed in future updates.\
 If a specific limitation is holding your project back, open an issue so that future updates can focus on the needs of users.
 - Pen commands\
-  Only round, elliptical and polygonal pens are supported. It is assumed that a path of length 8 (8 points) is an ellipse. Four of these points are used to calculate the axis lengths and the angle. All paths with other lengths are interpreted as polygons. Thereby only points on the Bézier curve are processed.
-  - `penrazor` is not supported (see dangerous_bend_symbol example), FontForge: "Stroke width cannot be zero"
-  - The use of `penspeck` raises a warning but the output seems to be ok in some cases.
-- The support of `cull` commands is limited.
+  Only round, elliptical and polygonal pens (including digons, e.g. `penrazor`) are supported.
+  - It is assumed that a pen of length 8 (8 points) is an ellipse. Four of these points are used to calculate the axis lengths and the angle.
+  - All pens with lengths${}\neq 8$ and${}> 2$ are interpreted as polygons. Thereby only points on the Bézier curve are processed.
+  - The use of `penspeck` raises a warning but the output seems to be ok in many cases.
+  - There are some cases where FontForge's `removeOverlap()` method corrupts the result of `penrazor` usage (or other pens with length${}= 2$).
+- Cull commands\
+  The support of `cull` commands is limited. Basic operations such as plain METAFONT's `cullit` are supported.
 - Ligature commands\
   Only `:`, `::`, `kern`, `skipto` as well as the ligature operators `=:`, `|=:`, `=:|` and `|=:|` are supported. The ligtable command ignores `>` in operators. Moreover, the operator `||:` is not supported.
 - Picture type test\
@@ -281,7 +284,7 @@ If a specific limitation is holding your project back, open an issue so that fut
 - Nested conditions or nested loops within `ligtable`, `fontdimen`, `charlist` and `extensible` commands\
   In some situations, `mf2ff` needs to redefine the colon (`:`). This may cause problems in processing multiple nested `if`...(`elseif`)...(`end`)...`fi` and/or `for`/`forsuffixes`/`forever`...`endfor` within commands that use the colon in their own syntax, i.e. `ligtable`, `fontdimen`, `charlist` and `extensible`.
 - FontForge sometimes hangs\
-  FontForge hangs in certain situations while stroking a contour. So far, no particular trigger has been identified. This may be a bug in FontForge.
+  FontForge hangs in certain situations while stroking a contour. So far, no particular trigger has been identified. This may be a bug in FontForge. It doesn't seem to occur with FontForge versions released after ~2022.
 - FontForge sometimes raises errors\
   FontForge raises errors in certain situations while processing `cull` commands or `addto` commands with a pen. Nevertheless, the results—especially those of `cull` commands—often seem to be ok. This may be a bug in FontForge. The errors are hardcoded in FontForge so they cannot be caught or suppressed.
 

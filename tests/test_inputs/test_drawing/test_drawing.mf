@@ -40,4 +40,66 @@ beginchar("H", 100, 100, 0);
     addto_currentpicture contour (10,10)--(20,10)--(20,20)--(10,20)--cycle withpen currentpen;
 endchar;
 
+% penrazor
+
+beginchar("a", 100, 100, 0);
+    pickup penrazor scaled 10 rotated 30;
+    draw (20,20)--(60,20);
+endchar;
+
+beginchar("b", 100, 100, 0);
+    pickup penrazor scaled 10 rotated 30;
+    draw (60,20)--(20,20);
+endchar;
+
+beginchar("c", 100, 100, 0);
+    pickup penrazor scaled 10 rotated 30;
+    draw (10,10)--(90,20)--(15,80)--(15,20);
+endchar;
+
+beginchar("d", 100, 100, 0);
+    pickup penrazor scaled 10 rotated 30;
+    draw (10,10)--(90,20)--(15,80)--(15,13);
+endchar;
+
+beginchar("e", 100, 100, 0);
+    pickup penrazor scaled 10 rotated 30;
+    draw (10,10)--(90,20)--(15,80)--(15,12);
+endchar;
+
+beginchar("f", 100, 100, 0);
+    pickup penrazor scaled 10 rotated 30;
+    draw (10,10)--(90,20)--(15,80)--(15,10);
+endchar;
+
+beginchar("g", 100, 100, 0);
+    pickup penrazor scaled 10 rotated 30;
+    draw (10,10)--(90,20)--(15,80)--(15,0);
+endchar;
+
+beginchar("h", 100, 100, 0);
+    pickup penrazor scaled 10 rotated 30;
+    draw (10,10)--(90,20)--(15,80)--cycle;
+endchar;
+
+beginchar("i", 100, 100, 0);
+    pickup penrazor scaled 10 rotated 30;
+    draw (20,20)..(30,40)..(20,60);
+endchar;
+
+beginchar("j", 100, 100, 0);
+    pickup penrazor scaled 10 rotated -60;
+    draw (20,20)..(30,40)..(20,60);
+endchar;
+
+beginchar("k", 100, 100, 0);
+    pickup penrazor scaled 10 rotated 30;
+    draw (fullcircle scaled 20 shifted (40,40));
+endchar;
+
+beginchar("l", 100, 100, 0);
+    pickup penrazor scaled 10;
+    draw (20,20)--(60,20)--(60,60)--cycle;
+endchar;
+
 end

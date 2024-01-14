@@ -532,18 +532,20 @@ class Mf2ff:
                     self.pictures[addto] += self.pictures['temp_layer']
                 else: # add a path
                     # There are four basic cases of adding a path to a glyph:
-                    # 1. A contour without a pen: The contour is simply added to
-                    #    the glyph. (fill c;)
-                    # 2. A doublepath without a pen: This will have no effect in
-                    #    mf so it is ignored in FontForge too.
-                    # 3. A contour with a pen: The contour is added to the glyph
-                    #    with an offset. A closed path will fill an area,
+                    # 1. A contour without a pen: The contour is simply added
+                    #    to the glyph. (fill c;)
+                    # 2. A doublepath without a pen: This will have no effect
+                    #    in mf so it is ignored in FontForge too.
+                    # 3. A contour with a pen: The contour is added to the
+                    #    glyph with an offset. A closed path will fill an area,
                     #    without a hole, an open path will cause an error in mf
                     #    and in FontForge.
                     # 4. A doublepath with a pen: A simple pen stroke added to
-                    #    the glyph. (draw p;) Since in some cases multiple paths
-                    # are added, create a list of paths. The command body of the
-                    # contour or doublepath command is a path.
+                    #    the glyph. (draw p;)
+                    #
+                    # Since in some cases multiple paths are added, create a
+                    # list of paths. The command body of the contour or
+                    # doublepath command is a path.
                     paths = [addto_next_cmd_body]
                     # Add the path multiple times, according to the weight.
                     paths = paths*abs(weight)
@@ -602,7 +604,8 @@ class Mf2ff:
                         pen_first_point = self.pair_pattern.search(pen) # TODO better with .groups ?
                         pen_joins = self.join_pattern.findall(pen[pen_first_point.end():])
 
-                        # If the pen's path has 8 points it is to be assumed to be a circle / ellipse.
+                        # If the pen's path has 8 points, it is assumed to be a
+                        # circle / ellipse.
                         pen_is_circle = False
                         if len(pen_joins) == 8:
                             # TODO more conditions
@@ -615,6 +618,58 @@ class Mf2ff:
                             minor_width = sqrt((float(pen_joins[5][4])-float(pen_joins[1][4]))**2 + (float(pen_joins[5][5])-float(pen_joins[1][5]))**2)
                             angle = atan2(float(pen_joins[3][5])-float(pen_first_point.group(2)),float(pen_joins[3][4])-float(pen_first_point.group(1)))
                             self.pictures['temp_layer'] = self.pictures['temp_layer'].stroke('elliptical', width, minor_width, angle, **stroke_kwargs)
+
+                        elif len(pen_joins) == 2 and pen_joins[1][6] == 'cycle':
+                            # penrazor case
+
+                            # FontForge doesn't support pens with height 0. A
+                            # workaround is not possible since isClockwise
+                            # doesn't work for self intersecting contours.
+                            # Therefore, an dedicated pen implementation is
+                            # done for the penrazor case.
+
+                            # TODO check if straight
+                            z1 = [float(pen_first_point.group(1)), float(pen_first_point.group(2))]
+                            z2 = [float(pen_joins[0][4]), float(pen_joins[0][5])]
+                            width = sqrt((z2[0] - z1[0])**2 + (z2[1] - z1[1])**2)
+                            angle = atan((z2[1] - z1[1]) / (z2[0] - z1[0]))
+
+                            path_layer = self.pictures['temp_layer'].dup()
+                            self.pictures['temp_layer'] = fontforge.layer()
+
+                            for c in path_layer:
+                                contour_layer = fontforge.layer()
+                                # The contour is rotated so that penrazor is
+                                # always horizontal. This is important when
+                                # adding extreme points.
+                                c.transform(psMat.rotate(-angle))
+                                c.addExtrema('all')
+
+                                # Looping over segments so skip last point.
+                                for p_i in [i for i, p in enumerate(c[:-1]) if p.on_curve]:
+                                    # Find next on-curve point. i+1 ... i+3 can
+                                    # be the next on-curve point.
+                                    for p_j in range(p_i+1, p_i+4):
+                                        if p_j >= len(c):
+                                            p_j -= len(c)
+                                        if c[p_j].on_curve:
+                                            break
+                                    if p_j < p_i:
+                                        c1 = c[p_i:]+c[:p_j+1].dup()
+                                    else:
+                                        c1 = c[p_i:p_j+1].dup()
+                                    c2 = c1.dup().reverseDirection()
+                                    c1.transform(psMat.translate(width/2, 0))
+                                    c2.transform(psMat.translate(-width/2, 0))
+                                    c_penrazor = c1 + c2
+                                    c_penrazor.closed = True
+                                    # penrazor always draws positive.
+                                    if not c_penrazor.isClockwise():
+                                        c_penrazor.reverseDirection()
+                                    contour_layer += c_penrazor
+                                self.remove_overlap(contour_layer)
+                                self.pictures['temp_layer'] += contour_layer
+                            self.pictures['temp_layer'].transform(psMat.rotate(angle))
 
                         else:
                             # FontForge only supports elliptical or polygonal
