@@ -221,8 +221,8 @@ The following table shows a comparison of the tools available for converting MET
 | **Output quality** | ❌&nbsp;bitmap | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | 🤔&nbsp;traced bitmap | 🤔&nbsp;traced bitmap |
 | **Redefines non-primitives&nbsp;/ requires non-primitives** | ✅&nbsp;No | ✅&nbsp;No | ❌&nbsp;Yes | ❔ | ❌&nbsp;Yes | ❌&nbsp;Yes | ✅&nbsp;No | ✅&nbsp;No |
 | **Unicode support** | ❌&nbsp;No | ✅&nbsp;Yes | ✅&nbsp;Yes | ❔ | ❔ | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No |
-| **Supports pen-commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | 🤔&nbsp;Limited | 🤔&nbsp;ellip&shy;tical only (?) | ❌&nbsp;No | 🤔&nbsp;Limited (polygon, discouraged) | ✅&nbsp;Yes | ✅&nbsp;Yes |
-| **Supports ligature and kerning commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | 🤔&nbsp;New commands | ❔ | ❔ | ❔ | ❔ | ❌&nbsp;No |
+| **Supports pen commands** | ✅&nbsp;Yes | ✅&nbsp;Yes | ✅&nbsp;Yes | 🤔&nbsp;ellip&shy;tical only (?) | ✅&nbsp;Yes | 🤔&nbsp;Limited (polygon, discouraged) | ✅&nbsp;Yes | ✅&nbsp;Yes |
+| **Supports ligature and kerning commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | 🤔&nbsp;New commands | ❔ | ❌&nbsp;No | ❔ | ❔ | ❌&nbsp;No |
 | **Supports cull commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | ❌&nbsp;No | ❔ | ❌&nbsp;No | ❌&nbsp;No | ✅&nbsp;Yes | ✅&nbsp;Yes |
 | **Supports variable fonts** | ❌&nbsp;No | ❌&nbsp;No, maybe in the future | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❔ | ❌&nbsp;No |
 

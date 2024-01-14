@@ -707,7 +707,6 @@ class Mf2ff:
                     # 2nd case: doublepath without pen
                     else:
                         # doublepath without pen has no effect
-                        # TODO check
                         pass
 
             # cull\
@@ -716,7 +715,7 @@ class Mf2ff:
                 cull_pic_name = self.cmd_body[1:-1] # clip quotes
                 keep_or_drop = self.cmds[i+1][0]
                 a, b = [int(float(s)) for s in self.pair_pattern.search(self.cmds[i+1][2]).groups()]
-                weight = 1 # default # TODO source
+                weight = 1 # default (The METAFONTbook, p. 120, 118)
                 num_paths = len(self.pictures[cull_pic_name])
 
                 i += 1
@@ -727,7 +726,9 @@ class Mf2ff:
                     self.cmd_body = cmd[2]
 
                     if cmd_name == 'withweight':
-                        weight = int(round(float(self.cmd_body))) # TODO source for rounding to next integer
+                        # The weight is "rounded to the nearest integer"
+                        # (The METAFONTbook, p. 120, 118).
+                        weight = int(round(float(self.cmd_body)))
                     else:
                         break
                     j += 1
@@ -1510,10 +1511,9 @@ class Mf2ff:
                     components = tuple(self.to_glyph_name(c) for c in sub[2])
                 else:
                     components = (char1, char2)
-                # Try to create the ligature. FontForge will
-                # raise a TypeError, if one of the
-                # characters is unknown. In that case, print
-                # a warning and continue
+                # Try to create the ligature. FontForge will raise a TypeError,
+                # if one of the characters is unknown. In that case, print a
+                # warning and continue
                 try:
                     self.font[lig].addPosSub(subtable_name, components)
                 except TypeError as e:
