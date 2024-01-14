@@ -267,9 +267,9 @@ If a specific limitation is holding your project back, open an issue so that fut
 - Pen commands\
   Only round, elliptical and polygonal pens (including digons, e.g. `penrazor`) are supported.
   - It is assumed that a pen of length 8 (8 points) is an ellipse. Four of these points are used to calculate the axis lengths and the angle.
-  - All pens with lengths${}\neq 8$ and${}> 2$ are interpreted as polygons. Thereby only points on the Bézier curve are processed.
+  - All pens with lengths $\neq 8$ and $> 2$ are interpreted as polygons. Thereby only points on the Bézier curve are processed.
   - The use of `penspeck` raises a warning but the output seems to be ok in many cases.
-  - There are some cases where FontForge's `removeOverlap()` method corrupts the result of `penrazor` usage (or other pens with length${}= 2$).
+  - There are some cases where FontForge's `removeOverlap()` method corrupts the result of `penrazor` usage (or other pens with length $= 2$).
 - Cull commands\
   The support of `cull` commands is limited. Basic operations such as plain METAFONT's `cullit` are supported.
 - Ligature commands\
