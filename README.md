@@ -2,7 +2,7 @@
 
 **`mf2ff`** is a tool to create vector fonts from METAFONT code using the Python API of FontForge.\
 It is based on a concept of how METAFONT can work together with a vector font generator without the detour of bitmap tracing, described below in the [mf2vec concept](#mf2vec-concept) section. `mf2ff` is the first and, to the developer's knowledge, the only implementation of this concept to date.\
-Below you will find some help on how to [set it up](#setup) and how to [use it](#usage).
+Below you will find some help on [setting up](#setup) `mf2ff` and how to [use it](#usage).
 
 The tool has not yet been thoroughly tested, but most common METAFONT commands are supported. Besides filling and drawing, also kerning and some ligature commands are supported. Please take a look at the [limitations](#current-limitations-of-the-mf2ff) listed below.
 
@@ -128,7 +128,14 @@ Depending on your OS, you need to use `ffpython` or `python3` instead of `python
 
 By default, `mf2ff` will generate a Spline Font Database (.sfd) file. You can deactivate this using the option `-no-sfd` / `mf2ff.options.sfd = False` and `-ttf` / `mf2ff.options.ttf = True` or `-otf` / `mf2ff.options.otf = True` to generate font files directly.
 
-`mf2ff` doesn't do much cleanup by default, as you may want to manually rework the glyphs. Please refer to the [user guide](docs/user-guide.md) for useful options to perform some automated cleanup, an introduction to using the package in a Python script, or extensions for modern font features. 
+`mf2ff` doesn't do much cleanup by default, as you may want to manually rework the glyphs. 
+
+> [!Note]
+> Please refer to the [user guide](docs/user-guide.md) for
+> - useful options to perform some automated cleanup
+> - an introduction to `mf2ff`'s Python API
+> - extensions for modern font features
+
 
 Please also take a look at the [limitations](#current-limitations-of-the-mf2ff) that are listed below.
 
@@ -199,7 +206,7 @@ Besides the mf2vec approach with the `mf2ff` implementation presented here, the 
 | <a href="https://tug.org/TUGboat/tb16-3/tb48kinc.pdf" target="_blank" title="MetaFog, PDF">MetaFog</a> | METAPOST |
 | <a href="https://ctan.org/pkg/metatype1" target="_blank" title="MetaType1, CTAN">MetaType1</a> | METAPOST |
 | <a href="https://ctan.org/pkg/mf2pt1" target="_blank" title="mf2pt1, CTAN">mf2pt1</a> | METAPOST |
-| <a href="http://lilypond.org/mftrace/" target="_blank" title="mftrace, Website">mftrace</a> | Bitmap tracing |
+| <a href="http://lilypond.org/mftrace/" target="_blank" title="mftrace, Website">mftrace</a> (pktrace) | Bitmap tracing |
 | <a href="https://pts.50.hu/textrace/" target="_blank" title="TeXtrace, Website">TeXtrace</a> | Bitmap tracing |
 
 In this context, the METAPOST method refers to the use of METAPOST to convert each character of the METAFONT file into a vector graphic. After that, the vector graphics are put together to get a vector font. The disadvantage of this method is that METAPOST can only process a part of the METAFONT language; kerning, ligatures and culling are not implemented in METAPOST.
@@ -217,14 +224,17 @@ The following table shows a comparison of the tools available for converting MET
 | **Script is written in** | – | Python&nbsp;3 | Python&nbsp;3 | ❔ | Perl | Perl | Python&nbsp;2 | Perl |
 | **METAFONT file processing** | META&shy;FONT | META&shy;FONT | META&shy;POST | META&shy;POST | META&shy;POST | META&shy;POST | META&shy;FONT | META&shy;FONT |
 | **Subsequent processing** | – | FontForge | FontForge | –&nbsp;/ ❔ | AWK&nbsp;/&nbsp;t1asm | t1asm | auto&shy;trace or potrace&nbsp;/ t1asm | auto&shy;trace |
-| **Output format** | ❌&nbsp;GF&nbsp;/ TFM | ✅&nbsp;TTF, OTF, SFD | ✅&nbsp;TTF, OTF, SFD | 🤔&nbsp;"a PostScript format" | 🤔&nbsp;PFB | 🤔&nbsp;PFB | ✅&nbsp;AFM&nbsp;/ PFA&nbsp;/ PFB&nbsp;/ TTF&nbsp;/ SVG | 🤔&nbsp;PFB |
+| **Output format** | ❌&nbsp;GF&nbsp;/ TFM | ✅&nbsp;TTF, OTF, SFD | ✅&nbsp;TTF, OTF, SFD | 🤔&nbsp;"a PostScript format" | 🤔&nbsp;PFB | 🤔&nbsp;PFB | ✅&nbsp;AFM&nbsp;/ PFA&nbsp;/ PFB&nbsp;/ TTF&nbsp;/ SVG | 🤔&nbsp;AFM&nbsp;/ PFA&nbsp;/ PFB |
 | **Output quality** | ❌&nbsp;bitmap | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | ✅&nbsp;vector graphic | 🤔&nbsp;traced bitmap | 🤔&nbsp;traced bitmap |
 | **Redefines non-primitives&nbsp;/ requires non-primitives** | ✅&nbsp;No | ✅&nbsp;No | ❌&nbsp;Yes | ❔ | ❌&nbsp;Yes | ❌&nbsp;Yes | ✅&nbsp;No | ✅&nbsp;No |
-| **Unicode support** | ❌&nbsp;No | ✅&nbsp;Yes | ✅&nbsp;Yes | ❔ | ❔ | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No |
-| **Supports pen commands** | ✅&nbsp;Yes | ✅&nbsp;Yes | ✅&nbsp;Yes | 🤔&nbsp;ellip&shy;tical only (?) | ✅&nbsp;Yes | 🤔&nbsp;Limited (polygon, discouraged) | ✅&nbsp;Yes | ✅&nbsp;Yes |
-| **Supports ligature and kerning commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | 🤔&nbsp;New commands | ❔ | ❌&nbsp;No | ❔ | ❔ | ❌&nbsp;No |
-| **Supports cull commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | ❌&nbsp;No | ❔ | ❌&nbsp;No | ❌&nbsp;No | ✅&nbsp;Yes | ✅&nbsp;Yes |
-| **Supports variable fonts** | ❌&nbsp;No | ❌&nbsp;No, maybe in the future | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❔ | ❌&nbsp;No |
+| **Supports pen commands** | ✅&nbsp;Yes | ✅&nbsp;Yes | ✅&nbsp;Yes | 🤔&nbsp;ellip&shy;tical only (?) | ✅&nbsp;Yes | 🤔&nbsp;polygon only (discouraged) | ✅&nbsp;Yes | ✅&nbsp;Yes |
+| **Supports `cull` commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | ❌&nbsp;No | ❔ | ❌&nbsp;No | ❌&nbsp;No | ✅&nbsp;Yes | ✅&nbsp;Yes |
+| **Supports `ligtable` commands** | ✅&nbsp;Yes | 🤔&nbsp;Limited | 🤔&nbsp;New commands | ❔ | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | 🤔&nbsp;only kering in AFM format |
+| **Supports `fontdimen`s for basic font parameters** | ✅&nbsp;Yes | ✅&nbsp;Yes | ✅&nbsp;Yes | ❔ | ❌&nbsp;No | ✅&nbsp;Yes | 🤔&nbsp;designsize only  | ❔ |
+| **Supports `fontdimen`s for `math` constants** | ✅&nbsp;Yes | ✅&nbsp;Yes | ❌&nbsp;No | ❔ | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No |
+| **Supports `charlist` and `extensible` for `math` table** | ✅&nbsp;Yes | ✅&nbsp;Yes | ❌&nbsp;No | ❔ | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No |
+| **Unicode support** | ❌&nbsp;No | ✅&nbsp;Yes | ✅&nbsp;Yes | ❔ | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No |
+| **Supports variable fonts** | ❌&nbsp;No | ❌&nbsp;No, maybe in the future | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No | ❌&nbsp;No |
 
 Although the above comparison has been carefully prepared, it may contain errors and other interesting tools may be missing. Please feel free to provide feedback to improve this section.
 
@@ -232,7 +242,7 @@ Although the above comparison has been carefully prepared, it may contain errors
 ## Examples
 The following are some examples created with `mf2ff`. The outlines and filled characters are shown as they are displayed in FontForge. Note that the results are not perfect yet.
 
-In the `examples` directory, you can find code to generate the results yourself.
+In the [examples directory](./examples/), you can find code to generate the results yourself.
 
 
 ### cmr10
