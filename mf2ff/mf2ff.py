@@ -1234,10 +1234,11 @@ class Mf2ff:
                     elif k == 5:
                         # font.os2_xheight not in FontForge docs
                         self.font.os2_xheight = round(params[j]*hppp)
-                    if self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-symbols' and 5 <= k <= 22:
-                        self.fontdimens['family2'][k] = round(params[j]*hppp)
-                    elif self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-extension' and 8 <= k <= 13:
-                        self.fontdimens['family3'][k] = round(params[j]*hppp)
+                    if self.input_options.input_encoding is not None:
+                        if self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-symbols' and 5 <= k <= 22:
+                            self.fontdimens['family2'][k] = round(params[j]*hppp)
+                        elif self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-extension' and 8 <= k <= 13:
+                            self.fontdimens['family3'][k] = round(params[j]*hppp)
 
             elif cmd_name == 'charlist':
                 base_glyph_code = int(self.cmd_body)
@@ -1576,12 +1577,12 @@ class Mf2ff:
         if self.input_options.set_top_accent:
             skewchar = self.input_options.skewchar
             if skewchar < 0:
-                if self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-italic':
-                    skewchar = 127
-                elif self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-symbols':
-                    skewchar = 48
-                else:
-                    skewchar = None
+                skewchar = None
+                if self.input_options.input_encoding is not None:
+                    if self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-italic':
+                        skewchar = 127
+                    elif self.input_options.input_encoding.lower().replace(' ', '-') == 'tex-math-symbols':
+                        skewchar = 48
             if skewchar is not None:
                 # extract all skewchar kerning pairs
                 skewchar_kerns = [
