@@ -3,7 +3,7 @@ import unittest
 from tests.mf2ff_test import Mf2ffTest
 
 
-class TestLigtable(Mf2ffTest):
+class TestExtensible(Mf2ffTest):
     @classmethod
     def set_up_class(cls):
         cls.run_mf_file('test_extensible/test_extensible')
