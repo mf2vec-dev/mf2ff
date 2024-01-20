@@ -1,0 +1,19 @@
+mode_setup;
+
+
+beginchar(48, 100, 100, 0);
+endchar;
+
+beginchar(49, 100, 100, 0);
+endchar;
+
+beginchar(50, 100, 100, 0);
+endchar;
+
+beginchar(51, 100, 100, 0);
+endchar;
+
+charlist 48: 49: 50: 51;
+
+
+end

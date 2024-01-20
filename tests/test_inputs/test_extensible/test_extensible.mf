@@ -1,0 +1,37 @@
+mode_setup;
+
+
+beginchar(48, 100, 100, 0);
+endchar;
+
+beginchar(49, 100, 100, 0);
+endchar;
+
+beginchar(50, 100, 100, 0);
+endchar;
+
+beginchar(51, 100, 100, 0);
+endchar;
+
+extensible 48: 49, 0, 50, 51;
+
+
+beginchar(65, 100, 100, 0);
+endchar;
+
+beginchar(66, 100, 100, 0);
+endchar;
+
+beginchar(67, 100, 100, 0);
+endchar;
+
+beginchar(68, 100, 100, 0);
+endchar;
+
+beginchar(69, 100, 100, 0);
+endchar;
+
+extensible 65: 66, 67, 68, 69;
+
+
+end
