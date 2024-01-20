@@ -14,8 +14,14 @@ This tutorial should provide an introduction to both ways. Afterwards, useful op
   - [Unicode support](#unicode-support)
   - [Specifying code point, Unicode value and glyph name](#specifying-code-point-unicode-value-and-glyph-name)
   - [Options](#options)
+    - [`ascent`](#ascent)
     - [`charcode-from-last-ASCII-hex-arg`](#charcode-from-last-ascii-hex-arg)
     - [`cull-at-shipout`](#cull-at-shipout)
+    - [`descent`](#descent)
+    - [`designsize`](#designsize)
+    - [`extrema`](#extrema)
+    - [`fix-contours`](#fix-contours)
+    - [`hint`](#hint)
     - [`input-encoding` \& `output-encoding`](#input-encoding--output-encoding)
     - [`input-encoding-options` \& `output-encoding-options`](#input-encoding-options--output-encoding-options)
     - [`input-file:`*N* and the `:`*N* syntax](#input-filen-and-the-n-syntax)
@@ -35,8 +41,8 @@ This tutorial should provide an introduction to both ways. Afterwards, useful op
     - [`use-ppi-factor`](#use-ppi-factor)
   - [Extensions](#extensions)
     - [Attachment points](#attachment-points)
-    - [Glyph extension](#glyph-extension)
     - [Font extension](#font-extension)
+    - [Glyph extension](#glyph-extension)
     - [Ligature extension](#ligature-extension)
     - [Ligtable switch](#ligtable-switch)
     - [General note on extensions](#general-note-on-extensions)
@@ -149,6 +155,19 @@ There are different types of options:
   These can be given a value of a specific type (e.g. numeric, string, file path or directory) using `-<option-name>=VALUE` or setting `mf2ff.options.<option_name> = VALUE`
 
 
+### `ascent`
+
+|||
+|-|-|
+| CLI | `-ascent=`*number* / `None` |
+| API | `mf2ff.options.ascent = ` *number* / `None` |
+| default | `None` |
+
+Specify the font's ascent. If `None`, ascent is determined from largest box hight.
+
+See also the `font_ascent` macro of the [Font Extension](#font-extension) to specify the ascent in a `.mf` file.
+
+
 ### `charcode-from-last-ASCII-hex-arg`
 
 |||
@@ -176,6 +195,67 @@ Example:\
 This option runs the cull command according to plain METAFONT's cullit macro before every shipout to remove remaining overlap. A similar operation is done by METAFONT during shipout [The METAFONTbook, pp. 220, 295].
 
 Note that cull commands that are part of the definition of a glyph may result in the `cull-at-shipout` option not making any further changes for some glyphs.
+
+
+### `descent`
+
+|||
+|-|-|
+| CLI | `-descent=`*number* / `None` |
+| API | `mf2ff.options.descent = ` *number* / `None` |
+| default | `None` |
+
+Specify the font's descent. If `None`, descent is determined from largest box depth.
+
+See also the `font_descent` macro of the [Font Extension](#font-extension) to specify the descent in a `.mf` file.
+
+
+### `designsize`
+
+|||
+|-|-|
+| CLI | `-designsize=`*number* / `None` |
+| API | `mf2ff.options.designsize = ` *number* / `None` |
+| default | `None` |
+
+Specify the font's designsize in printer's points (pica points). This value is *not* used in calculations related to ascent/descent/UPM of the font.
+
+
+### `extrema`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`extrema` |
+| API | `mf2ff.options.extrema = True` / `False` |
+| default | `False` |
+
+Add extrema to all contours of the font.
+
+See also the `glyph_add_extrema` macro of the [Glyph Extension](#glyph-extension) as well as the `font_add_extrema` macro of the [Font Extension](#font-extension) to specify adding extrema in a `.mf` file.
+
+
+### `fix-contours`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`fix-contours` |
+| API | `mf2ff.options.fix_contours = True` / `False` |
+| default | `False` |
+
+Closes open contours if first and last point have the same coordinates.
+
+
+### `hint`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`hint` |
+| API | `mf2ff.options.hint = True` / `False` |
+| default | `False` |
+
+Add automatic hints and instructions to all glyphs of the font.
+
+See also the `glyph_auto_hint` and the `glpyh_auto_instruct` macros of the [Glyph Extension](#glyph-extension) as well as the `font_auto_hint` and the `font_auto_instruct` macros of the [Font Extension](#font-extension) to enable automatic hints and/or instructions in a `.mf` file.
 
 
 ### `input-encoding` & `output-encoding`
@@ -476,43 +556,6 @@ If the name of one of the macros listed above is already used by the .mf file an
 Example: add `-extension-attachment-points-macro-prefix=customPrefix` to your options and use `customPrefix_mark_base("Top", w/2, h);`
 
 
-### Glyph extension
-The glyph extension provides several macros to control the code point, glyph references, hinting and OpenType single substitutions.
-
-|||
-|-|-|
-| CLI |`-`[`no-`]`extension-glyph` |
-| API | `mf2ff.options.extension_glyph = True` / `False` |
-| default | disabled |
-
-The following macros are available when this extension is active:
-- `glyph_name(g_name);` to specify the name of a glyph as a string, e.g. `"a.sc"`.
-- `glyph_unicode(g_unicode);` to specify the Unicode value of a glyph as an integer or a hexadecimal string.
-- `glyph_comment(g_comment);` to define a comment for the glyph as a string.
-- `glyph_top_accent(g_top_accent);` to define the glyph's math top accent attachment point horizontal position as a number.
-- `glyph_build;` to build the glyph from references to other glyphs, e.g. ligatures, composite glyphs or accented glyphs.
-- `glyph_add_reference(g_name, g_transform)` to add a reference to another character, e.g. add a base glyph and a diacritic mark with custom positioning (e.g. `g_transform = identity shifted (w/2, 0);` with plain METAFONT).
-- `glyph_add_extrema;` to automatically add extremes to the glyph's contours. This is recommended for automatic hinting (see below).
-- `glyph_add_inflections;` to automatically add inflection points to the glyph's contours.
-- `glyph_auto_hint;` to automatically add PostScript hints to the glyph.
-- `glyph_auto_instruct;` to automatically add TrueType instructions to the glyph.
-- `glyph_add_horizontal_hint(y_start, y_end);` to add a custom PostScript horizontal (stem) hint to the glyph.
-- `glyph_add_vertical_hint(x_start, x_end);` to add a custom PostScript vertical (stem) hint to the glyph.
-- `glyph_add_diagonal_hint(p, q, d);` to add a custom diagonal (stem) hint to the glyph as three pairs representing two points `p`, `q` and a direction `d`, e.g. to improve automatic TrueType instructions.\
-  The direction `d` can be omitted. In this case `d` is computed from `p` and `q`.
-- `glyph_add_math_kerning_top_right(x, y);`, `glyph_add_math_kerning_top_left(x, y);`, `glyph_add_math_kerning_bottom_right(x, y);` or `glyph_add_math_kerning_bottom_left(x, y);` to add math kerning points to the glyph.
-- `glyph_replaced_by(g_name, opentype_feature);` to associate the specified glyph as a replacement glyph with an OpenType single substitution feature to the current glyph.
-- `glyph_replacement_of(g_name, opentype_feature);` to associate the current glyph as a replacement glyph with an OpenType single substitution feature to the specified glyph.
-
-Similar to the other extensions, the prefix of the glyph extension macros can be changed:
-
-|||
-|-|-|
-| CLI |`-extension-glyph-macro-prefix=`*string* |
-| API | `mf2ff.options.extension_glyph_macro_prefix = ` *string* |
-| default | `glyph` |
-
-
 ### Font extension
 The font extension provides several macros to control the font name, metrics, OpenType `math` table constants, PostScript private directory, etc.
 
@@ -531,17 +574,17 @@ The following macros are available when this extension is active:
 - `font_copyright(f_copyright);` to define a copyright notice for the font as a string.
 - `font_comment(f_comment);` to define a comment for the font as a string.
 - `font_fontlog(f_fontlog);` to define a fontlog for the font as a string.
-- `font_ascent(f_ascent);` to define the font's ascent as a number, e.g. `font_ascent(8pt#);`.
-- `font_descent(f_descent);` to define the font's descent as a number, e.g. `font_ascent(2pt#);`.
+- `font_ascent(f_ascent);` to define the font's ascent as a number, e.g. `font_ascent(8pt#);`. See also the [ascent](#ascent) option.
+- `font_descent(f_descent);` to define the font's descent as a number, e.g. `font_ascent(2pt#);`. See also the [descent](#descent) option.
 - `font_cap_height(f_cap_height);` to define the OS/2 cap-height of the font as a number.
 - `font_underline_position(f_underline_position);` to define the position of the font's underline as a number.
 - `font_underline_width(f_underline_width);` to define the width of the font's underline as a number.
-- `font_add_extrema;` to automatically add extremes to the contours of all glyph. This is recommended for automatic hinting (see below).
+- `font_add_extrema;` to automatically add extremes to the contours of all glyph. This is recommended for automatic hinting (see below). See also the [extrema](#extrema) option.
 - `font_add_inflections;` to automatically add inflection points to the contours of all glyphs.
-- `font_auto_hint;` to automatically add PostScript hints to all glyph.
-- `font_auto_instruct;` to automatically add TrueType instructions to all glyph.
-- `font_math_constant(name, value)` to define an OpenType `math` table constant, name as a string, value as a number. An overview of the OpenType `math` constants and the default values that are used when the `set-math-defaults` option is enabled can be found [here](math.md).
-- `font_postscript_private_dictionary(name, value)` to define an entry in the PostScript private directory, name as string, value depending on entry (arrays as a sting in PostScript format).
+- `font_auto_hint;` to automatically add PostScript hints to all glyph. See also the [hint](#hint) option.
+- `font_auto_instruct;` to automatically add TrueType instructions to all glyph. See also the [hint](#hint) option.
+- `font_math_constant(name, value)` to define an OpenType `math` table constant, `name` as a string, `value` as a number. An overview of the OpenType `math` constants and the default values that are used when the `set-math-defaults` option is enabled can be found [here](math.md).
+- `font_postscript_private_dictionary(name, value)` to define an entry in the PostScript private directory, `name` as string, `value` depending on entry (arrays as a sting in PostScript format).
 
 Similar to the other extensions, the prefix of the glyph extension macros can be changed:
 
@@ -550,6 +593,43 @@ Similar to the other extensions, the prefix of the glyph extension macros can be
 | CLI |`-extension-font-macro-prefix=`*string* |
 | API | `mf2ff.options.extension_font_macro_prefix = ` *string* |
 | default | `font` |
+
+
+### Glyph extension
+The glyph extension provides several macros to control the code point, glyph references, hinting and OpenType single substitutions.
+
+|||
+|-|-|
+| CLI |`-`[`no-`]`extension-glyph` |
+| API | `mf2ff.options.extension_glyph = True` / `False` |
+| default | disabled |
+
+The following macros are available when this extension is active:
+- `glyph_name(g_name);` to specify the name of a glyph as a string, e.g. `"a.sc"`.
+- `glyph_unicode(g_unicode);` to specify the Unicode value of a glyph as an integer or a hexadecimal string.
+- `glyph_comment(g_comment);` to define a comment for the glyph as a string.
+- `glyph_top_accent(g_top_accent);` to define the glyph's math top accent attachment point horizontal position as a number.
+- `glyph_build;` to build the glyph from references to other glyphs, e.g. ligatures, composite glyphs or accented glyphs.
+- `glyph_add_reference(g_name, g_transform)` to add a reference to another character, e.g. add a base glyph and a diacritic mark with custom positioning (e.g. `g_transform = identity shifted (w/2, 0);` with plain METAFONT).
+- `glyph_add_extrema;` to automatically add extremes to the glyph's contours. This is recommended for automatic hinting (see below). See also the [extrema](#extrema) option.
+- `glyph_add_inflections;` to automatically add inflection points to the glyph's contours.
+- `glyph_auto_hint;` to automatically add PostScript hints to the glyph. See also the [hint](#hint) option.
+- `glyph_auto_instruct;` to automatically add TrueType instructions to the glyph. See also the [hint](#hint) option.
+- `glyph_add_horizontal_hint(y_start, y_end);` to add a custom PostScript horizontal (stem) hint to the glyph.
+- `glyph_add_vertical_hint(x_start, x_end);` to add a custom PostScript vertical (stem) hint to the glyph.
+- `glyph_add_diagonal_hint(p, q, d);` to add a custom diagonal (stem) hint to the glyph as three pairs representing two points `p`, `q` and a direction `d`, e.g. to improve automatic TrueType instructions.\
+  The direction `d` can be omitted. In this case `d` is computed from `p` and `q`.
+- `glyph_add_math_kerning_top_right(x, y);`, `glyph_add_math_kerning_top_left(x, y);`, `glyph_add_math_kerning_bottom_right(x, y);` or `glyph_add_math_kerning_bottom_left(x, y);` to add math kerning points to the glyph.
+- `glyph_replaced_by(g_name, opentype_feature);` to associate the specified glyph as a replacement glyph with an OpenType single substitution feature to the current glyph.
+- `glyph_replacement_of(g_name, opentype_feature);` to associate the current glyph as a replacement glyph with an OpenType single substitution feature to the specified glyph.
+
+Similar to the other extensions, the prefix of the glyph extension macros can be changed:
+
+|||
+|-|-|
+| CLI |`-extension-glyph-macro-prefix=`*string* |
+| API | `mf2ff.options.extension_glyph_macro_prefix = ` *string* |
+| default | `glyph` |
 
 
 ### Ligature extension
@@ -562,7 +642,7 @@ Similar to the other extensions, the prefix of the glyph extension macros can be
 
 If enabled, the following macros can be used in `mf2ff`'s input:
 - `ligature_components(c1,c2,...)` to define ligature components of the glyph shipped out next, components `c1`, `c2`, ... can be code points or glyph names
-- `ligature_carets(xc1,cx2,...)` to set caret positions (text insertion positions) `xc1`, `cx2`, ... between components of the glyph shipped out next. The number of caret positions should be 1 less than the number of ligature components.
+- `ligature_carets(xc1,xc2,...)` to set caret positions (text insertion positions) `xc1`, `xc2`, ... between components of the glyph shipped out next. The number of caret positions should be 1 less than the number of ligature components.
 
 Similar to the other extensions, the prefix of the ligature macros can be changed:
 
