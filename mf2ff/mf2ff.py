@@ -134,7 +134,7 @@ class Mf2ff:
             self.ppi_factor = 1
             self.define_mf_first_line()
 
-            pre_run_required = self.input_options.upm is not None and (self.input_options.ascent is None or self.input_options.descent is None)
+            pre_run_required = self.input_options.upm is not None and (self.options.ascent is None or self.options.descent is None)
             if pre_run_required:
                 self.run_mf(is_pre_run=True)
                 self.extract_cmds_from_log()
@@ -325,7 +325,7 @@ class Mf2ff:
             self.cmd_body = cmd[2]
 
             if (cmd_name == 'shipout'
-                and (self.input_options.ascent is None or self.input_options.descent is None)
+                and (self.options.ascent is None or self.options.descent is None)
                 and (not ascent_specified or not descent_specified)
             ):
                 shipout = self.shipout_pattern.search(self.cmd_body)
@@ -333,13 +333,13 @@ class Mf2ff:
                 charht = round(float(shipout.group(5))*hppp)
                 chardp = round(float(shipout.group(6))*hppp)
                 if (
-                    self.input_options.ascent is None
+                    self.options.ascent is None
                     and not ascent_specified
                     and charht > pre_run_results['ascent']
                 ):
                     pre_run_results['ascent'] = charht
                 if (
-                    self.input_options.descent is None
+                    self.options.descent is None
                     and not descent_specified
                     and chardp > pre_run_results['descent']
                 ):
@@ -1134,9 +1134,9 @@ class Mf2ff:
                 glyph_unicode = None
 
                 if not skip_glyph:
-                    if self.input_options.ascent is None and charht > self.font.ascent:
+                    if self.options.ascent is None and charht > self.font.ascent:
                         self.font.ascent = charht
-                    if self.input_options.descent is None and chardp > self.font.descent:
+                    if self.options.descent is None and chardp > self.font.descent:
                         self.font.descent = chardp
 
                 i += 1
