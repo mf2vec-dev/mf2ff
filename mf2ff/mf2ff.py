@@ -346,13 +346,15 @@ class Mf2ff:
                     pre_run_results['descent'] = chardp
             elif cmd_name[:5] == 'font_':
                 font_cmd = cmd_name[5:]
-                hppp, val = self.cmd_body.split('>> ')
-                if font_cmd == 'ascent':
-                    pre_run_results['ascent'] = round(float(val)*float(hppp))
-                    ascent_specified = True
-                elif font_cmd == 'descent':
-                    pre_run_results['descent'] = round(float(val)*float(hppp))
-                    descent_specified = True
+                if font_cmd in ['ascent', 'descent']:
+                    hppp, val = self.cmd_body.split('>> ')
+                    val = round(float(val)*float(hppp))
+                    if font_cmd == 'ascent':
+                        pre_run_results['ascent'] = val
+                        ascent_specified = True
+                    elif font_cmd == 'descent':
+                        pre_run_results['descent'] = val
+                        descent_specified = True
             # else command not important in pre run
             i += 1
         return pre_run_results
@@ -1332,23 +1334,21 @@ class Mf2ff:
                         self.font.comment = val
                     elif font_cmd == 'fontlog':
                         self.font.fontlog = val
-                elif font_cmd == 'ascent':
+                elif font_cmd in ['ascent', 'descent', 'cap_height', 'underline_position', 'underline_width']:
                     hppp, val = self.cmd_body.split('>> ')
-                    self.font.ascent = round(float(val)*float(hppp))
-                    ascent_specified = True
-                elif font_cmd == 'descent':
-                    hppp, val = self.cmd_body.split('>> ')
-                    self.font.descent = round(float(val)*float(hppp))
-                    descent_specified = True
-                elif font_cmd == 'cap_height':
-                    hppp, val = self.cmd_body.split('>> ')
-                    self.font.os2_capheight = round(float(val)*float(hppp))
-                elif font_cmd == 'underline_position':
-                    hppp, val = self.cmd_body.split('>> ')
-                    self.font.upos = round(float(val)*float(hppp))
-                elif font_cmd == 'underline_width':
-                    hppp, val = self.cmd_body.split('>> ')
-                    self.font.uwidth = round(float(val)*float(hppp))
+                    val = round(float(val)*float(hppp))
+                    if font_cmd == 'ascent':
+                        self.font.ascent = val
+                        ascent_specified = True
+                    elif font_cmd == 'descent':
+                        self.font.descent = val
+                        descent_specified = True
+                    elif font_cmd == 'cap_height':
+                        self.font.os2_capheight = val
+                    elif font_cmd == 'underline_position':
+                        self.font.upos = val
+                    elif font_cmd == 'underline_width':
+                        self.font.uwidth = val
                 elif font_cmd == 'add_extrema':
                     self.font_add_extrema = True
                 elif font_cmd == 'add_inflections':
