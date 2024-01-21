@@ -346,11 +346,12 @@ class Mf2ff:
                     pre_run_results['descent'] = chardp
             elif cmd_name[:5] == 'font_':
                 font_cmd = cmd_name[5:]
+                hppp, val = self.cmd_body.split('>> ')
                 if font_cmd == 'ascent':
-                    pre_run_results['ascent'] = round(float(self.cmd_body))
+                    pre_run_results['ascent'] = round(float(val)*float(hppp))
                     ascent_specified = True
                 elif font_cmd == 'descent':
-                    pre_run_results['descent'] = round(float(self.cmd_body))
+                    pre_run_results['descent'] = round(float(val)*float(hppp))
                     descent_specified = True
             # else command not important in pre run
             i += 1
@@ -387,6 +388,9 @@ class Mf2ff:
             ligtable_op_type: ligtable_ot_features[0]
             for ligtable_op_type, ligtable_ot_features in self.supported_ligtable_ot_features.items()
         }
+
+        ascent_specified = False
+        descent_specified = False
 
         glyph_unicode = None
         self.glyph_replacements = [] # for all glyphs
@@ -1134,9 +1138,9 @@ class Mf2ff:
                 glyph_unicode = None
 
                 if not skip_glyph:
-                    if self.options.ascent is None and charht > self.font.ascent:
+                    if self.options.ascent is None and not ascent_specified and charht > self.font.ascent:
                         self.font.ascent = charht
-                    if self.options.descent is None and chardp > self.font.descent:
+                    if self.options.descent is None and not descent_specified and chardp > self.font.descent:
                         self.font.descent = chardp
 
                 i += 1
@@ -1329,15 +1333,22 @@ class Mf2ff:
                     elif font_cmd == 'fontlog':
                         self.font.fontlog = val
                 elif font_cmd == 'ascent':
-                    self.font.ascent = round(float(self.cmd_body))
+                    hppp, val = self.cmd_body.split('>> ')
+                    self.font.ascent = round(float(val)*float(hppp))
+                    ascent_specified = True
                 elif font_cmd == 'descent':
-                    self.font.descent = round(float(self.cmd_body))
+                    hppp, val = self.cmd_body.split('>> ')
+                    self.font.descent = round(float(val)*float(hppp))
+                    descent_specified = True
                 elif font_cmd == 'cap_height':
-                    self.font.os2_capheight = round(float(self.cmd_body))
+                    hppp, val = self.cmd_body.split('>> ')
+                    self.font.os2_capheight = round(float(val)*float(hppp))
                 elif font_cmd == 'underline_position':
-                    self.font.upos = round(float(self.cmd_body))
+                    hppp, val = self.cmd_body.split('>> ')
+                    self.font.upos = round(float(val)*float(hppp))
                 elif font_cmd == 'underline_width':
-                    self.font.uwidth = round(float(self.cmd_body))
+                    hppp, val = self.cmd_body.split('>> ')
+                    self.font.uwidth = round(float(val)*float(hppp))
                 elif font_cmd == 'add_extrema':
                     self.font_add_extrema = True
                 elif font_cmd == 'add_inflections':
@@ -2214,6 +2225,16 @@ class Mf2ff:
                         for font_cmd in [
                             'name', 'family_name', 'full_name',
                             'weight', 'version', 'copyright', 'comment', 'fontlog',
+                        ]
+                    )
+                    +''.join(
+                        'def ' + self.input_options.extension_font_macro_prefix + '_' + font_cmd + ' expr e='
+                            +m_+'font_'+ font_cmd +'";'
+                            'show hppp;'
+                            'show e;'
+                            +m__+
+                        'enddef;'
+                        for font_cmd in [
                             'ascent', 'descent', 'cap_height',
                             'underline_position', 'underline_width'
                         ]
