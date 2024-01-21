@@ -1241,7 +1241,7 @@ class Mf2ff:
                             self.fontdimens['family3'][k] = round(params[j]*hppp)
 
             elif cmd_name == 'charlist':
-                base_glyph_code = int(self.cmd_body)
+                base_glyph = self.cmd_body[1:-1] if self.cmd_body[0] == '"' else int(self.cmd_body)
                 # TODO big accents: horizontal variants
                 charlist = []
                 j = i+1
@@ -1249,40 +1249,29 @@ class Mf2ff:
                     cmd = self.cmds[j]
                     cmd_name = cmd[0]
                     if cmd_name == ":":
-                        charlist.append(int(cmd[2]))
+                        charlist.append(cmd[2][1:-1] if cmd[2][0] == '"' else int(cmd[2]))
                     else:
                         break
                     j += 1
                 i = j-1
-                charlist_list.append((base_glyph_code, charlist))
+                charlist_list.append((base_glyph, charlist))
                 # save last variant in case it is extensible
-                base_glyphs_of_variants[charlist[-1]] = base_glyph_code
+                base_glyphs_of_variants[charlist[-1]] = base_glyph
 
             elif cmd_name == 'extensible':
-                label_glyph_code = int(self.cmd_body)
-                # TODO: extensible before charlist?
-                if label_glyph_code in base_glyphs_of_variants: # base is only known in MF when label of extensible is part of a charlist
-                    base_glyph_code = base_glyphs_of_variants[label_glyph_code]
-
-                    # remove label glyph from charlist
-                    label_glyph_charlist_index = [i for i, cl in enumerate(charlist_list) if cl[0]==base_glyph_code][0]
-                    charlist = charlist_list[label_glyph_charlist_index][1]
-                    assert label_glyph_code == charlist[-1]
-                    charlist_list[label_glyph_charlist_index] = (base_glyph_code, charlist[:-1])
-                else:
-                    base_glyph_code = label_glyph_code
-                cmd_body_part_codes = [int(p) for p in self.cmds[i+1][2].split('>> ')]
+                label_glyph = self.cmd_body[1:-1] if self.cmd_body[0] == '"' else int(self.cmd_body)
+                cmd_body_part = [p[1:-1] if p[0] == '"' else int(p) for p in self.cmds[i+1][2].split('>> ')]
                 i += 1
                 vertical_components = []
-                if cmd_body_part_codes[2] != 0: # bottom (only non-zero)
-                    vertical_components.append([cmd_body_part_codes[2], 0, 0, 0, 'texdepth'])
-                vertical_components.append([cmd_body_part_codes[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater
-                if cmd_body_part_codes[1] != 0: # middle (only non-zero)
-                    vertical_components.append([cmd_body_part_codes[1], 0, 0, 0, 'texdepth'])
-                    vertical_components.append([cmd_body_part_codes[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater (only if middle)
-                if cmd_body_part_codes[0] != 0: # top (only non-zero)
-                    vertical_components.append([cmd_body_part_codes[0], 0, 0, 0, 'texdepth'])
-                extensible_list.append((base_glyph_code, tuple(vertical_components)))
+                if cmd_body_part[2] != 0: # bottom (only non-zero)
+                    vertical_components.append([cmd_body_part[2], 0, 0, 0, 'texdepth'])
+                vertical_components.append([cmd_body_part[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater
+                if cmd_body_part[1] != 0: # middle (only non-zero)
+                    vertical_components.append([cmd_body_part[1], 0, 0, 0, 'texdepth'])
+                    vertical_components.append([cmd_body_part[3], 1, 'texdepth', 'texdepth', 'texdepth']) # extender / repeater (only if middle)
+                if cmd_body_part[0] != 0: # top (only non-zero)
+                    vertical_components.append([cmd_body_part[0], 0, 0, 0, 'texdepth'])
+                extensible_list.append((label_glyph, tuple(vertical_components)))
 
             elif cmd_name == 'end':
                 design_size = float(self.cmd_body)
@@ -1698,18 +1687,34 @@ class Mf2ff:
                 subtable_name += f'_{self.input_options.index}'
             self.font.addKerningClass(lookup_type, subtable_name, leftClasses, rightClasses, offset_flattened)
 
-        for base_glyph_code, charlist in charlist_list:
+        for base_glyph, charlist in charlist_list:
             charlist = [self.to_glyph_name(c) for c in charlist]
             vertical_variants_str = ' '.join(charlist)
-            base_glyph_name = self.to_glyph_name(base_glyph_code)
+            base_glyph_name = self.to_glyph_name(base_glyph)
             base_glyph = self.font[base_glyph_name]
             base_glyph.verticalVariants = vertical_variants_str
 
-        for base_glyph_code, vertical_components in extensible_list:
-            base_glyph_name = self.to_glyph_name(base_glyph_code)
+        base_glyph_names_of_variants = {self.to_glyph_name(v): self.to_glyph_name(bg) for v, bg in base_glyphs_of_variants.items()}
+        for label_glyph, vertical_components in extensible_list:
+            # The label glyph can be the last glyph in a character list. In
+            # this case, it defines the expandable of the base glyph of the
+            # character list.
+            
+            label_glyph_name = self.to_glyph_name(label_glyph)
+            
+            if label_glyph_name in base_glyph_names_of_variants: # base is only known in MF when label of extensible is part of a charlist
+                base_glyph_name = base_glyph_names_of_variants[label_glyph_name]
+                # remove label glyph from charlist
+                label_glyph_charlist_index = [i for i, cl in enumerate(charlist_list) if self.to_glyph_name(cl[0])==base_glyph_name][0]
+                charlist = charlist_list[label_glyph_charlist_index][1]
+                assert label_glyph_name == self.to_glyph_name(charlist[-1])
+                charlist_list[label_glyph_charlist_index] = (charlist_list[label_glyph_charlist_index][0], charlist[:-1])
+            else:
+                base_glyph_name = label_glyph_name
             base_glyph = self.font[base_glyph_name]
+            vertical_components = [[self.to_glyph_name(vc[0])] + vc[1:] for vc in vertical_components]
             base_glyph.verticalComponents = (
-                tuple([self.to_glyph_name(vc[0]), vc[1]] + [self.font[vc[0]].texdepth if p == 'texdepth' else p for p in vc[2:]])
+                tuple([vc[0], vc[1]] + [self.font[vc[0]].texdepth if p == 'texdepth' else p for p in vc[2:]])
                 for vc in vertical_components
             )
 
@@ -2397,17 +2402,17 @@ class Mf2ff:
     def to_glyph_name(self, g):
         '''converts character or code point g to glyph name
 
-        If the ligtable_generalized_code option is enabled, this method can also process hexadecimal (e.g. 0x0000), Unicode (e.g. U+0000) or glyph name input.
+        If the font_metric_command_generalized_code option is enabled, this method can also process hexadecimal (e.g. 0x0000), Unicode (e.g. U+0000) or glyph name input.
 
         If g is not a hex or Unicode string and is unknown as a glyph name, use first character of g and print a warning.
 
         Args:
-            g (str or int): character or code point, (Unicode, hexadecimal or glyph name if ligtable_generalized_code option is enabled)
+            g (str or int): character or code point, (Unicode, hexadecimal or glyph name if font_metric_command_generalized_code option is enabled)
 
         Returns:
             string: FontForge glyph name
         '''
-        if self.input_options.ligtable_generalized_code:
+        if self.input_options.font_metric_command_generalized_code:
             if isinstance(g, str):
                 g_str = g
                 del g

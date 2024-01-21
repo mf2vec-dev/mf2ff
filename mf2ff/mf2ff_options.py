@@ -42,6 +42,7 @@ class Mf2ffOptions:
             'family_name': {'type': str, 'default': ''},
             'first_line': {'type': str, 'default': ''},
             'fix_contours': {'type': bool, 'default': False},
+            'font_metric_command_generalized_code': {'type': bool, 'default': False},
             'font_version': {'type': str, 'default': '001.000'},
             'fontlog': {'type': str, 'default': ''},
             'fontname': {'type': str, 'default': ''},
@@ -56,7 +57,6 @@ class Mf2ffOptions:
             'italicangle': {'type': float, 'default': 0.0},
             'jobname': {'type': str, 'default': ''},
             'kerning_classes': {'type': bool, 'default': False},
-            'ligtable_generalized_code': {'type': bool, 'default': False},
             'mf_options': {'type': list, 'default': ['-interaction=batchmode']},
             'only_code_points': {'type': list | None, 'default': None},
             'ot_sub_feature': {'type': str | None, 'default': None},
@@ -273,8 +273,8 @@ class Mf2ffOptions:
         ]
         mf2ff_options_negatable = [
             'charcode-from-last-ASCII-hex-arg', 'cull-at-shipout', 'debug',
-            'extrema', 'fix-contours','hint', 'is_type', 'kerning-classes',
-            'ligtable-generalized-code', 'otf', 'quadratic', 'quiet',
+            'extrema', 'fix-contours', 'font-metric-command-generalized-code',
+            'hint', 'is_type', 'kerning-classes', 'otf', 'quadratic', 'quiet',
             'remove-artifacts', 'remove-collinear', 'set-italic-correction',
             'set-math-defaults', 'set-top-accent', 'sfd',
             'space-from-fontdimen', 'stroke-simplify', 'time', 'ttf',
@@ -577,9 +577,12 @@ class Mf2ffOptions:
             '  -familyname=STR   set font\'s family name\n'
             '  -[no-]fix-contours\n'
             '                    disable/enable contour fixing in FontForge (default: disabled)\n'
+            '  -[no-]font-metric-command-generalized-code\n'
+            '                    disable/enable support for hexadecimal, unicode and glyph name values for <code> in ligtable, charlist and extensible commands\n'
+            '                      (default: disabled)\n'
+            '  -font-version=STR set font\'s version\n'
             '  -fontlog=STR      set font\'s log\n'
             '  -fontname=STR     set font\'s name\n'
-            '  -font-version=STR set font\'s version\n'
             '  -fullname=STR     set font\'s full name\n'
             '  -glyph-name-suffix=STR\n'
             '                    set glyph name suffix for all glyphs\n'
@@ -599,9 +602,6 @@ class Mf2ffOptions:
             '  -[no-]kerning-classes\n'
             '                    disable/enable kerning classes instead of kerning pairs\n'
             '                      (default: disabled = kerning pairs)\n'
-            '  -[no-]ligtable-generalized-code\n'
-            '                    disable/enable support for hexadecimal, unicode and glyph name values for <code> in ligtable commands\n'
-            '                      (default: disabled)\n'
             '  -only-code-points=RANGES\n'
             '                    specify ranges (inclusive) of code points to process, other code points are ignored\n'
             '                      e.g. 0x41-0x5A,0x61-0x7A for latin letters only\n'

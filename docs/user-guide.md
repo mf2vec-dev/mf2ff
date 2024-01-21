@@ -21,12 +21,12 @@ This tutorial should provide an introduction to both ways. Afterwards, useful op
     - [`designsize`](#designsize)
     - [`extrema`](#extrema)
     - [`fix-contours`](#fix-contours)
+    - [`font-metric-command-generalized-code`](#font-metric-command-generalized-code)
     - [`hint`](#hint)
     - [`input-encoding` \& `output-encoding`](#input-encoding--output-encoding)
     - [`input-encoding-options` \& `output-encoding-options`](#input-encoding-options--output-encoding-options)
     - [`input-file:`*N* and the `:`*N* syntax](#input-filen-and-the-n-syntax)
     - [`kerning-classes`](#kerning-classes)
-    - [`ligtable-generalized-code`](#ligtable-generalized-code)
     - [`only-code-points` \& `ignore-code-points`](#only-code-points--ignore-code-points)
     - [`ot-sub-feature` \& `glyph-name-suffix`](#ot-sub-feature--glyph-name-suffix)
     - [`quadratic`](#quadratic)
@@ -245,6 +245,17 @@ See also the `glyph_add_extrema` macro of the [Glyph Extension](#glyph-extension
 Closes open contours if first and last point have the same coordinates.
 
 
+### `font-metric-command-generalized-code`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`font-metric-command-generalized-code` |
+| API | `mf2ff.options.font_metric_command_generalized_code = True` / `False` |
+| default | disabled |
+
+This option enables or disables support for hexadecimal strings (e.g. `"0x0000"`), Unicode strings (e.g. `"U+0000"`) and glyph names in `ligtable`, `charlist` and `extensible` commands, instead of only accepting numeric values and strings of length 1.
+
+
 ### `hint`
 
 |||
@@ -336,17 +347,6 @@ enddef;
 group_kerning("F", "V", "W", "Y")(-4/5pt#)("c", "e", "o", "q");
 ```
 This should expand to a ligtable command which kerns all combinations of the first list and the second list (e.g. "Fc", "Fo", "We", etc.) with the offset defined in the middle. METAFONT will create 16 kerning pairs from this example. If you run `mf2ff` on input with such this example, it will create the classes based on these kerning pairs and builds up a kerning matrix. If there are other ligtable or group_kerning commands, `mf2ff` will split up or combine the classes according to the kerning specifications.
-
-
-### `ligtable-generalized-code`
-
-|||
-|-|-|
-| CLI | `-`[`no-`]`ligtable-generalized-code` |
-| API | `mf2ff.options.ligtable_generalized_code = True` / `False` |
-| default | disabled |
-
-This option enables or disables support for hexadecimal strings (e.g. "0x0000"), Unicode strings (e.g. "U+0000") and glyph names in `ligtable` commands, instead of only accepting numeric values and strings of length 1.
 
 
 ### `only-code-points` & `ignore-code-points`

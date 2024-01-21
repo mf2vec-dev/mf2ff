@@ -7,11 +7,11 @@ beginchar(hex"0100", 100, 100, 0);
 endchar;
 
 beginchar(-1, 100, 100, 0);
-glyph_unicode("U+0200)
+glyph_unicode("U+0200");
 endchar;
 
 beginchar(-1, 100, 100, 0);
-glyph_name("a.sc")
+glyph_name("a.sc");
 endchar;
 
 ligtable "a": "0x0100" kern -10;
@@ -19,5 +19,81 @@ ligtable "a": "U+0200" kern -20;
 ligtable "a": "a.sc" kern -30;
 ligtable "0x0100": "U+0200" kern -40;
 ligtable "U+0200": "a.sc" =: "0x0100";
+
+charlist "a": "0x0100": "U+0200": "a.sc";
+
+extensible "a": "0x0100", 0, "U+0200", "a.sc";
+
+
+beginchar(-1, 100, 100, 0);
+glyph_name("b.sc");
+endchar;
+
+beginchar(-1, 100, 100, 0);
+glyph_name("c.sc");
+endchar;
+
+beginchar(-1, 100, 100, 0);
+glyph_name("d.sc");
+endchar;
+
+beginchar(-1, 100, 100, 0);
+glyph_name("e.sc");
+endchar;
+
+beginchar(-1, 100, 100, 0);
+glyph_name("f.sc");
+endchar;
+
+beginchar(-1, 100, 100, 0);
+glyph_name("g.sc");
+endchar;
+
+charlist "b.sc": "c.sc": "d.sc";
+extensible "d.sc": "e.sc", 0, "f.sc", "g.sc";
+
+
+beginchar("n", 100, 100, 0);
+endchar;
+
+beginchar("o", 100, 100, 0);
+endchar;
+
+beginchar("p", 100, 100, 0);
+endchar;
+
+beginchar("q", 100, 100, 0);
+endchar;
+
+beginchar("r", 100, 100, 0);
+endchar;
+
+beginchar("s", 100, 100, 0);
+endchar;
+
+charlist "n": "o": "p";
+extensible "U+0070": "U+0071", 0, "U+0072", "U+0073";
+
+
+beginchar("t", 100, 100, 0);
+endchar;
+
+beginchar("u", 100, 100, 0);
+endchar;
+
+beginchar("v", 100, 100, 0);
+endchar;
+
+beginchar("w", 100, 100, 0);
+endchar;
+
+beginchar("x", 100, 100, 0);
+endchar;
+
+beginchar("y", 100, 100, 0);
+endchar;
+
+charlist "U+0074": "U+0075": "U+0076";
+extensible "v": "w", 0, "x", "y";
 
 end
