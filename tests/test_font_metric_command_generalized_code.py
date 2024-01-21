@@ -6,7 +6,7 @@ from tests.mf2ff_test import Mf2ffTest
 class TestLigtableGeneralizedCode(Mf2ffTest):
     @classmethod
     def set_up_class(cls):
-        cls.run_mf_file('test_ligtable_generalized_code/test_ligtable_generalized_code', debug=True, options={
+        cls.run_mf_file('test_font_metric_command_generalized_code/test_font_metric_command_generalized_code', debug=True, options={
             'ligtable-generalized-code': True,
             'extension-glyph': True
         })
