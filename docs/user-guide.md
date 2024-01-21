@@ -586,6 +586,8 @@ The following macros are available when this extension is active:
 - `font_math_constant(name, value)` to define an OpenType `math` table constant, `name` as a string, `value` as a number. An overview of the OpenType `math` constants and the default values that are used when the `set-math-defaults` option is enabled can be found [here](math.md).
 - `font_postscript_private_dictionary(name, value)` to define an entry in the PostScript private directory, `name` as string, `value` depending on entry (arrays as a sting in PostScript format).
 
+Note that `font_ascent`, `font_descent`, `font_cap_height`, `font_underline_position` and `font_underline_width` depend on the `hppp` primitive. Make sure to use these macros after `hppp` has been defined. In plain METAFONT, this means putting these macros after `mode_setup`.
+
 Similar to the other extensions, the prefix of the glyph extension macros can be changed:
 
 |||
