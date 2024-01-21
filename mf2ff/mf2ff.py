@@ -220,7 +220,7 @@ class Mf2ff:
                 sys.exit(1)
             end_time_log = time()
             if not self.input_options.quiet:
-                print('Log file cleaned up')
+                print('Log file cleaned up:', log_path_str)
             if self.input_options.time:
                 print('  (took ' + '%.2f' % (end_time_log-start_time_log) + 's)')
 
@@ -1774,11 +1774,20 @@ class Mf2ff:
             self.font.autoHint()
             self.font.autoInstr()
         if self.options.sfd:
-            self.font.save(str(output_path) + '.sfd')
+            file_path = str(output_path) + '.sfd'
+            self.font.save(file_path)
+            if not self.input_options.quiet:
+                print('Saved:', file_path)
         if self.options.otf:
-            self.font.generate(str(output_path) + '.otf')
+            file_path = str(output_path) + '.otf'
+            self.font.generate(file_path)
+            if not self.input_options.quiet:
+                print('Generated:', file_path)
         if self.options.ttf:
-            self.font.generate(str(output_path) + '.ttf', flags='opentype')
+            file_path = str(output_path) + '.ttf'
+            self.font.generate(file_path, flags='opentype')
+            if not self.input_options.quiet:
+                print('Generated:', file_path)
 
 
     def check_scripts(self, scripts):
