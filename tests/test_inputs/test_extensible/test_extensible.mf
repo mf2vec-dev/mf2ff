@@ -34,4 +34,29 @@ endchar;
 extensible 65: 66, 67, 68, 69;
 
 
+beginchar(97, 100, 100, 0);
+endchar;
+
+beginchar(98, 100, 100, 0);
+endchar;
+
+beginchar(99, 100, 100, 0);
+endchar;
+
+beginchar(100, 100, 100, 0);
+endchar;
+
+beginchar(101, 100, 100, 0);
+endchar;
+
+beginchar(102, 100, 100, 0);
+endchar;
+
+beginchar(103, 100, 100, 0);
+endchar;
+
+charlist 97: 98: 99: 100;
+extensible 100: 101, 0, 102, 103;
+
+
 end

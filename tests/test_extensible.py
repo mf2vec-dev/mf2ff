@@ -30,5 +30,15 @@ class TestExtensible(Mf2ffTest):
             )
         )
 
+    def test_extensible_from_charlist(self):
+        self.assertEqual(
+            self.font["a"].verticalComponents,
+            (
+                ('f', 0, 0, 0, 0), # bottom
+                ('g', 1, 0, 0, 0), # repeat
+                ('e', 0, 0, 0, 0) # top
+            )
+        )
+
 if __name__ == '__main__':
     unittest.main()
