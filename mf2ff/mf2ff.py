@@ -1771,6 +1771,7 @@ class Mf2ff:
             self.font.selection.all()
             self.font.addExtrema()
         if self.options.hint:
+            self.font.selection.all()
             self.font.autoHint()
             self.font.autoInstr()
         if self.options.sfd:
