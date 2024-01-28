@@ -69,6 +69,7 @@ class Mf2ffOptions:
             'quiet': {'type': bool, 'default': False},
             'remove_artifacts': {'type': bool, 'default': False},
             'remove_collinear': {'type': bool, 'default': False},
+            'round': {'type': bool, 'default': False},
             'scripts': {'type': tuple, 'default': (
                 ('cyrl', ('dflt',)),
                 ('grek', ('dflt',)),
@@ -275,9 +276,9 @@ class Mf2ffOptions:
             'charcode-from-last-ASCII-hex-arg', 'cull-at-shipout', 'debug',
             'extrema', 'fix-contours', 'font-metric-command-generalized-code',
             'hint', 'is_type', 'kerning-classes', 'otf', 'quadratic', 'quiet',
-            'remove-artifacts', 'remove-collinear', 'set-italic-correction',
-            'set-math-defaults', 'set-top-accent', 'sfd',
-            'space-from-fontdimen', 'stroke-simplify', 'time', 'ttf',
+            'remove-artifacts', 'remove-collinear', 'round', 
+            'set-italic-correction', 'set-math-defaults', 'set-top-accent',
+            'sfd', 'space-from-fontdimen', 'stroke-simplify', 'time', 'ttf',
             'use-ppi-factor'
         ]
         mf2ff_options_values = [
@@ -620,6 +621,7 @@ class Mf2ffOptions:
             '                    disable/enable removing of artifacts (default: disabled)\n'
             '  -[no-]remove-collinear\n'
             '                    disable/enable removing of collinear points (default: disabled)\n'
+            '  -[no-]round       disable/enable rounding (default: disabled)\n'
             '  -scripts=TUPLE    set scripts for tables,\n'
             '                      e.g. ((\'latn\',(\'dflt\',)),)\n'
             '  -[no-]set-italic-correction\n'

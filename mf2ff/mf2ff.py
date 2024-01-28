@@ -73,6 +73,7 @@ class Mf2ff:
 
         self.font_add_extrema = False
         self.font_add_inflections = False
+        self.font_round = False
         self.font_auto_hint = False
         self.font_auto_instruct = False
 
@@ -223,13 +224,6 @@ class Mf2ff:
                 print('Log file cleaned up:', log_path_str)
             if self.input_options.time:
                 print('  (took ' + '%.2f' % (end_time_log-start_time_log) + 's)')
-
-        # rescale to match UPM
-        if self.options.upm is not None:
-            self.font.em = self.options.upm
-
-        if self.input_options.set_math_defaults:
-            self.set_default_math_constants()
 
         self.apply_font_options_and_save()
 
@@ -404,6 +398,7 @@ class Mf2ff:
             glyph_references = []
             glyph_add_extrema = False
             glyph_add_inflections = False
+            glyph_round = False
             glyph_auto_hint = False
             glyph_auto_instruct = False
             glyph_replacements = [] # for current glyph
@@ -1043,6 +1038,8 @@ class Mf2ff:
                             glyph.addExtrema()
                         if glyph_add_inflections:
                             glyph.addInflections()
+                        if glyph_round:
+                            glyph.round()
                         if glyph_auto_hint:
                             glyph.autoHint()
                         # do manual hints after autoHint since autoHint clears hints
@@ -1122,6 +1119,7 @@ class Mf2ff:
                     glyph_references = []
                     glyph_add_extrema = False
                     glyph_add_inflections = False
+                    glyph_round = False
                     glyph_auto_hint = False
                     glyph_auto_instruct = False
                     glyph_hints = []
@@ -1353,6 +1351,8 @@ class Mf2ff:
                     self.font_add_extrema = True
                 elif font_cmd == 'add_inflections':
                     self.font_add_inflections = True
+                elif font_cmd == 'round':
+                    self.font_round = True
                 elif font_cmd == 'auto_hint':
                     self.font_auto_hint = True
                 elif font_cmd == 'auto_instruct':
@@ -1453,6 +1453,8 @@ class Mf2ff:
                     glyph_add_extrema = True
                 elif glyph_cmd == 'add_inflections':
                     glyph_add_inflections = True
+                elif glyph_cmd == 'round':
+                    glyph_round = True
                 elif glyph_cmd == 'auto_hint':
                     glyph_auto_hint = True
                 elif glyph_cmd == 'auto_instruct':
@@ -1731,12 +1733,19 @@ class Mf2ff:
 
         if self.input_options.extension_font:
             if self.font_add_extrema:
+                self.font.selection.all()
                 self.font.addExtrema()
             if self.font_add_inflections:
+                self.font.selection.all()
                 self.font.addInflections()
+            if self.font_round:
+                self.font.selection.all()
+                self.font.round()
             if self.font_auto_hint:
+                self.font.selection.all()
                 self.font.autoHint()
             if self.font_auto_instruct:
+                self.font.selection.all()
                 self.font.autoInstr()
 
         if self.input_options.extension_glyph:
@@ -1760,20 +1769,34 @@ class Mf2ff:
     def apply_font_options_and_save(self):
         '''apply self.options to self.font and generate font file
         '''
+        # rescale to match UPM
+        if self.options.upm is not None:
+            self.font.em = self.options.upm
+
+        if self.options.set_math_defaults:
+            self.set_default_math_constants()
+
         if self.options.quadratic:
             for layer_name in self.font.layers:
                 self.font.layers[layer_name].is_quadratic = True
-        if self.options.output_encoding is not None:
-            self.reencode(self.options.output_encoding, self.options.output_encoding_options)
 
-        output_path = self.options.output_directory / self.options.jobname
         if self.options.extrema:
             self.font.selection.all()
             self.font.addExtrema()
+
+        if self.options.round:
+            self.font.selection.all()
+            self.font.round()
+
         if self.options.hint:
             self.font.selection.all()
             self.font.autoHint()
             self.font.autoInstr()
+
+        if self.options.output_encoding is not None:
+            self.reencode(self.options.output_encoding, self.options.output_encoding_options)
+
+        output_path = self.options.output_directory / self.options.jobname
         if self.options.sfd:
             file_path = str(output_path) + '.sfd'
             self.font.save(file_path)
@@ -2223,7 +2246,8 @@ class Mf2ff:
                         'enddef;'
                         for font_cmd in [
                             'add_extrema', 'add_inflections',
-                            'auto_hint', 'auto_instruct'
+                            'auto_hint', 'auto_instruct',
+                            'round'
                         ]
                     )
                     +''.join(
@@ -2271,7 +2295,8 @@ class Mf2ff:
                         for glyph_cmd in [
                             'build',
                             'add_extrema', 'add_inflections',
-                            'auto_hint', 'auto_instruct'
+                            'auto_hint', 'auto_instruct',
+                            'round'
                         ]
                     )
                     +''.join(

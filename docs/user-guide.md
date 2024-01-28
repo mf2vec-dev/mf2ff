@@ -29,6 +29,7 @@ This tutorial should provide an introduction to both ways. Afterwards, useful op
     - [`kerning-classes`](#kerning-classes)
     - [`only-code-points` \& `ignore-code-points`](#only-code-points--ignore-code-points)
     - [`ot-sub-feature` \& `glyph-name-suffix`](#ot-sub-feature--glyph-name-suffix)
+    - [`round`](#round)
     - [`quadratic`](#quadratic)
     - [`remove-artifacts`](#remove-artifacts)
     - [`remove-collinear`](#remove-collinear)
@@ -388,6 +389,17 @@ The glyphs have no Unicode value and the glyph name is appended with the feature
 | default | `None` |
 
 
+### `round`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`round` |
+| API | `mf2ff.options.round = True` / `False` |
+| default | disabled |
+
+Rounds all coordinates to integer values.
+
+
 ### `quadratic`
 
 |||
@@ -583,6 +595,7 @@ The following macros are available when this extension is active:
 - `font_add_inflections;` to automatically add inflection points to the contours of all glyphs.
 - `font_auto_hint;` to automatically add PostScript hints to all glyph. See also the [hint](#hint) option.
 - `font_auto_instruct;` to automatically add TrueType instructions to all glyph. See also the [hint](#hint) option.
+- `font_round;` to round all coordinates to integers.
 - `font_math_constant(name, value)` to define an OpenType `math` table constant, `name` as a string, `value` as a number. An overview of the OpenType `math` constants and the default values that are used when the `set-math-defaults` option is enabled can be found [here](math.md).
 - `font_postscript_private_dictionary(name, value)` to define an entry in the PostScript private directory, `name` as string, `value` depending on entry (arrays as a sting in PostScript format).
 
@@ -621,6 +634,7 @@ The following macros are available when this extension is active:
 - `glyph_add_vertical_hint(x_start, x_end);` to add a custom PostScript vertical (stem) hint to the glyph.
 - `glyph_add_diagonal_hint(p, q, d);` to add a custom diagonal (stem) hint to the glyph as three pairs representing two points `p`, `q` and a direction `d`, e.g. to improve automatic TrueType instructions.\
   The direction `d` can be omitted. In this case `d` is computed from `p` and `q`.
+- `glyph_round;` to round all coordinates to integers.
 - `glyph_add_math_kerning_top_right(x, y);`, `glyph_add_math_kerning_top_left(x, y);`, `glyph_add_math_kerning_bottom_right(x, y);` or `glyph_add_math_kerning_bottom_left(x, y);` to add math kerning points to the glyph.
 - `glyph_replaced_by(g_name, opentype_feature);` to associate the specified glyph as a replacement glyph with an OpenType single substitution feature to the current glyph.
 - `glyph_replacement_of(g_name, opentype_feature);` to associate the current glyph as a replacement glyph with an OpenType single substitution feature to the specified glyph.
