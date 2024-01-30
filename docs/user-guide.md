@@ -46,6 +46,7 @@ This tutorial should provide an introduction to both ways. Afterwards, useful op
     - [Glyph extension](#glyph-extension)
     - [Ligature extension](#ligature-extension)
     - [Ligtable switch](#ligtable-switch)
+    - [Outline](#outline)
     - [General note on extensions](#general-note-on-extensions)
 
 
@@ -689,6 +690,64 @@ Similar to the other extensions, the prefix of the ligtable switch macros can be
 | CLI |`-extension-ligtable-switch-macro-prefix=`*string* |
 | API | `mf2ff.options.extension_ligtable_switch_macro_prefix = ` *string* |
 | default | `ligtable_switch` |
+
+
+### Outline
+
+The outline extension provides basic access to the outline of a picture's representation in FontForge.
+
+> [!IMPORTANT]  
+> This extension is experimental and its use is not recommended. Ideally, you should define your outlines as much as possible in METAFONT.\
+> You may find the following METAFONT `primitives` and *`plain macros`* useful:
+> - `directiontime` pair `of` path
+> - `point` numeric `of` path
+> - `precontrol` numeric `of` path
+> - `postcontrol` numeric `of` path
+> - *`direction` numeric `of` path*
+> - *path `intersectionpoint` path*
+> - path `intersectiontimes` path
+> - *pair `directionpoint` path*
+> - `subpath` pair `of` path
+
+Since FontForge runs after METAFONT you cannot pass information from FontForge to METAFONT. You can only specify operations to be processed in Python/FontForge.
+
+> [!NOTE]
+> You should make sure that you place these commands carefully in your `.mf` file.\
+> After naming points, you should not modify the outline with `addto` (or `fill`, `draw`, etc.) commands until all operations on the outline have been completed. Otherwise the points and contours will change and references may be lost.\
+> You may want to `cull` after all your `addto` (or `fill`, `draw`, etc.) commands of the glyph, before calling one of these macros.
+
+|||
+|-|-|
+| CLI |`-`[`no-`]`extension-outline` |
+| API | `mf2ff.options.extension_outline = True` / `False` |
+| default | disabled |
+
+If enabled, the following macros can be used in `mf2ff`'s input. The `pic` parameter specifies to which picture the command should be applied.
+- `outline_sort_canonical(pic);` changes the start points to the leftmost for all contours and sorts the contours by the leftmost point. 
+- `outline_sort_dir(pic,dir_deg);` changes the start points to the extremal point wrt the specified direction for all contours  and sorts the contours by the extremal point wrt the direction. Direction is specified in degrees. `dir_deg` $=180^\circ$ is equivalent to `outline_sort_canonical(pic)`. This could be useful if `outline_sort_canonical` results in different orderings for different slant angles.
+- `outline_point_name_by_coords(pic,p,r,name);` find closest point near `pair p`. Cancel search at radius `r`. Name it `name`.If it cannot be found, `name` will be undefined.
+- `outline_point_name_by_index(pic,i_c,i_p,name);` find point `i_p` in contour `i_c` (zero-based) and name it `name`. If it cannot be found, `name` will be undefined.
+- `outline_point_make_first(pic,name);` make point named `name` as first of it's contour. Ignored if `name` is not defined.
+- `outline_point_make_first_contour(pic,name);` make contour of point named `name` as first. Ignored if `name` is not defined.
+- `outline_point_delete(pic,name);` delete point named `name`. Usually, the control points of nearby will be adjusted to make the curve as similar to the original as possible. Ignored if `name` is not defined.
+- `outline_point_delete_contour(pic,name);` delete contour of point named `name`. Ignored if `name` is not defined.
+
+**Example:**\
+Add the following code to the definition of `0` before `enddef;` to delete the point between `z4r` and `z1r` (which is defined by the `pulled_arc.r` macro in `romand.mf`):
+```
+pair p;
+p := point 1 of pulled_arc.r(4,1);
+outline_point_name_by_coords(currentpicture,p,0.001,"top right");
+outline_point_delete(currentpicture,"top right");
+```
+
+Similar to the other extensions, the prefix of the ligtable switch macros can be changed:
+
+|||
+|-|-|
+| CLI |`-extension-outline-macro-prefix=`*string* |
+| API | `mf2ff.options.extension_outline_macro_prefix = ` *string* |
+| default | `outline` |
 
 
 ### General note on extensions

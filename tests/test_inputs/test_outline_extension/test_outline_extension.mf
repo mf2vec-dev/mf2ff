@@ -1,0 +1,50 @@
+mode_setup;
+
+beginchar("A", 100, 100, 0);
+fill fullcircle shifted (10,10);
+fill fullcircle shifted (0,10);
+fill fullcircle;
+outline_sort_canonical(currentpicture);
+endchar;
+
+beginchar("B", 100, 100, 0);
+fill fullcircle shifted (10,10);
+fill fullcircle shifted (0,10);
+fill fullcircle;
+outline_sort_dir(currentpicture,135);
+endchar;
+
+beginchar("C", 100, 100, 0);
+fill fullcircle;
+outline_point_name_by_coords(currentpicture,(sqrt(1/2)/2,sqrt(1/2)/2),0.001,"point @ 45°");
+outline_point_make_first(currentpicture,"point @ 45°");
+endchar;
+
+beginchar("D", 100, 100, 0);
+fill fullcircle;
+fill fullcircle scaled 10;
+outline_point_name_by_index(currentpicture,1,7,"p 1 7");
+outline_point_make_first(currentpicture,"p 1 7");
+endchar;
+
+beginchar("E", 100, 100, 0);
+fill fullcircle;
+fill fullcircle scaled 10;
+outline_point_name_by_index(currentpicture,1,7,"p 1 7");
+outline_point_make_first_contour(currentpicture,"p 1 7");
+endchar;
+
+beginchar("F", 100, 100, 0);
+fill fullcircle;
+outline_point_name_by_index(currentpicture,0,7,"p 0 7");
+outline_point_delete(currentpicture,"p 0 7");
+endchar;
+
+beginchar("G", 100, 100, 0);
+fill fullcircle;
+fill fullcircle shifted (10,0);
+outline_point_name_by_index(currentpicture,0,0,"p 0 0");
+outline_point_delete_contour(currentpicture,"p 0 0");
+endchar;
+
+end

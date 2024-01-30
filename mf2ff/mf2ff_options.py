@@ -38,6 +38,8 @@ class Mf2ffOptions:
             'extension_ligature': {'type': bool, 'default': False},
             'extension_ligtable_switch_macro_prefix': {'type': str, 'default': 'ligtable_switch'},
             'extension_ligtable_switch': {'type': bool, 'default': False},
+            'extension_outline_macro_prefix': {'type': str, 'default': 'outline'},
+            'extension_outline': {'type': bool, 'default': False},
             'extrema': {'type': bool, 'default': False},
             'family_name': {'type': str, 'default': ''},
             'first_line': {'type': str, 'default': ''},
@@ -169,7 +171,7 @@ class Mf2ffOptions:
             raise TypeError(f'invalid type `{type(value)}\' for option `{name}\'')
 
         # validate option with complex requirements
-        if name in ['extension_attachment_points_macro_prefix', 'extension_ligtable_switch_macro_prefix']:
+        if name[:10] == 'extension_' and name[-13:] == '_macro_prefix':
             self._validate_mf_alphabetic_token(value, name)
         elif name == 'scripts':
             self._validate_scripts(value)
@@ -292,7 +294,8 @@ class Mf2ffOptions:
             'only-code-points', 'ignore-code-points'
         ]
         extension_names = [
-            'attachment-points', 'glyph', 'font', 'ligature', 'ligtable-switch'
+            'attachment-points', 'glyph', 'font', 'ligature',
+            'ligtable-switch', 'outline'
         ]
         mf2ff_options_negatable.extend('extension-' + e for e in extension_names)
 
@@ -574,6 +577,11 @@ class Mf2ffOptions:
             '  -extension-ligtable-switch-macro-prefix=STR\n'
             '                    set macro name prefix (default: \'ligtable_switch\')\n'
             '                      choose so that in mf files there are no ligtable switch macros.\n'
+            '  -[no-]extension-outline\n'
+            '                    enable/disable outline extension (default: disabled)\n'
+            '  -extension-outline-macro-prefix=STR\n'
+            '                    set macro name prefix (default: \'outline\')\n'
+            '                      choose so that in mf files there are no outline macros.\n'
             '  -[no-]extrema     disable/enable extrema adding (default: disabled)\n'
             '  -familyname=STR   set font\'s family name\n'
             '  -[no-]fix-contours\n'

@@ -7,7 +7,7 @@ import unicodedata
 from copy import deepcopy
 from functools import reduce
 from itertools import combinations, permutations
-from math import atan, atan2, pi, sqrt
+from math import atan, atan2, cos, pi, sin, sqrt
 from pathlib import Path
 from time import time
 
@@ -185,6 +185,9 @@ class Mf2ff:
             # A dict is used to keep track of the pictures
             self.pictures = {}
             self.pictures['nullpicture'] = fontforge.layer() # predefined empty picture
+            self.named_points = {
+                'nullpicture': {}
+            }
 
             # a separate font object with a dedicated glyph is used for
             # processing
@@ -833,6 +836,7 @@ class Mf2ff:
                     # create layer for each picture
                     pic_name = pic_name[1:-1] # clip quotes
                     self.pictures[pic_name] = fontforge.layer()
+                    self.named_points[pic_name] = {}
 
             elif cmd_name == 'pic_eqn':
                 j = i+1
@@ -853,24 +857,30 @@ class Mf2ff:
 
                 for k in j_eq[:-2]:
                     if len(complex_expressions) == 0:
-                        if self.cmds[k-1][0] != 'mi':
-                            self.pictures[self.cmds[k+1][2][1:-1]] = fontforge.layer()
-                            for c in self.pictures[self.cmds[j_eq[-2]+1][2][1:-1]]:
-                                self.pictures[self.cmds[k+1][2][1:-1]] += c
+                        pic_name_lhs = self.cmds[k+1][2][1:-1]
+                        pic_name_rhs = self.cmds[j_eq[-2]+1][2][1:-1]
+                        if self.cmds[k-1][0] == 'mi':
+                            self.pictures[pic_name_lhs] = fontforge.layer()
+                            for c in self.pictures[pic_name_rhs]:
+                                self.pictures[pic_name_lhs] += c
+                            self.pictures[pic_name_lhs] = self.pictures[pic_name_lhs].reverseDirection()
+                            self.named_points[pic_name_lhs] = deepcopy(self.named_points[pic_name_rhs])
                         else:
-                            self.pictures[self.cmds[k+1][2][1:-1]] = fontforge.layer()
-                            for c in self.pictures[self.cmds[j_eq[-2]+1][2][1:-1]]:
-                                self.pictures[self.cmds[k+1][2][1:-1]] += c
-                            self.pictures[self.cmds[k+1][2][1:-1]] = self.pictures[self.cmds[k+1][2][1:-1]].reverseDirection()
+                            self.pictures[pic_name_lhs] = fontforge.layer()
+                            for c in self.pictures[pic_name_rhs]:
+                                self.pictures[pic_name_lhs] += c
+                            self.named_points[pic_name_lhs] = deepcopy(self.named_points[pic_name_rhs])
                     else:
                         for k in range(i,j):
-                            if k in complex_expressions[1:]:
-                                for l in range(j_eq[k-1], j_eq[k], 2):
-                                    if self.cmds[l][2] == 'pic':
-                                        if self.cmds[l-1][2] in ('eq', 'as', 'pl'):
-                                            self.pictures[self.cmds[j_eq[-1]][2][1:-1]] += self.pictures[self.cmds[l][2][1:-1]]
-                                        elif self.cmds[l-1][2] == 'mi':
-                                            self.pictures[self.cmds[j_eq[-1]][2][1:-1]] += self.pictures[self.cmds[l][2][1:-1]].reverseDirection()
+                            if k not in complex_expressions[1:]:
+                                continue
+                            for l in range(j_eq[k-1], j_eq[k], 2):
+                                if self.cmds[l][2] != 'pic':
+                                    continue
+                                if self.cmds[l-1][2] in ('eq', 'as', 'pl'):
+                                    self.pictures[self.cmds[j_eq[-1]][2][1:-1]] += self.pictures[self.cmds[l][2][1:-1]]
+                                elif self.cmds[l-1][2] == 'mi':
+                                    self.pictures[self.cmds[j_eq[-1]][2][1:-1]] += self.pictures[self.cmds[l][2][1:-1]].reverseDirection()
                 i = j_eq[-1]-1
 
             elif cmd_name == 'shipout':
@@ -1486,6 +1496,157 @@ class Mf2ff:
                 ligtable_op_type, ot_feature = cmd_name[16:].split('_to_')
                 current_ligtable_to_feature[ligtable_op_type] = ot_feature
 
+            elif cmd_name[:8] == 'outline_':
+                outline_command = cmd_name[8:]
+                cmd_body_parts = self.cmd_body.split('>> ')
+                pic_name = cmd_body_parts[0][1:-1] # clip quotes
+                cmd_body_parts = cmd_body_parts[1:]
+                if outline_command == 'sort_canonical':
+                    # Canonical methods are only available for glyph.
+                    # Use temporary font to apply sorting.
+                    f = fontforge.font()
+                    g = f.createChar(0)
+                    g.layers[1] += self.pictures[pic_name]
+                    g.canonicalStart()
+                    g.canonicalContours()
+                    self.pictures[pic_name] = g.layers[1]
+                    del g
+                    del f
+                elif outline_command == 'sort_dir':
+                    dir_deg = float(cmd_body_parts[0])
+                    ang_deg = dir_deg
+                    # set first of each contour
+                    best_dists = []
+                    contours = list(self.pictures[pic_name])
+                    for c in contours:
+                        best_dist = None
+                        best_i_p = None
+                        for i_p, p in enumerate(c):
+                            if not p.on_curve:
+                                continue
+                            # signed distance to origin measured in dir
+                            dist = sin(ang_deg*pi/180)*p.x+cos(ang_deg*pi/180)*p.y
+                            if best_dist is None:
+                                best_dist = dist
+                                best_i_p = i_p
+                            elif (
+                                dist < best_dist
+                                or (dist == best_dist and abs(p.y) < abs(c[best_i_p].y))
+                                or (dist == best_dist and abs(p.y) == abs(c[best_i_p].y) and p.x < c[best_i_p].x)
+                            ):
+                                best_dist = dist
+                                best_i_p = i_p
+                        if best_i_p is not None:
+                            c.makeFirst(best_i_p)
+                            best_dists.append(best_dist)
+                    # sort contours
+                    self.pictures[pic_name] = fontforge.layer()
+                    for dist, c in sorted(zip(best_dists, contours), key=lambda x: x[0]):
+                        self.pictures[pic_name] += c
+                elif outline_command == 'point_name_by_coords':
+                    coords, r, name = cmd_body_parts
+                    coords = tuple(float(c) for c in coords[1:-1].split(',')) # clip ()
+                    r = float(r)
+                    name = name[1:-1] # clip ""
+                    best_dist = None
+                    best_i_c = None
+                    best_i_p_oc = None
+                    for i_c, c in enumerate(self.pictures[pic_name]):
+                        i_p_oc = -1
+                        for p in c:
+                            if p.on_curve:
+                                i_p_oc += 1
+                            else:
+                                continue
+                            dist = sqrt((p.x-coords[0])**2+(p.y-coords[1])**2)
+                            if dist > r:
+                                continue # ignore
+                            if best_dist is None or dist < best_dist:
+                                best_dist = dist
+                                best_i_c = i_c
+                                best_i_p_oc = i_p_oc
+                    if best_dist is None:
+                        if not self.input_options.quiet:
+                            print(f'! No point found at ({coords[0]},{coords[1]}) to name "{name}".')
+                    else:
+                        self.named_points[pic_name][name] = (best_i_c, best_i_p_oc)
+                elif outline_command == 'point_name_by_index':
+                    i_c, i_p_oc, name = cmd_body_parts
+                    i_c = int(i_c, 10)
+                    i_p_oc = int(i_p_oc, 10)
+                    name = name[1:-1] # clip ""
+                    if i_c < len(self.pictures[pic_name]) and i_p_oc < len(self.pictures[pic_name][i_c]):
+                        self.named_points[pic_name][name] = (i_c, i_p_oc)
+                    elif not self.input_options.quiet:
+                        print(f'! No point found on contour {i_c} at index {i_p_oc} to name "{name}".')
+                elif outline_command == 'point_make_first':
+                    name = cmd_body_parts[0]
+                    name = name[1:-1] # clip ""
+                    if name in self.named_points[pic_name]:
+                        i_c, i_p_oc = self.named_points[pic_name][name]
+                        try:
+                            # find i_p for i_p_oc
+                            for i_p, p in enumerate(self.pictures[pic_name][i_c]):
+                                if not p.on_curve:
+                                    continue
+                                i_p_oc -= 1
+                                if i_p_oc == -1:
+                                    break
+                            self.pictures[pic_name][i_c].makeFirst(i_p)
+                        except IndexError:
+                            if not self.input_options.quiet:
+                                print(f'! Point "{name}" cannot be found.')
+                    elif not self.input_options.quiet:
+                        print(f'! No point named "{name}".')
+                elif outline_command == 'point_make_first_contour':
+                    name = cmd_body_parts[0]
+                    name = name[1:-1] # clip ""
+                    if name in self.named_points[pic_name]:
+                        i_c = self.named_points[pic_name][name][0]
+                        try:
+                            l = self.pictures[pic_name]
+                            self.pictures[pic_name] = fontforge.layer()
+                            self.pictures[pic_name] += l[i_c]
+                            for c in l:
+                                if c != l[i_c]:
+                                    self.pictures[pic_name] += l[i_c]
+                        except IndexError:
+                            if not self.input_options.quiet:
+                                print(f'! Contour of point "{name}" cannot be found.')
+                    elif not self.input_options.quiet:
+                        print(f'! No point named {name}.')
+                elif outline_command == 'point_delete':
+                    name = cmd_body_parts[0]
+                    name = name[1:-1] # clip ""
+                    if name in self.named_points[pic_name]:
+                        i_c, i_p_oc = self.named_points[pic_name][name]
+                        try:
+                            # find i_p for i_p_oc
+                            for i_p, p in enumerate(self.pictures[pic_name][i_c]):
+                                if not p.on_curve:
+                                    continue
+                                i_p_oc -= 1
+                                if i_p_oc == -1:
+                                    break
+                            self.pictures[pic_name][i_c].merge(i_p)
+                        except IndexError:
+                            if not self.input_options.quiet:
+                                print(f'! Point "{name}" cannot be found.')
+                    elif not self.input_options.quiet:
+                        print(f'! No point named "{name}".')
+                elif outline_command == 'point_delete_contour':
+                    name = cmd_body_parts[0]
+                    name = name[1:-1] # clip ""
+                    if name in self.named_points[pic_name]:
+                        i_c = self.named_points[pic_name][name][0]
+                        try:
+                            del self.pictures[pic_name][i_c]
+                        except IndexError:
+                            if not self.input_options.quiet:
+                                print(f'! Point "{name}" cannot be found.')
+                    elif not self.input_options.quiet:
+                        print(f'! No point named "{name}".')
+
             else:
                 print('! "' + cmd_name + '": ' + self.cmd_body + '?')
                 print('  This may be a syntax error. Run file with METAFONT to find it.')
@@ -1884,10 +2045,21 @@ class Mf2ff:
                 )
                 +(
                     r'|'+r'|'.join(
-                        'ligtable_switch_' + ligtable_op_type + '_to_' + ligtable_ot_feature
+                        r'ligtable_switch_' + ligtable_op_type + r'_to_' + ligtable_ot_feature
                         for ligtable_op_type in self.supported_ligtable_ot_features
                         for ligtable_ot_feature in self.supported_ligtable_ot_features[ligtable_op_type]
                     ) if self.input_options.extension_ligtable_switch else r''
+                )
+                +(
+                    r'|outline_(?:'
+                        r'sort_(?:canonical|dir)'
+                        r'|point_(?:'
+                            r'name_by_(?:coords|index)'
+                            r'|make_first(?:_contour)?'
+                            r'|delete(?:_contour)?'
+                        r')'
+                    r')'
+                    if self.input_options.extension_outline else r''
                 )
                 +
             r')'
@@ -2347,6 +2519,44 @@ class Mf2ff:
                         for ligtable_ot_feature in self.supported_ligtable_ot_features[ligtable_op_type]
                     )
                 ) if self.input_options.extension_ligtable_switch else ''
+            )
+            # outline
+            +(
+                (
+                    ''.join(
+                        'def ' + self.input_options.extension_outline_macro_prefix + '_' + outline_cmd + '(suffix pic)='
+                            +m_+'outline_'+ outline_cmd +'";'
+                            'show str pic;'
+                            +m__+
+                        'enddef;'
+                        for outline_cmd in ['sort_canonical']
+                    )
+                    +''.join(
+                        'def ' + self.input_options.extension_outline_macro_prefix + '_' + outline_cmd + '(suffix pic)(expr e)='
+                            +m_+'outline_'+ outline_cmd +'";'
+                            'show str pic,e;'
+                            +m__+
+                        'enddef;'
+                        for outline_cmd in [
+                            'sort_dir',
+                            'point_make_first',
+                            'point_make_first_contour',
+                            'point_delete',
+                            'point_delete_contour'
+                        ]
+                    )
+                    +''.join(
+                        'def ' + self.input_options.extension_outline_macro_prefix + '_' + outline_cmd + '(suffix pic)(expr e,f,g)='
+                            +m_+'outline_'+ outline_cmd +'";'
+                            'show str pic,e,f,g;'
+                            +m__+
+                        'enddef;'
+                        for outline_cmd in [
+                            'point_name_by_coords',
+                            'point_name_by_index'
+                        ]
+                    )
+                ) if self.input_options.extension_outline else ''
             )
         )
 
