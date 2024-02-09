@@ -2947,6 +2947,7 @@ class Mf2ff:
             if not c.closed:
                 # There should be no open contours, keep them for better
                 # debugging.
+                i_c += 1
                 continue
             if self.is_collinear(c, distance_threshold):
                 del layer[i_c]
