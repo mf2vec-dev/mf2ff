@@ -520,7 +520,6 @@ class Mf2ffOptions:
 
     def _print_version_and_exit(self):
         print('mf2ff ' + self._mf2ff_version)
-        print('Copyright (C) 2018--2023')
         sys.exit()
 
     def _print_help_and_exit(self):
@@ -699,7 +698,7 @@ class Mf2ffOptions:
             '=================================\n'
             '\n'
             '  MIT License\n'
-            '  Copyright (C) 2018--2023\n'
+            '  Copyright (C) 2018--2024\n'
             '\n'
             'For more information, please see LICENSE.txt.\n'
         )
