@@ -1503,15 +1503,11 @@ class Mf2ff:
                 cmd_body_parts = cmd_body_parts[1:]
                 if outline_command == 'sort_canonical':
                     # Canonical methods are only available for glyph.
-                    # Use temporary font to apply sorting.
-                    f = fontforge.font()
-                    g = f.createChar(0)
-                    g.layers[1] += self.pictures[pic_name]
-                    g.canonicalStart()
-                    g.canonicalContours()
-                    self.pictures[pic_name] = g.layers[1]
-                    del g
-                    del f
+                    # Use self.proc_glyph font to apply sorting.
+                    self.proc_glyph.layers[1] = self.pictures[pic_name]
+                    self.proc_glyph.canonicalStart()
+                    self.proc_glyph.canonicalContours()
+                    self.pictures[pic_name] = self.proc_glyph.layers[1]
                 elif outline_command == 'sort_dir':
                     dir_deg = float(cmd_body_parts[0])
                     ang_deg = dir_deg
