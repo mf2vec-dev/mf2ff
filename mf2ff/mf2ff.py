@@ -61,8 +61,18 @@ class Mf2ff:
             os.system('color')
 
 
-    def run(self):
+    def run(self, return_font=False):
         '''run mf2ff
+
+        Call this method after all options are set.
+
+        Args:
+            return_font (bool, optional): Return the generated font. Defaults
+              to False (don't return the font). If the font is not returned, it
+              is closed to free memory.
+
+        Returns:
+            fontforge.font or None: the generated font (if return_font is True)
         '''
 
         M = self.MARKER
@@ -232,6 +242,14 @@ class Mf2ff:
 
         if not self.options.quiet:
             print('Done.')
+
+        # cleanup
+        internal_font.close()
+
+        if return_font:
+            return self.font
+        else:
+            self.font.close()
 
     def define_mf_first_line(self):
         '''define self.mf_first_line based on options
