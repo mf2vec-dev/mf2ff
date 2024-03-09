@@ -216,27 +216,28 @@ class Mf2ff:
             if self.input_options.time:
                 print('  (took ' + '%.2f' % (end_time_ff-start_time_ff) + 's)')
 
-            pattern = re.sub(r'(\.|\*|\||\\|\(|\)|\+)', r'\\\1', '\n?'.join(self.mf_first_line), flags=re.DOTALL) \
-                + '\n|\n' + '\n?'.join(M) + '.*?\n' + '\n?'.join(M)
-            start_time_log = time()
-            clean_log = re.sub(pattern, '', self.orig_log_data, flags=re.DOTALL)
+            if self.input_options.clean_log:
+                pattern = re.sub(r'(\.|\*|\||\\|\(|\)|\+)', r'\\\1', '\n?'.join(self.mf_first_line), flags=re.DOTALL) \
+                    + '\n|\n' + '\n?'.join(M) + '.*?\n' + '\n?'.join(M)
+                start_time_log = time()
+                clean_log = re.sub(pattern, '', self.orig_log_data, flags=re.DOTALL)
 
-            if self.input_options.debug:
-                extension = '.clean.log'
-            else:
-                extension = '.log'
-            log_path_str = str(self.log_path.with_suffix('')) + extension
-            try:
-                with open(log_path_str, 'w') as outfile:
-                    outfile.write(clean_log)
-            except IOError:
-                print('! I can\'t find file: `' + log_path_str + '\'.')
-                sys.exit(1)
-            end_time_log = time()
-            if not self.input_options.quiet:
-                print('Log file cleaned up:', log_path_str)
-            if self.input_options.time:
-                print('  (took ' + '%.2f' % (end_time_log-start_time_log) + 's)')
+                if self.input_options.debug:
+                    extension = '.clean.log'
+                else:
+                    extension = '.log'
+                log_path_str = str(self.log_path.with_suffix('')) + extension
+                try:
+                    with open(log_path_str, 'w') as outfile:
+                        outfile.write(clean_log)
+                except IOError:
+                    print('! I can\'t find file: `' + log_path_str + '\'.')
+                    sys.exit(1)
+                end_time_log = time()
+                if not self.input_options.quiet:
+                    print('Log file cleaned up:', log_path_str)
+                if self.input_options.time:
+                    print('  (took ' + '%.2f' % (end_time_log-start_time_log) + 's)')
 
         self.apply_font_options_and_save()
 

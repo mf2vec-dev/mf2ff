@@ -21,6 +21,7 @@ class Mf2ffOptions:
             'ascent': {'type': int | None, 'default': None},
             'base': {'type': str, 'default': ''},
             'charcode_from_last_ASCII_hex_arg': {'type': bool, 'default': False},
+            'clean_log': {'type': bool, 'default': True},
             'comment': {'type': str, 'default': ''},
             'copyright': {'type': str, 'default': ''},
             'cull_at_shipout': {'type': bool, 'default': False},
@@ -275,9 +276,10 @@ class Mf2ffOptions:
             'translate-file'
         ]
         mf2ff_options_negatable = [
-            'charcode-from-last-ASCII-hex-arg', 'cull-at-shipout', 'debug',
-            'extrema', 'fix-contours', 'font-metric-command-generalized-code',
-            'hint', 'is_type', 'kerning-classes', 'otf', 'quadratic', 'quiet',
+            'charcode-from-last-ASCII-hex-arg', 'clean-log', 'cull-at-shipout',
+            'debug', 'extrema', 'fix-contours',
+            'font-metric-command-generalized-code', 'hint', 'is_type',
+            'kerning-classes', 'otf', 'quadratic', 'quiet',
             'remove-artifacts', 'remove-collinear', 'round', 
             'set-italic-correction', 'set-math-defaults', 'set-top-accent',
             'sfd', 'space-from-fontdimen', 'stroke-simplify', 'time', 'ttf',
@@ -541,6 +543,7 @@ class Mf2ffOptions:
             '                      In plain MF, this enables interpretation of first argument of beginchar as hex encoding value.\n'
             '                      This breaks backwards compatibility with MF.\n'
             '                      If disabled, the ASCII code of the first string character (i.e. first hex digit) is used.\n'
+            '  -[no-]clean-log   disable/enable cleaning up the log. (default: enabled)'
             '  -comment=STR      set font\'s comment\n'
             '  -copyright=STR    set font\'s copyright notice\n'
             '  -[no-]cull-at-shipout\n'

@@ -16,6 +16,7 @@ This tutorial should provide an introduction to both ways. Afterwards, useful op
   - [Options](#options)
     - [`ascent`](#ascent)
     - [`charcode-from-last-ASCII-hex-arg`](#charcode-from-last-ascii-hex-arg)
+    - [`clean-log`](#clean-log)
     - [`cull-at-shipout`](#cull-at-shipout)
     - [`descent`](#descent)
     - [`designsize`](#designsize)
@@ -184,6 +185,17 @@ This option breaks backwards compatibility with METAFONT.
 
 Example:\
 `beginchar("20AC", ...); ... endchar;` will create the glyph at `0x20AC` (Euro sign, `€`) if this option is enabled (assuming Unicode input encoding). If this option is disabled, it will create (or overwrite) the glyph at `U+0032` (digit two, `2`) since it's the first character in the string.
+
+
+### `clean-log`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`clean-log` |
+| API | `mf2ff.options.clean_log = True` / `False` |
+| default | enabled |
+
+This option enables or disables cleanup of the log file. Disable cleanup to slightly decrease disk usage and save a few regex operations.
 
 
 ### `cull-at-shipout`
