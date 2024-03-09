@@ -278,8 +278,9 @@ class Mf2ff:
             + extra_defs
             + input_base
             + self.input_options.first_line
-            + 'input ' + str(self.input_options.input_file)
         )
+        if self.input_options.input_file is not None:
+            self.mf_first_line += 'input ' + str(self.input_options.input_file)
 
     def run_mf(self, is_pre_run=False):
         '''runs METAFONT with self.mf_options and self.mf_first_line.
