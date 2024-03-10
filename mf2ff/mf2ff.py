@@ -217,7 +217,7 @@ class Mf2ff:
                 print('  (took ' + '%.2f' % (end_time_ff-start_time_ff) + 's)')
 
             if self.input_options.clean_log:
-                pattern = re.sub(r'(\.|\*|\||\\|\(|\)|\+)', r'\\\1', '\n?'.join(self.mf_first_line), flags=re.DOTALL) \
+                pattern = re.sub(r'(\.|\^|\$|\*|\+|(?<!\n)\?|\||\\|\(|\)|\[|\]|\{|\})', r'\\\1', '\n?'.join(self.mf_first_line), flags=re.DOTALL) \
                     + '\n|\n' + '\n?'.join(M) + '.*?\n' + '\n?'.join(M)
                 start_time_log = time()
                 clean_log = re.sub(pattern, '', self.orig_log_data, flags=re.DOTALL)
