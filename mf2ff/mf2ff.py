@@ -2830,18 +2830,30 @@ class Mf2ff:
             p = self.pair_pattern.search(path)
             c.moveTo(float(p.group(1)), float(p.group(2)))
             for j in self.join_pattern.finditer(path[p.end():]):
-                if j.group(7) == None: # j.group(7) is cycle
-                    c.cubicTo(
-                        float(j.group(1)), float(j.group(2)),
-                        float(j.group(3)), float(j.group(4)),
-                        float(j.group(5)), float(j.group(6))
+                cycle = j.group(7) is not None # j.group(7) is cycle
+                if cycle: # path is closed by connecting to first point `p`
+                    end_point = (float(p.group(1)), float(p.group(2)))
+                else:
+                    end_point = (float(j.group(5)), float(j.group(6)))
+                cp1 =  (float(j.group(1)), float(j.group(2)))
+                cp2 =  (float(j.group(3)), float(j.group(4)))
+                make_line = self.input_options.make_lines
+                if make_line:
+                    cc = fontforge.contour().moveTo(c[-1].x, c[-1].y).cubicTo(
+                        *cp1,
+                        *cp2,
+                        *end_point
                     )
-                else: # path is closed by connecting to first point `p`
+                    make_line = self.is_collinear(cc, self.options.params['make_lines']['distance_threshold'])
+                if make_line:
+                    c.lineTo(*end_point)
+                else:
                     c.cubicTo(
-                        float(j.group(1)), float(j.group(2)),
-                        float(j.group(3)), float(j.group(4)),
-                        float(p.group(1)), float(p.group(2))
+                        *cp1,
+                        *cp2,
+                        *end_point
                     )
+                if cycle:
                     c.closed = True
                     break
             self.pictures[picture] += c

@@ -68,11 +68,13 @@ if __name__ == '__main__':
     mf2ff.options.output_encoding = 'TeX text'
     mf2ff.options.jobname = 'cmr10_smcp'
     mf2ff.options.output_directory = example_dir
+    mf2ff.options.make_lines = True
     mf2ff.options.stroke_simplify = False
     mf2ff.options.fix_contours = True
     mf2ff.options.remove_artifacts = True
     mf2ff.options.remove_collinear = True
     mf2ff.options.cull_at_shipout = True
     mf2ff.options.upm = 4096
+    mf2ff.options.hint = True
     mf2ff.run()
     print(f'took {time()-start:.3f} sec')

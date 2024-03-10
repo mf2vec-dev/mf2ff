@@ -28,6 +28,7 @@ This tutorial should provide an introduction to both ways. Afterwards, useful op
     - [`input-encoding-options` \& `output-encoding-options`](#input-encoding-options--output-encoding-options)
     - [`input-file:`*N* and the `:`*N* syntax](#input-filen-and-the-n-syntax)
     - [`kerning-classes`](#kerning-classes)
+    - [`make-lines`](#make-lines)
     - [`only-code-points` \& `ignore-code-points`](#only-code-points--ignore-code-points)
     - [`ot-sub-feature` \& `glyph-name-suffix`](#ot-sub-feature--glyph-name-suffix)
     - [`round`](#round)
@@ -361,6 +362,17 @@ enddef;
 group_kerning("F", "V", "W", "Y")(-4/5pt#)("c", "e", "o", "q");
 ```
 This should expand to a ligtable command which kerns all combinations of the first list and the second list (e.g. "Fc", "Fo", "We", etc.) with the offset defined in the middle. METAFONT will create 16 kerning pairs from this example. If you run `mf2ff` on input with such this example, it will create the classes based on these kerning pairs and builds up a kerning matrix. If there are other ligtable or group_kerning commands, `mf2ff` will split up or combine the classes according to the kerning specifications.
+
+
+### `make-lines`
+
+|||
+|-|-|
+| CLI | `-`[`no-`]`make-lines` |
+| API | `mf2ff.options.make_lines = True` / `False` |
+| default | disabled |
+
+If this option is enabled, straight lines (no control points) will be created from (almost) straight contour segments. This will also turn the points between straight lines and curves into tangent points.
 
 
 ### `only-code-points` & `ignore-code-points`

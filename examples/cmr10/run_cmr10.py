@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from time import time, sleep
-from urllib.request import urlretrieve
+from time import sleep, time
 from urllib.error import URLError
+from urllib.request import urlretrieve
 
 from mf2ff import Mf2ff
 
@@ -53,6 +53,7 @@ if __name__ == '__main__':
     mf2ff.options.output_directory = example_dir
     mf2ff.options.fontname = 'cmr10'
     mf2ff.options.input_encoding = 'TeX-text'
+    mf2ff.options.make_lines = True
     mf2ff.options.stroke_simplify = False
     mf2ff.options.fix_contours = True
     mf2ff.options.remove_artifacts = True

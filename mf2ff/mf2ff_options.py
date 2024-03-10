@@ -60,6 +60,7 @@ class Mf2ffOptions:
             'italicangle': {'type': float, 'default': 0.0},
             'jobname': {'type': str, 'default': ''},
             'kerning_classes': {'type': bool, 'default': False},
+            'make_lines': {'type': bool, 'default': False},
             'mf_options': {'type': list, 'default': ['-interaction=batchmode']},
             'only_code_points': {'type': list | None, 'default': None},
             'ot_sub_feature': {'type': str | None, 'default': None},
@@ -102,6 +103,9 @@ class Mf2ffOptions:
         self.__dict__['_params'] = {
             'correct_direction': {
                 'scale_factor': 10,
+            },
+            'make_lines': {
+                'distance_threshold': 0.01,
             },
             'remove_artifacts': {
                 'collinear': {
@@ -279,7 +283,7 @@ class Mf2ffOptions:
             'charcode-from-last-ASCII-hex-arg', 'clean-log', 'cull-at-shipout',
             'debug', 'extrema', 'fix-contours',
             'font-metric-command-generalized-code', 'hint', 'is_type',
-            'kerning-classes', 'otf', 'quadratic', 'quiet',
+            'kerning-classes', 'make-lines', 'otf', 'quadratic', 'quiet',
             'remove-artifacts', 'remove-collinear', 'round', 
             'set-italic-correction', 'set-math-defaults', 'set-top-accent',
             'sfd', 'space-from-fontdimen', 'stroke-simplify', 'time', 'ttf',
@@ -613,6 +617,8 @@ class Mf2ffOptions:
             '  -[no-]kerning-classes\n'
             '                    disable/enable kerning classes instead of kerning pairs\n'
             '                      (default: disabled = kerning pairs)\n'
+            '  -[no-]make-lines  disable/enable making true straight lines\n'
+            '                      (default: disabled)\n'
             '  -only-code-points=RANGES\n'
             '                    specify ranges (inclusive) of code points to process, other code points are ignored\n'
             '                      e.g. 0x41-0x5A,0x61-0x7A for latin letters only\n'
