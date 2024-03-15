@@ -1115,10 +1115,6 @@ class Mf2ff:
                                         glyph.vhints = hints
                         if glyph_auto_instruct:
                             glyph.autoInstr()
-                        if self.input_options.sort_canonical:
-                            glyph.layers[1] = self.sort_canonical(glyph.layers[1])
-                        if self.input_options.sort_dir is not None:
-                            glyph.layers[1] = self.sort_dir(glyph.layers[1], self.input_options.sort_dir)
                         for corner, kernings in glyph_math_kernings.items():
                             if len(kernings) > 0:
                                 if corner.split('_')[1] == 'right':
@@ -1168,6 +1164,11 @@ class Mf2ff:
                 if self.input_options.extension_ligature:
                     sub_list = [[(glyph.glyphname, True) if s[0] is None else s[0]] + s[1:] for s in sub_list]
                     glyph.lcarets = tuple(carets)
+
+                if self.input_options.sort_canonical:
+                    glyph.layers[1] = self.sort_canonical(glyph.layers[1])
+                if self.input_options.sort_dir is not None:
+                    glyph.layers[1] = self.sort_dir(glyph.layers[1], self.input_options.sort_dir)
 
                 glyph_unicode = None
 
