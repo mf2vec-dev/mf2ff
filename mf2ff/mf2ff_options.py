@@ -84,6 +84,8 @@ class Mf2ffOptions:
             'set_top_accent': {'type': bool, 'default': False},
             'sfd': {'type': bool, 'default': True},
             'skewchar': {'type': int | None, 'default': -1},
+            'sort_canonical': {'type': bool, 'default': False},
+            'sort_dir': {'type': float | None, 'default': None},
             'space_from_fontdimen': {'type': bool, 'default': True},
             'stroke_accuracy': {'type': float | None, 'default': None}, # None: use fontforge's default (should be 0.25)
             'stroke_simplify': {'type': bool, 'default': True},
@@ -284,17 +286,17 @@ class Mf2ffOptions:
             'debug', 'extrema', 'fix-contours',
             'font-metric-command-generalized-code', 'hint', 'is_type',
             'kerning-classes', 'make-lines', 'otf', 'quadratic', 'quiet',
-            'remove-artifacts', 'remove-collinear', 'round', 
+            'remove-artifacts', 'remove-collinear', 'round',
             'set-italic-correction', 'set-math-defaults', 'set-top-accent',
-            'sfd', 'space-from-fontdimen', 'stroke-simplify', 'time', 'ttf',
-            'use-ppi-factor'
+            'sfd', 'sort_canonical', 'space-from-fontdimen', 'stroke-simplify',
+            'time', 'ttf', 'use-ppi-factor'
         ]
         mf2ff_options_values = [
             'ascent', 'comment', 'copyright', 'descent', 'designsize',
             'familyname', 'fontlog', 'fontname', 'font-version', 'fullname',
             'glyph-name-suffix', 'input-encoding', 'input-file', 'italicangle',
             'ot-sub-feature', 'output-directory', 'output-encoding', 'ppi',
-            'skewchar', 'stroke-accuracy', 'upm', 'upos', 'uwidth'
+            'skewchar', 'sort_dir', 'stroke-accuracy', 'upm', 'upos', 'uwidth'
         ]
         code_point_range_list_options = [
             'only-code-points', 'ignore-code-points'
@@ -652,6 +654,9 @@ class Mf2ffOptions:
             '                      A value of None treats all glyphs the same and keeps the kerning as defined.\n'
             '                      A value of -1 will use 127 for TeX-math-italic, 48 for TeX-math-symbols and None otherwise.\n'
             '                      (default: -1)\n'
+            '  -[no-]sort-canonical\n'
+            '                    disable/enable sorting points and contours canonical.\n'
+            '  -sort-dir=NUM     enable sorting points and contours by direction with NUM degrees (default: None, disabled)\n'
             '  -[no-]space-from-fontdimen\n'
             '                    disable/enable creating an empty space glyph at U+0020 from fontdimen 2.\n'
             '                      If input encoding has no code point for space, a new one is created.\n'

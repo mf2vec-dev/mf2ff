@@ -1115,6 +1115,10 @@ class Mf2ff:
                                         glyph.vhints = hints
                         if glyph_auto_instruct:
                             glyph.autoInstr()
+                        if self.input_options.sort_canonical:
+                            glyph.layers[1] = self.sort_canonical(glyph.layers[1])
+                        if self.input_options.sort_dir is not None:
+                            glyph.layers[1] = self.sort_dir(glyph.layers[1], self.input_options.sort_dir)
                         for corner, kernings in glyph_math_kernings.items():
                             if len(kernings) > 0:
                                 if corner.split('_')[1] == 'right':
@@ -1522,43 +1526,9 @@ class Mf2ff:
                 pic_name = cmd_body_parts[0][1:-1] # clip quotes
                 cmd_body_parts = cmd_body_parts[1:]
                 if outline_command == 'sort_canonical':
-                    # Canonical methods are only available for glyph.
-                    # Use self.proc_glyph font to apply sorting.
-                    self.proc_glyph.layers[1] = self.pictures[pic_name]
-                    self.proc_glyph.canonicalStart()
-                    self.proc_glyph.canonicalContours()
-                    self.pictures[pic_name] = self.proc_glyph.layers[1]
+                    self.sort_canonical(pic_name)
                 elif outline_command == 'sort_dir':
-                    dir_deg = float(cmd_body_parts[0])
-                    ang_deg = dir_deg
-                    # set first of each contour
-                    best_dists = []
-                    contours = list(self.pictures[pic_name])
-                    for c in contours:
-                        best_dist = None
-                        best_i_p = None
-                        for i_p, p in enumerate(c):
-                            if not p.on_curve:
-                                continue
-                            # signed distance to origin measured in dir
-                            dist = sin(ang_deg*pi/180)*p.x+cos(ang_deg*pi/180)*p.y
-                            if best_dist is None:
-                                best_dist = dist
-                                best_i_p = i_p
-                            elif (
-                                dist < best_dist
-                                or (dist == best_dist and abs(p.y) < abs(c[best_i_p].y))
-                                or (dist == best_dist and abs(p.y) == abs(c[best_i_p].y) and p.x < c[best_i_p].x)
-                            ):
-                                best_dist = dist
-                                best_i_p = i_p
-                        if best_i_p is not None:
-                            c.makeFirst(best_i_p)
-                            best_dists.append(best_dist)
-                    # sort contours
-                    self.pictures[pic_name] = fontforge.layer()
-                    for dist, c in sorted(zip(best_dists, contours), key=lambda x: x[0]):
-                        self.pictures[pic_name] += c
+                    self.sort_dir(pic_name, float(cmd_body_parts[0]))
                 elif outline_command == 'point_name_by_coords':
                     coords, r, name = cmd_body_parts
                     coords = tuple(float(c) for c in coords[1:-1].split(',')) # clip ()
@@ -2818,11 +2788,11 @@ class Mf2ff:
             # font.reencode not in FontForge docs
             self.font.reencode(encoding_name)
 
-    def add_contours(self, picture, paths):
+    def add_contours(self, pic_name, paths):
         '''adds `paths` as contours to fontforge layer `picture`
 
         Args:
-            picture (str): The name of the picture.
+            pic_name (str): The name of the picture.
             paths (list[str]): List of path definitions.
         '''
         for path in paths:
@@ -2856,7 +2826,7 @@ class Mf2ff:
                 if cycle:
                     c.closed = True
                     break
-            self.pictures[picture] += c
+            self.pictures[pic_name] += c
 
     def reversed_path(self, path):
         '''reverses the given cyclic path
@@ -2884,7 +2854,7 @@ class Mf2ff:
         points might be missing and some contours might be broken.
 
         Args:
-            pic_name (fontforge.layer or str): a layer or a name of a picture
+            pic (fontforge.layer or str): a layer or a name of a picture
               in self.pictures
             s (int or float, optional): scale factor to upscale before and
               downscale after removeOverlap(). Value should be much greater
@@ -2930,7 +2900,7 @@ class Mf2ff:
         contours might not be corrected.
 
         Args:
-            pic_name (fontforge.layer or str): a layer or a name of a picture
+            pic (fontforge.layer or str): a layer or a name of a picture
               in self.pictures
             s (int or float, optional): scale factor to upscale before and
               downscale after correctDirection(). Value should be greater
@@ -3072,6 +3042,81 @@ class Mf2ff:
                         break
 
             i_c += 1
+
+    def sort_canonical(self, pic, canonical_start=True, canonical_contours=True):
+        '''applies glyph.canonicalStart() and/or glyph.canonicalContours()
+
+        Args:
+            pic (fontforge.layer or str): a layer or a name of a picture
+              in self.pictures
+        '''
+        # Canonical methods are only available for glyph.
+        # Use self.proc_glyph font to apply sorting.
+        if not canonical_start and not canonical_contours:
+            return
+        if isinstance(pic, fontforge.layer):
+            self.proc_glyph.layers[1] = pic
+        else:
+            self.proc_glyph.layers[1] = self.pictures[pic]
+        if canonical_start:
+            self.proc_glyph.canonicalStart()
+        if canonical_contours:
+            self.proc_glyph.canonicalContours()
+        if isinstance(pic, fontforge.layer):
+            return self.proc_glyph.layers[1]
+        else:
+            self.pictures[pic] = self.proc_glyph.layers[1]
+
+    def sort_dir(self, pic, dir_deg):
+        '''applies sorts contour start and contours based on to given direction
+        
+        Is equivalent to glyph.canonicalStart() and glyph.canonicalContours()
+        if dir_deg = 180.
+
+        Args:
+            pic (fontforge.layer or str): a layer or a name of a picture in
+              self.pictures
+            dir_deg (int or float): the direction in degrees to use for sorting
+        '''
+        ang_deg = dir_deg
+        # set first of each contour
+        best_dists = []
+        if isinstance(pic, fontforge.layer):
+            contours = list(pic)
+        else:
+            contours = list(self.pictures[pic])
+        for c in contours:
+            best_dist = None
+            best_i_p = None
+            for i_p, p in enumerate(c):
+                if not p.on_curve:
+                    continue
+                # signed distance to origin measured in dir
+                dist = sin(ang_deg*pi/180)*p.x+cos(ang_deg*pi/180)*p.y
+                if best_dist is None:
+                    best_dist = dist
+                    best_i_p = i_p
+                elif (
+                    dist < best_dist
+                    or (dist == best_dist and abs(p.y) < abs(c[best_i_p].y))
+                    or (dist == best_dist and abs(p.y) == abs(c[best_i_p].y) and p.x < c[best_i_p].x)
+                ):
+                    best_dist = dist
+                    best_i_p = i_p
+            if best_i_p is not None:
+                c.makeFirst(best_i_p)
+                best_dists.append(best_dist)
+        # sort contours
+        sorted_pic = fontforge.layer()
+        for dist, c in sorted(zip(best_dists, contours), key=lambda x: x[0]):
+            sorted_pic += c
+        if isinstance(pic, fontforge.layer):
+            return sorted_pic
+        else:
+            self.pictures[pic] = sorted_pic
+
+
+    # utils
 
     def del_c_i_j(self, c, i=None, j=None):
         '''performs del c[i:j+1] without 'Segmentation fault (core dumped)'
