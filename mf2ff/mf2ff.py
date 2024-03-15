@@ -3081,7 +3081,7 @@ class Mf2ff:
         '''
         ang_deg = dir_deg
         # set first of each contour
-        best_dists = []
+        bests = []
         if isinstance(pic, fontforge.layer):
             contours = list(pic)
         else:
@@ -3093,7 +3093,8 @@ class Mf2ff:
                 if not p.on_curve:
                     continue
                 # signed distance to origin measured in dir
-                dist = sin(ang_deg*pi/180)*p.x+cos(ang_deg*pi/180)*p.y
+                dist = -cos(ang_deg*pi/180)*p.x-sin(ang_deg*pi/180)*p.y
+                dist = round(dist, self.options.params['sort_dir']['round_digits'])
                 if best_dist is None:
                     best_dist = dist
                     best_i_p = i_p
@@ -3106,10 +3107,14 @@ class Mf2ff:
                     best_i_p = i_p
             if best_i_p is not None:
                 c.makeFirst(best_i_p)
-                best_dists.append(best_dist)
+                bests.append((best_dist, c[best_i_p].y, c[best_i_p].x))
         # sort contours
         sorted_pic = fontforge.layer()
-        for dist, c in sorted(zip(best_dists, contours), key=lambda x: x[0]):
+        bests = list(zip(bests, contours))
+        bests = sorted(bests, key=lambda x: x[0][2])
+        bests = sorted(bests, key=lambda x: x[0][1])
+        bests = sorted(bests, key=lambda x: x[0][0])
+        for c in [b[1] for b in bests]:
             sorted_pic += c
         if isinstance(pic, fontforge.layer):
             return sorted_pic

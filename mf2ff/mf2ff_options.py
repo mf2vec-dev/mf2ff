@@ -121,6 +121,9 @@ class Mf2ffOptions:
             'remove_overlap': {
                 'scale_factor': 1000,
             },
+            'sort_dir': {
+                'round_digits': 4
+            },
         }
 
     def __getattr__(self, name):
