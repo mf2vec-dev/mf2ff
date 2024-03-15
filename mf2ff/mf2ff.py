@@ -3106,8 +3106,8 @@ class Mf2ff:
                     best_dist = dist
                     best_i_p = i_p
             if best_i_p is not None:
+                bests.append((best_dist, abs(c[best_i_p].y), c[best_i_p].x))
                 c.makeFirst(best_i_p)
-                bests.append((best_dist, c[best_i_p].y, c[best_i_p].x))
         # sort contours
         sorted_pic = fontforge.layer()
         bests = list(zip(bests, contours))
