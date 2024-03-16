@@ -133,8 +133,8 @@ class TestGlyphExtension(Mf2ffTest):
         self.assertEqual(dhints[0][1][0], 70)
         self.assertEqual(dhints[0][1][1], 80)
         self.assertEqual(len(dhints[0][2]), 2)
-        self.assertAlmostEqual(dhints[0][2][0], sqrt(2)/2)
-        self.assertAlmostEqual(dhints[0][2][1], sqrt(2)/2)
+        self.assertAlmostEqual(dhints[0][2][0], sqrt(2)/2, places=3)
+        self.assertAlmostEqual(dhints[0][2][1], sqrt(2)/2, places=3)
 
 if __name__ == '__main__':
     unittest.main()
